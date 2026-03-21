@@ -102,8 +102,11 @@ func (s *PrinterSession) Stop() {
 	default:
 		close(s.stop)
 	}
-	<-s.stopped
+	// Close transport first to unblock any in-flight BLE I/O,
+	// otherwise the heartbeat goroutine may hang on Read/Write
+	// and <-s.stopped would block forever.
 	_ = s.tr.Close()
+	<-s.stopped
 	s.updateStatus(func(st *PrinterStatus) {
 		st.Connected = false
 	})
