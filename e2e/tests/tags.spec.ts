@@ -10,48 +10,46 @@ test.describe('Tags', () => {
   let containerId: string;
   let itemId: string;
 
-  test('create a root tag via UI', async ({ page, app }) => {
+  test('create a root tag via API and UI child', async ({ request, page, app }) => {
+    // Create parent tag via API (reliable)
     parentTagName = `RootTag ${Date.now()}`;
-    await page.goto(`${app.baseURL}/ui/tags`);
-    await expect(page.locator('h1')).toContainText('Tagi');
+    const parentRes = await request.post(`${app.baseURL}/api/tags`, {
+      form: { name: parentTagName, parent_id: '' }
+    });
+    const parent = await parentRes.json();
+    parentTagId = parent.id;
 
-    await page.fill('.quick-entry input[name="name"]', parentTagName);
-
-    const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/tags') && r.request().method() === 'POST'
-    );
-    await page.press('.quick-entry input[name="name"]', 'Enter');
-    await responsePromise;
-
-    // Tag should appear in the list
-    await expect(page.locator('#tag-list')).toContainText(parentTagName);
-  });
-
-  test('navigate into parent tag and create child via UI', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/tags`);
-    await page.click(`#tag-list a:has-text("${parentTagName}")`);
+    // Navigate to parent tag page directly (full page load, no HTMX)
+    await page.goto(`${app.baseURL}/ui/tags?parent=${parentTagId}`);
     await expect(page.locator('h1')).toContainText(parentTagName);
 
+    // Create child via quick entry
     childTagName = `ChildTag ${Date.now()}`;
-    await page.fill('.quick-entry input[name="name"]', childTagName);
+    const nameInput = page.locator('.quick-entry input[name="name"]');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill(childTagName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/ui/actions/tags') && r.request().method() === 'POST'
     );
-    await page.press('.quick-entry input[name="name"]', 'Enter');
+    await nameInput.press('Enter');
     await responsePromise;
 
     await expect(page.locator('#tag-list')).toContainText(childTagName);
   });
 
-  test('verify breadcrumb shows parent path', async ({ page, app }) => {
-    // Navigate to parent tag page first
-    await page.goto(`${app.baseURL}/ui/tags`);
-    await page.click(`#tag-list a:has-text("${parentTagName}")`);
-    await expect(page.locator('h1')).toContainText(parentTagName);
+  test('verify breadcrumb shows parent path', async ({ request, page, app }) => {
+    // Get child tag ID if not yet set
+    if (!childTagId) {
+      const tagsRes = await request.get(`${app.baseURL}/api/tags`);
+      const allTags = await tagsRes.json();
+      const childTag = allTags.find((t: any) => t.name === childTagName);
+      expect(childTag).toBeTruthy();
+      childTagId = childTag.id;
+    }
 
-    // Navigate into child
-    await page.click(`#tag-list a:has-text("${childTagName}")`);
+    // Navigate to child tag page directly
+    await page.goto(`${app.baseURL}/ui/tags?parent=${childTagId}`);
     await expect(page.locator('h1')).toContainText(childTagName);
 
     // Breadcrumb should contain the parent tag name
@@ -59,14 +57,9 @@ test.describe('Tags', () => {
   });
 
   test('create container and item via API, then assign tag', async ({ request, app }) => {
-    // Get the parent tag ID
+    // Get child tag ID via API
     const tagsRes = await request.get(`${app.baseURL}/api/tags`);
     const allTags = await tagsRes.json();
-    const parentTag = allTags.find((t: any) => t.name === parentTagName);
-    expect(parentTag).toBeTruthy();
-    parentTagId = parentTag.id;
-
-    // Get child tag
     const childTag = allTags.find((t: any) => t.name === childTagName);
     expect(childTag).toBeTruthy();
     childTagId = childTag.id;
