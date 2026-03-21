@@ -2,21 +2,21 @@
 <div class="templates-view">
     <h1>Szablony</h1>
 
-    {{ if .Tags }}
+    {{ if .Data.Tags }}
     <div class="tag-filter-bar">
-        {{ if .ActiveTag }}
+        {{ if .Data.ActiveTag }}
         <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content" class="tag">wszystkie</a>
         {{ end }}
-        {{ range .Tags }}
+        {{ range .Data.Tags }}
         <a href="/ui/templates?tag={{ . }}" hx-get="/ui/templates?tag={{ . }}" hx-target="#content"
-           class="tag{{ if eq . $.ActiveTag }} active{{ end }}">{{ . }}</a>
+           class="tag{{ if eq . $.Data.ActiveTag }} active{{ end }}">{{ . }}</a>
         {{ end }}
     </div>
     {{ end }}
 
-    {{ if .Templates }}
+    {{ if .Data.Templates }}
     <ul class="container-list">
-        {{ range .Templates }}
+        {{ range .Data.Templates }}
         <li>
             <div class="template-card">
                 <span class="name">{{ .Name }}</span>

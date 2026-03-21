@@ -48,7 +48,7 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if webutil.IsHTMX(r) {
-		s.renderPartial(w, "tags", "tag-list-item", tag)
+		s.renderPartial(w, r, "tags", "tag-list-item", tag)
 		return
 	}
 	if parentID != "" {
@@ -160,7 +160,7 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 		ObjectType: "item",
 		Tags:       s.resolveTagIDs(item.TagIDs),
 	}
-	s.renderPartial(w, "tags", "tag-chips", data)
+	s.renderPartial(w, r, "tags", "tag-chips", data)
 }
 
 // HandleItemTagRemove handles DELETE /ui/actions/items/{id}/tags/{tag_id}.
@@ -188,7 +188,7 @@ func (s *Server) HandleItemTagRemove(w http.ResponseWriter, r *http.Request) {
 		ObjectType: "item",
 		Tags:       s.resolveTagIDs(item.TagIDs),
 	}
-	s.renderPartial(w, "tags", "tag-chips", data)
+	s.renderPartial(w, r, "tags", "tag-chips", data)
 }
 
 // HandleContainerTagAdd handles POST /ui/actions/containers/{id}/tags.
@@ -216,7 +216,7 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 		ObjectType: "container",
 		Tags:       s.resolveTagIDs(container.TagIDs),
 	}
-	s.renderPartial(w, "tags", "tag-chips", data)
+	s.renderPartial(w, r, "tags", "tag-chips", data)
 }
 
 // HandleContainerTagRemove handles DELETE /ui/actions/containers/{id}/tags/{tag_id}.
@@ -244,5 +244,5 @@ func (s *Server) HandleContainerTagRemove(w http.ResponseWriter, r *http.Request
 		ObjectType: "container",
 		Tags:       s.resolveTagIDs(container.TagIDs),
 	}
-	s.renderPartial(w, "tags", "tag-chips", data)
+	s.renderPartial(w, r, "tags", "tag-chips", data)
 }

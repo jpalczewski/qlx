@@ -1,21 +1,21 @@
 {{ define "item-form" }}
 <div class="form-view">
-    {{ template "breadcrumb" dict "Path" .Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path }}
 
-    <h1>{{ if .Item }}Edytuj przedmiot{{ else }}Nowy przedmiot{{ end }}</h1>
+    <h1>{{ if .Data.Item }}Edytuj przedmiot{{ else }}Nowy przedmiot{{ end }}</h1>
 
-    <form hx-{{ if .Item }}put{{ else }}post{{ end }}="/ui/actions/items{{ if .Item }}/{{ .Item.ID }}{{ end }}" hx-target="#content">
-        <input type="hidden" name="container_id" value="{{ if .ContainerID }}{{ .ContainerID }}{{ else }}{{ .Item.ContainerID }}{{ end }}">
+    <form hx-{{ if .Data.Item }}put{{ else }}post{{ end }}="/ui/actions/items{{ if .Data.Item }}/{{ .Data.Item.ID }}{{ end }}" hx-target="#content">
+        <input type="hidden" name="container_id" value="{{ if .Data.ContainerID }}{{ .Data.ContainerID }}{{ else }}{{ .Data.Item.ContainerID }}{{ end }}">
 
-        {{ if .Item }}
-        {{ template "fields/name-desc" dict "name" .Item.Name "description" .Item.Description }}
+        {{ if .Data.Item }}
+        {{ template "fields/name-desc" dict "name" .Data.Item.Name "description" .Data.Item.Description }}
         {{ else }}
         {{ template "fields/name-desc" dict "name" "" "description" "" }}
         {{ end }}
 
         <div class="actions">
-            <button type="submit">{{ if .Item }}Zapisz{{ else }}Utwórz{{ end }}</button>
-            <a href="{{ if .Item }}/ui/items/{{ .Item.ID }}{{ else }}/ui/containers/{{ .ContainerID }}/items{{ end }}" hx-get="{{ if .Item }}/ui/items/{{ .Item.ID }}{{ else }}/ui/containers/{{ .ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
+            <button type="submit">{{ if .Data.Item }}Zapisz{{ else }}Utwórz{{ end }}</button>
+            <a href="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
         </div>
     </form>
 </div>

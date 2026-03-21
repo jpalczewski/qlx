@@ -15,11 +15,53 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
+type contextKey string
+
+const langKey contextKey = "lang"
+
+// Translations is a stub i18n registry. Keys and values will be populated in a future task.
+type Translations struct {
+	langs map[string]map[string]string
+}
+
+// NewTranslations returns an empty Translations with language buckets pre-initialized.
+func NewTranslations() *Translations {
+	return &Translations{langs: map[string]map[string]string{
+		"pl": {},
+		"en": {},
+	}}
+}
+
+// Get returns the translation for key in lang, falling back to "en", then the key itself.
+func (t *Translations) Get(lang, key string) string {
+	if val, ok := t.langs[lang][key]; ok {
+		return val
+	}
+	if val, ok := t.langs["en"][key]; ok {
+		return val
+	}
+	return key
+}
+
+// PageData is the top-level template context for all page and partial renders.
+// It carries the active language, a translation accessor, and the page-specific data.
+type PageData struct {
+	Lang       string
+	translator *Translations
+	Data       any
+}
+
+// T returns the translation for key in the active language.
+func (p PageData) T(key string) string {
+	return p.translator.Get(p.Lang, key)
+}
+
 type Server struct {
 	store          *store.Store
 	printerManager *print.PrinterManager
 	templates      map[string]*template.Template
 	staticFS       fs.FS
+	translations   *Translations
 }
 
 type ContainerListData struct {
@@ -158,7 +200,7 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		panic(err)
 	}
 
-	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS}
+	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS, translations: NewTranslations()}
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -248,26 +290,49 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
+	lang := "pl"
+	if v := r.Context().Value(langKey); v != nil {
+		lang = v.(string)
+	}
+
+	page := PageData{
+		Lang:       lang,
+		translator: s.translations,
+		Data:       data,
+	}
+
 	templateName := "layout"
 	if webutil.IsHTMX(r) {
 		templateName = name
 	}
 
-	if err := tmpl.ExecuteTemplate(w, templateName, data); err != nil {
+	if err := tmpl.ExecuteTemplate(w, templateName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // renderPartial executes a named template directly without the layout wrapper.
 // Use this for HTMX partial responses (fragments, not full pages).
-func (s *Server) renderPartial(w http.ResponseWriter, tmplName, defineName string, data any) {
+func (s *Server) renderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) {
 	tmpl, ok := s.templates[tmplName]
 	if !ok {
 		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, defineName, data); err != nil {
+
+	lang := "pl"
+	if v := r.Context().Value(langKey); v != nil {
+		lang = v.(string)
+	}
+
+	page := PageData{
+		Lang:       lang,
+		translator: s.translations,
+		Data:       data,
+	}
+
+	if err := tmpl.ExecuteTemplate(w, defineName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

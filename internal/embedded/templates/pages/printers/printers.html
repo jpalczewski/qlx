@@ -2,9 +2,9 @@
 <div class="printers-view">
     <h1>Drukarki</h1>
 
-    {{ if .Printers }}
+    {{ if .Data.Printers }}
     <ul class="container-list">
-        {{ range .Printers }}
+        {{ range .Data.Printers }}
         <li>
             <div class="printer-card">
                 <span class="name">{{ .Name }}</span>
@@ -39,7 +39,7 @@
                 <div class="form-group">
                     <label for="encoder">Encoder</label>
                     <select id="encoder" name="encoder">
-                        {{ range .Encoders }}
+                        {{ range .Data.Encoders }}
                         <option value="{{ .Name }}">{{ .Name }}</option>
                         {{ end }}
                     </select>
@@ -47,7 +47,7 @@
                 <div class="form-group">
                     <label for="model">Model</label>
                     <select id="model" name="model">
-                        {{ range .Encoders }}{{ range .Models }}
+                        {{ range .Data.Encoders }}{{ range .Models }}
                         <option value="{{ .ID }}">{{ .Name }}</option>
                         {{ end }}{{ end }}
                     </select>

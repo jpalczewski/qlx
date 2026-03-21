@@ -1,20 +1,20 @@
 {{ define "item" }}
 <div class="item-view">
-    {{ template "breadcrumb" dict "Path" .Path "Current" .Item.Name }}
+    {{ template "breadcrumb" dict "Path" .Data.Path "Current" .Data.Item.Name }}
 
     <article class="item-detail">
-        <h1>{{ .Item.Name }}</h1>
+        <h1>{{ .Data.Item.Name }}</h1>
 
-        {{ if .Item.Description }}
+        {{ if .Data.Item.Description }}
         <section class="description">
-            <p>{{ .Item.Description }}</p>
+            <p>{{ .Data.Item.Description }}</p>
         </section>
         {{ end }}
 
         <section class="location">
             <h3>Lokalizacja</h3>
             <p>
-                {{ range $i, $c := .Path }}
+                {{ range $i, $c := .Data.Path }}
                 {{ if $i }} → {{ end }}
                 <a href="/ui/containers/{{ $c.ID }}" hx-get="/ui/containers/{{ $c.ID }}" hx-target="#content">{{ $c.Name }}</a>
                 {{ end }}
@@ -23,11 +23,11 @@
 
         <section class="print-section">
             <h3>Drukuj etykietę</h3>
-            {{ if .Printers }}
+            {{ if .Data.Printers }}
             <div class="form-group">
                 <label for="print-printer">Drukarka</label>
                 <select id="print-printer" onchange="window.filterTemplates && window.filterTemplates('print-printer','print-template')">
-                    {{ range .Printers }}
+                    {{ range .Data.Printers }}
                     <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
                     {{ end }}
                 </select>
@@ -35,7 +35,7 @@
             <div class="form-group">
                 <label for="print-template">Szablon</label>
                 <select id="print-template">
-                    {{ range .Templates }}
+                    {{ range .Data.Templates }}
                     <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                     {{ end }}
                     <optgroup label="Legacy">
@@ -51,7 +51,7 @@
                 var tmpl = document.getElementById('print-template').value;
                 var result = document.getElementById('print-result');
                 result.textContent = 'Drukowanie...';
-                fetch('/ui/actions/items/{{ .Item.ID }}/print', {
+                fetch('/ui/actions/items/{{ .Data.Item.ID }}/print', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({printer_id: printer, template: tmpl})
@@ -65,8 +65,8 @@
                     var itemData = d.item_data || {};
                     var params = {
                         name: itemData.Name || '', description: itemData.Description || '',
-                        location: itemData.Location || '', id: '{{ .Item.ID }}',
-                        qr_url: '/ui/items/{{ .Item.ID }}',
+                        location: itemData.Location || '', id: '{{ .Data.Item.ID }}',
+                        qr_url: '/ui/items/{{ .Data.Item.ID }}',
                         date: new Date().toISOString().slice(0,10),
                         time: new Date().toTimeString().slice(0,5),
                         printer: ''
@@ -99,16 +99,16 @@
         </section>
 
         <section class="actions">
-            <a href="/ui/items/{{ .Item.ID }}" class="button">✏️ Edytuj</a>
-            <button hx-delete="/ui/actions/items/{{ .Item.ID }}" hx-target="#content" hx-confirm="Usunąć ten przedmiot?" class="danger">🗑️ Usuń</button>
+            <a href="/ui/items/{{ .Data.Item.ID }}" class="button">✏️ Edytuj</a>
+            <button hx-delete="/ui/actions/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="Usunąć ten przedmiot?" class="danger">🗑️ Usuń</button>
         </section>
 
         <section class="back">
-            <a href="/ui/containers/{{ .Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Item.ContainerID }}/items" hx-target="#content">← Wróć do kontenera</a>
+            <a href="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← Wróć do kontenera</a>
         </section>
     </article>
 </div>
-{{ if .Templates }}
+{{ if .Data.Templates }}
 <script src="/static/fabric.min.js"></script>
 <script src="/static/qrcode.min.js"></script>
 <script src="/static/jsbarcode.all.min.js"></script>

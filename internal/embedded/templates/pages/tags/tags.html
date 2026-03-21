@@ -1,10 +1,10 @@
 {{ define "tags" }}
-<h1>{{ if .Parent }}{{ .Parent.Name }}{{ else }}Tagi{{ end }}</h1>
+<h1>{{ if .Data.Parent }}{{ .Data.Parent.Name }}{{ else }}Tagi{{ end }}</h1>
 
-{{ if .Path }}
+{{ if .Data.Path }}
 <nav class="breadcrumb">
     <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">Tagi</a>
-    {{ range .Path }}
+    {{ range .Data.Path }}
     <span class="sep">/</span>
     <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
     {{ end }}
@@ -12,7 +12,7 @@
 {{ end }}
 
 <ul id="tag-list" class="tag-list">
-    {{ range .Tags }}
+    {{ range .Data.Tags }}
     <li>
         <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
     </li>
@@ -26,7 +26,7 @@
       hx-target="#tag-list"
       hx-swap="beforeend"
       hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
-    {{ if .Parent }}<input type="hidden" name="parent_id" value="{{ .Parent.ID }}">{{ end }}
+    {{ if .Data.Parent }}<input type="hidden" name="parent_id" value="{{ .Data.Parent.ID }}">{{ end }}
     <span class="quick-entry-icon">+</span>
     <input type="text" name="name" placeholder="Nowy tag..." required>
     <button type="submit" class="quick-entry-submit">↵</button>

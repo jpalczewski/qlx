@@ -1,20 +1,20 @@
 {{ define "containers" }}
 <div class="container-view">
-    {{ if .Path }}
-    {{ template "breadcrumb" dict "Path" .Path }}
+    {{ if .Data.Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path }}
     {{ else }}
     <h1>Kontenery</h1>
     {{ end }}
 
-    {{ if .Container }}
-    <h2>{{ .Container.Name }}</h2>
-    {{ if .Container.Description }}<p class="description">{{ .Container.Description }}</p>{{ end }}
+    {{ if .Data.Container }}
+    <h2>{{ .Data.Container.Name }}</h2>
+    {{ if .Data.Container.Description }}<p class="description">{{ .Data.Container.Description }}</p>{{ end }}
     {{ end }}
 
     <section class="containers">
         <h3>📦 Podkontenery</h3>
         <ul id="container-list" class="container-list">
-            {{ range .Children }}
+            {{ range .Data.Children }}
             <li draggable="true" data-id="{{ .ID }}" data-type="container">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
                 <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
@@ -31,7 +31,7 @@
               hx-target="#container-list"
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
-            <input type="hidden" name="parent_id" value="{{ if .Container }}{{ .Container.ID }}{{ end }}">
+            <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
             <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy kontener..." required>
             <button type="submit" class="quick-entry-submit">↵</button>
@@ -41,7 +41,7 @@
     <section class="items">
         <h3>📋 Przedmioty</h3>
         <ul id="item-list" class="item-list">
-            {{ range .Items }}
+            {{ range .Data.Items }}
             <li draggable="true" data-id="{{ .ID }}" data-type="item">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
                 <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
@@ -49,20 +49,20 @@
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
                 {{ if .TagIDs }}
-                {{ template "tag-chips" dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs) }}
+                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
                 {{ end }}
             </li>
             {{ else }}
             <li class="empty-state">Brak przedmiotów</li>
             {{ end }}
         </ul>
-        {{ if .Container }}
+        {{ if .Data.Container }}
         <form class="quick-entry"
               hx-post="/ui/actions/items"
               hx-target="#item-list"
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
-            <input type="hidden" name="container_id" value="{{ .Container.ID }}">
+            <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
             <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy przedmiot..." required>
             <input type="number" name="quantity" value="1" min="1">
@@ -71,14 +71,14 @@
         {{ end }}
     </section>
 
-    {{ if .Container }}
+    {{ if .Data.Container }}
     <section class="print-section">
         <h3>Drukuj etykiety</h3>
-        {{ if .Printers }}
+        {{ if .Data.Printers }}
         <div class="form-group">
             <label for="container-print-printer">Drukarka</label>
             <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
-                {{ range .Printers }}
+                {{ range .Data.Printers }}
                 <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
                 {{ end }}
             </select>
@@ -86,7 +86,7 @@
         <div class="form-group">
             <label for="container-print-template">Szablon</label>
             <select id="container-print-template">
-                {{ range .Templates }}
+                {{ range .Data.Templates }}
                 <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                 {{ end }}
                 <optgroup label="Legacy">
@@ -102,7 +102,7 @@
             var tmpl = document.getElementById('container-print-template').value;
             var result = document.getElementById('container-print-result');
             result.textContent = 'Pobieranie przedmiotów...';
-            fetch('/ui/actions/containers/{{ .Container.ID }}/items-json')
+            fetch('/ui/actions/containers/{{ .Data.Container.ID }}/items-json')
                 .then(function(r){ return r.json(); })
                 .then(function(items){
                     if (!items || items.length === 0) {
@@ -144,16 +144,16 @@
         <details>
             <summary>+ Dodaj kontener</summary>
             <form hx-post="/ui/actions/containers" hx-target="#content">
-                <input type="hidden" name="parent_id" value="{{ if .Container }}{{ .Container.ID }}{{ end }}">
+                <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
                 {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
                 <button type="submit">Utwórz</button>
             </form>
         </details>
-        {{ if .Container }}
+        {{ if .Data.Container }}
         <details>
             <summary>+ Dodaj przedmiot</summary>
             <form hx-post="/ui/actions/items" hx-target="#content">
-                <input type="hidden" name="container_id" value="{{ .Container.ID }}">
+                <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
                 {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
                 <button type="submit">Utwórz</button>
             </form>
@@ -161,15 +161,15 @@
         {{ end }}
     </section>
 
-    {{ if .Container }}
-    {{ if and (not .Children) (not .Items) }}
+    {{ if .Data.Container }}
+    {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
-        <button hx-delete="/ui/actions/containers/{{ .Container.ID }}" hx-target="#content" hx-confirm="Usunąć ten kontener?" class="danger">🗑️ Usuń kontener</button>
+        <button hx-delete="/ui/actions/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="Usunąć ten kontener?" class="danger">🗑️ Usuń kontener</button>
     </section>
     {{ end }}
     {{ end }}
 </div>
-{{ if .Templates }}
+{{ if .Data.Templates }}
 <script src="/static/fabric.min.js"></script>
 <script src="/static/qrcode.min.js"></script>
 <script src="/static/jsbarcode.all.min.js"></script>

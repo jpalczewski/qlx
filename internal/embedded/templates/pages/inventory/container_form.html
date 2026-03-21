@@ -1,21 +1,21 @@
 {{ define "container-form" }}
 <div class="form-view">
-    {{ template "breadcrumb" dict "Path" .Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path }}
 
-    <h1>{{ if .Container }}Edytuj kontener{{ else }}Nowy kontener{{ end }}</h1>
+    <h1>{{ if .Data.Container }}Edytuj kontener{{ else }}Nowy kontener{{ end }}</h1>
 
-    <form hx-{{ if .Container }}put{{ else }}post{{ end }}="/ui/actions/containers{{ if .Container }}/{{ .Container.ID }}{{ end }}" hx-target="#content">
-        <input type="hidden" name="parent_id" value="{{ if .ParentID }}{{ .ParentID }}{{ end }}">
+    <form hx-{{ if .Data.Container }}put{{ else }}post{{ end }}="/ui/actions/containers{{ if .Data.Container }}/{{ .Data.Container.ID }}{{ end }}" hx-target="#content">
+        <input type="hidden" name="parent_id" value="{{ if .Data.ParentID }}{{ .Data.ParentID }}{{ end }}">
 
-        {{ if .Container }}
-        {{ template "fields/name-desc" dict "name" .Container.Name "description" .Container.Description }}
+        {{ if .Data.Container }}
+        {{ template "fields/name-desc" dict "name" .Data.Container.Name "description" .Data.Container.Description }}
         {{ else }}
         {{ template "fields/name-desc" dict "name" "" "description" "" }}
         {{ end }}
 
         <div class="actions">
-            <button type="submit">{{ if .Container }}Zapisz{{ else }}Utwórz{{ end }}</button>
-            <a href="{{ if .Container }}/ui/containers/{{ .Container.ID }}{{ else }}/ui{{ end }}" hx-get="{{ if .Container }}/ui/containers/{{ .Container.ID }}{{ else }}/ui{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
+            <button type="submit">{{ if .Data.Container }}Zapisz{{ else }}Utwórz{{ end }}</button>
+            <a href="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-get="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
         </div>
     </form>
 </div>

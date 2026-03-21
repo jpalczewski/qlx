@@ -9,7 +9,7 @@ import (
 func (s *Server) HandleTreePartial(w http.ResponseWriter, r *http.Request) {
 	parentID := r.URL.Query().Get("parent_id")
 	children := s.store.ContainerChildren(parentID)
-	s.renderPartial(w, "containers", "tree-children", children)
+	s.renderPartial(w, r, "containers", "tree-children", children)
 }
 
 // HandleTreeSearchPartial handles GET /ui/partials/tree/search?q=.
@@ -17,7 +17,7 @@ func (s *Server) HandleTreePartial(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleTreeSearchPartial(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	results := s.store.SearchContainers(q)
-	s.renderPartial(w, "containers", "tree-children", results)
+	s.renderPartial(w, r, "containers", "tree-children", results)
 }
 
 // HandleTagTreePartial handles GET /ui/partials/tag-tree?parent_id=.
@@ -25,7 +25,7 @@ func (s *Server) HandleTreeSearchPartial(w http.ResponseWriter, r *http.Request)
 func (s *Server) HandleTagTreePartial(w http.ResponseWriter, r *http.Request) {
 	parentID := r.URL.Query().Get("parent_id")
 	children := s.store.TagChildren(parentID)
-	s.renderPartial(w, "tags", "tag-tree-children", children)
+	s.renderPartial(w, r, "tags", "tag-tree-children", children)
 }
 
 // HandleTagTreeSearchPartial handles GET /ui/partials/tag-tree/search?q=.
@@ -33,5 +33,5 @@ func (s *Server) HandleTagTreePartial(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleTagTreeSearchPartial(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	results := s.store.SearchTags(q)
-	s.renderPartial(w, "tags", "tag-tree-children", results)
+	s.renderPartial(w, r, "tags", "tag-tree-children", results)
 }

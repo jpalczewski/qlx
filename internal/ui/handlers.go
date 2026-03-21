@@ -50,7 +50,7 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Quick entry: return just the new <li> fragment for HTMX append
 	if webutil.IsHTMX(r) {
-		s.renderPartial(w, "containers", "container-list-item", container)
+		s.renderPartial(w, r, "containers", "container-list-item", container)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 
 	// Quick entry: return just the new <li> fragment for HTMX append
 	if webutil.IsHTMX(r) {
-		s.renderPartial(w, "containers", "item-list-item", item)
+		s.renderPartial(w, r, "containers", "item-list-item", item)
 		return
 	}
 
