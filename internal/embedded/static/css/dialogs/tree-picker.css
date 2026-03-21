@@ -1,0 +1,12 @@
+.tree-picker { display: flex; flex-direction: column; height: 100%; padding: 1rem; }
+.tree-picker h3 { margin: 0 0 0.75rem; }
+.tree-search { margin-bottom: 0.75rem; }
+.tree-node { list-style: none; padding: 0.25rem 0; }
+.tree-expand { cursor: pointer; user-select: none; margin-right: 0.25rem; }
+.tree-label { cursor: pointer; padding: 0.15rem 0.5rem; border-radius: 4px; }
+.tree-label.selected { background: var(--color-accent); color: white; }
+.tree-branch { margin-left: 1rem; padding: 0; }
+.tree-picker-footer {
+    margin-top: auto; padding-top: 0.75rem; display: flex;
+    gap: 0.5rem; justify-content: flex-end;
+}

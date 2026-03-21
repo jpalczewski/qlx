@@ -1,0 +1,25 @@
+/* Drag & Drop */
+[draggable=true] {
+    cursor: grab;
+}
+
+[draggable=true]:active {
+    cursor: grabbing;
+}
+
+.dragging {
+    opacity: 0.4;
+}
+
+.drag-over {
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px var(--color-accent);
+    background: rgba(233, 69, 96, 0.1) !important;
+}
+
+.breadcrumb a[data-drop-id].drag-over {
+    background: var(--color-accent);
+    color: white;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+}

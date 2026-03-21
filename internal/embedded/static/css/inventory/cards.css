@@ -1,0 +1,38 @@
+.item-detail {
+    background: var(--color-bg-card);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+
+.item-detail .name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.item-detail .description {
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.item-detail .location {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.printer-status {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.printer-card {
+    background: var(--color-bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}

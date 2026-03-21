@@ -1,0 +1,5 @@
+/* Search in nav */
+#global-search {
+    flex: 0 1 200px; padding: 0.25rem 0.5rem; border-radius: 4px;
+    border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text);
+}
