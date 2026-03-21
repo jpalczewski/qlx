@@ -7,10 +7,6 @@ import (
 	"path/filepath"
 )
 
-// currentVersion is the schema version produced by the latest migration.
-// It must equal len(migrations).
-const currentVersion = 1
-
 // Migration is a function that mutates the raw store map in place.
 type Migration func(data map[string]any) error
 
@@ -19,6 +15,9 @@ type Migration func(data map[string]any) error
 var migrations = []Migration{
 	migrateV0ToV1,
 }
+
+// currentVersion is the schema version produced by the latest migration.
+var currentVersion = len(migrations)
 
 // loadRaw reads the store JSON file and returns the parsed map together with
 // the schema version stored in the "version" field (0 when the field is absent).
