@@ -7,25 +7,38 @@ import (
 	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
+type bulkIDEntry struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+}
+
 type bulkMoveRequest struct {
-	ItemIDs      []string `json:"item_ids"`
-	ContainerIDs []string `json:"container_ids"`
-	TargetID     string   `json:"target_id"`
+	IDs               []bulkIDEntry `json:"ids"`
+	TargetContainerID string        `json:"target_container_id"`
 }
 
 type bulkDeleteRequest struct {
-	ItemIDs      []string `json:"item_ids"`
-	ContainerIDs []string `json:"container_ids"`
+	IDs []bulkIDEntry `json:"ids"`
 }
 
 type bulkTagsRequest struct {
-	ItemIDs      []string `json:"item_ids"`
-	ContainerIDs []string `json:"container_ids"`
-	TagID        string   `json:"tag_id"`
+	IDs   []bulkIDEntry `json:"ids"`
+	TagID string        `json:"tag_id"`
+}
+
+func splitBulkIDs(entries []bulkIDEntry) (itemIDs, containerIDs []string) {
+	for _, e := range entries {
+		switch e.Type {
+		case "item":
+			itemIDs = append(itemIDs, e.ID)
+		case "container":
+			containerIDs = append(containerIDs, e.ID)
+		}
+	}
+	return
 }
 
 // HandleBulkMove handles POST /ui/actions/bulk/move.
-// Moves items and containers to a target container.
 func (s *Server) HandleBulkMove(w http.ResponseWriter, r *http.Request) {
 	var req bulkMoveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -33,7 +46,8 @@ func (s *Server) HandleBulkMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errs := s.store.BulkMove(req.ItemIDs, req.ContainerIDs, req.TargetID)
+	itemIDs, containerIDs := splitBulkIDs(req.IDs)
+	errs := s.store.BulkMove(itemIDs, containerIDs, req.TargetContainerID)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
@@ -45,7 +59,6 @@ func (s *Server) HandleBulkMove(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleBulkDelete handles POST /ui/actions/bulk/delete.
-// Deletes items and containers identified by the request body IDs.
 func (s *Server) HandleBulkDelete(w http.ResponseWriter, r *http.Request) {
 	var req bulkDeleteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -53,7 +66,8 @@ func (s *Server) HandleBulkDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleted, errs := s.store.BulkDelete(req.ItemIDs, req.ContainerIDs)
+	itemIDs, containerIDs := splitBulkIDs(req.IDs)
+	deleted, errs := s.store.BulkDelete(itemIDs, containerIDs)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
@@ -65,7 +79,6 @@ func (s *Server) HandleBulkDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleBulkTags handles POST /ui/actions/bulk/tags.
-// Adds a tag to multiple items and containers.
 func (s *Server) HandleBulkTags(w http.ResponseWriter, r *http.Request) {
 	var req bulkTagsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -73,7 +86,8 @@ func (s *Server) HandleBulkTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.BulkAddTag(req.ItemIDs, req.ContainerIDs, req.TagID); err != nil {
+	itemIDs, containerIDs := splitBulkIDs(req.IDs)
+	if err := s.store.BulkAddTag(itemIDs, containerIDs, req.TagID); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}

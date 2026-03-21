@@ -47,6 +47,13 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
+
+	// Quick entry: return just the new <li> fragment for HTMX append
+	if webutil.IsHTMX(r) {
+		s.renderPartial(w, "containers", "container-list-item", container)
+		return
+	}
+
 	data, _ := s.containerViewModel(container.ID)
 	s.render(w, r, "containers", data)
 }
@@ -124,8 +131,14 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.store.CreateItem(containerID, name, description, quantity)
+	item := s.store.CreateItem(containerID, name, description, quantity)
 	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+
+	// Quick entry: return just the new <li> fragment for HTMX append
+	if webutil.IsHTMX(r) {
+		s.renderPartial(w, "containers", "item-list-item", item)
 		return
 	}
 

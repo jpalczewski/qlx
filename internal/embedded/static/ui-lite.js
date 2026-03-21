@@ -32,6 +32,15 @@
   // ── Selection Module ────────────────────────────────────────────────────────
   var selection = new Map(); // id → type
 
+  // Build [{id, type}] array from selection Map for bulk API calls
+  function selectionEntries() {
+    var entries = [];
+    selection.forEach(function(type, id) {
+      entries.push({id: id, type: type});
+    });
+    return entries;
+  }
+
   function initBulkSelect() {
     document.querySelectorAll(".bulk-select").forEach(function (cb) {
       // Avoid double-binding
@@ -250,7 +259,7 @@
   }
 
   function executeBulkMove(targetID) {
-    var ids = Array.from(selection.keys());
+    var ids = selectionEntries();
     fetch("/ui/actions/bulk/move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -382,7 +391,7 @@
   }
 
   function executeBulkTag(tagID) {
-    var ids = Array.from(selection.keys());
+    var ids = selectionEntries();
     fetch("/ui/actions/bulk/tags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -456,7 +465,7 @@
   }
 
   function executeBulkDelete() {
-    var ids = Array.from(selection.keys());
+    var ids = selectionEntries();
     fetch("/ui/actions/bulk/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -573,7 +582,7 @@
     if (id && selection.has(id) && selection.size > 1) {
       dragData = {
         multi: true,
-        ids: Array.from(selection.keys()),
+        ids: selectionEntries(),
         type: type
       };
       e.dataTransfer.effectAllowed = "move";
@@ -642,7 +651,8 @@
 
     // Multi-drop: use bulk move endpoint
     if (dragData.multi) {
-      if (dragData.ids.indexOf(targetId) !== -1) return;
+      var hasTarget = dragData.ids.some(function(e) { return e.id === targetId; });
+      if (hasTarget) return;
       var ids = dragData.ids;
       dragData = null;
       fetch("/ui/actions/bulk/move", {
