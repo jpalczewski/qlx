@@ -636,11 +636,10 @@ a.button.secondary:hover {
     margin: 0;
 }
 
-.designer-preview-area canvas {
+.designer-preview-area .canvas-container {
     border: 1px solid var(--border);
     border-radius: 4px;
-    max-width: 100%;
-    height: auto;
+    background: #ffffff;
 }
 
 .designer-properties {

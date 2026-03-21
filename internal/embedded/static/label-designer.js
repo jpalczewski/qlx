@@ -95,6 +95,9 @@
     setupCanvasEvents();
     setupSave();
     setupTargetAndSize();
+
+    // Scale preview to fit on init
+    setTimeout(scalePreviewToFit, 50);
   }
 
   function getTargetValue() {
@@ -590,6 +593,25 @@
         console.error("Preview render failed:", err);
       });
     }
+
+    // Scale preview container to fit within preview area
+    scalePreviewToFit();
+  }
+
+  function scalePreviewToFit() {
+    var previewArea = document.querySelector(".designer-preview-area");
+    var container = previewArea ? previewArea.querySelector(".canvas-container") : null;
+    if (!container || !previewCanvas) return;
+
+    var areaWidth = previewArea.clientWidth - 16; // padding
+    var canvasWidth = previewCanvas.getWidth();
+    if (canvasWidth <= 0 || areaWidth <= 0) return;
+
+    var scale = Math.min(1, areaWidth / canvasWidth);
+    container.style.transformOrigin = "top left";
+    container.style.transform = "scale(" + scale + ")";
+    // Set container height to match scaled size to prevent layout overflow
+    container.style.height = (previewCanvas.getHeight() * scale) + "px";
   }
 
   // --- Target & Size ---
@@ -624,6 +646,7 @@
       previewCanvas.setDimensions({ width: size.width, height: size.height });
     }
     onCanvasModified();
+    scalePreviewToFit();
   }
 
   // --- Save ---
