@@ -1,4 +1,4 @@
-.PHONY: build build-mac build-mips test test-ble run clean deps
+.PHONY: build build-mac build-mips test test-ble run clean deps lint lint-fix install-hooks
 
 build:
 	go build -o qlx ./cmd/qlx/
@@ -27,3 +27,12 @@ clean:
 deps:
 	go mod download
 	go mod tidy
+
+lint:
+	golangci-lint run ./...
+
+lint-fix:
+	golangci-lint run --fix ./...
+
+install-hooks:
+	lefthook install
