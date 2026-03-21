@@ -1,0 +1,11 @@
+{
+  "name": "detailed",
+  "padding": 8,
+  "elements": [
+    {"slot": "title", "font_size": 13, "align": "left"},
+    {"slot": "description", "font_size": 13, "align": "left", "color": "#3c3c3c"},
+    {"slot": "location", "font_size": 13, "align": "left", "color": "#505050"},
+    {"slot": "qr", "size": 96},
+    {"slot": "barcode", "height": 32}
+  ]
+}
