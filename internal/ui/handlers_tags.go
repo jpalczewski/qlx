@@ -65,7 +65,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 
 	tag, err := s.store.UpdateTag(id, name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -91,11 +91,7 @@ func (s *Server) HandleTagDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.DeleteTag(id); err != nil {
-		if err == store.ErrTagNotFound {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -142,7 +138,7 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 	tagID := r.FormValue("tag_id") //nolint:gosec // G120: internal tool, no untrusted input
 
 	if err := s.store.AddItemTag(id, tagID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -170,7 +166,7 @@ func (s *Server) HandleItemTagRemove(w http.ResponseWriter, r *http.Request) {
 	tagID := r.PathValue("tag_id")
 
 	if err := s.store.RemoveItemTag(id, tagID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -198,7 +194,7 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 	tagID := r.FormValue("tag_id") //nolint:gosec // G120: internal tool, no untrusted input
 
 	if err := s.store.AddContainerTag(id, tagID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -226,7 +222,7 @@ func (s *Server) HandleContainerTagRemove(w http.ResponseWriter, r *http.Request
 	tagID := r.PathValue("tag_id")
 
 	if err := s.store.RemoveContainerTag(id, tagID); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {

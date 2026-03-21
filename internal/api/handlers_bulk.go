@@ -80,7 +80,7 @@ func (s *Server) HandleBulkTags(w http.ResponseWriter, r *http.Request) {
 
 	itemIDs, containerIDs := splitBulkIDs(req.IDs)
 	if err := s.store.BulkAddTag(itemIDs, containerIDs, req.TagID); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {

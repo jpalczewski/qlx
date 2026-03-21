@@ -165,7 +165,7 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	container, err := s.store.UpdateContainer(r.PathValue("id"), req.Name, req.Description)
 	if err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -177,7 +177,7 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleContainerDelete(w http.ResponseWriter, r *http.Request) {
 	err := s.store.DeleteContainer(r.PathValue("id"))
 	if err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -242,7 +242,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 
 	item, err := s.store.UpdateItem(r.PathValue("id"), req.Name, req.Description)
 	if err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -254,7 +254,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleItemDelete(w http.ResponseWriter, r *http.Request) {
 	err := s.store.DeleteItem(r.PathValue("id"))
 	if err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -278,7 +278,7 @@ func (s *Server) HandleContainerMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.store.MoveContainer(r.PathValue("id"), req.ParentID); err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -294,7 +294,7 @@ func (s *Server) HandleItemMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.store.MoveItem(r.PathValue("id"), req.ContainerID); err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -384,7 +384,7 @@ func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
 	err := s.store.DeletePrinter(r.PathValue("id"))
 	if err != nil {
-		writeStoreError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -496,15 +496,4 @@ func (s *Server) HandlePrinterEvents(w http.ResponseWriter, r *http.Request) {
 
 func isJSONBody(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Content-Type"), "application/json")
-}
-
-func writeStoreError(w http.ResponseWriter, err error) {
-	switch err {
-	case store.ErrContainerNotFound, store.ErrItemNotFound, store.ErrPrinterNotFound:
-		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-	case store.ErrContainerHasChildren, store.ErrContainerHasItems:
-		webutil.JSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
-	default:
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
 }

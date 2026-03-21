@@ -65,7 +65,7 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 
 	_, err := s.store.UpdateContainer(id, name, description)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -87,11 +87,7 @@ func (s *Server) HandleContainerDelete(w http.ResponseWriter, r *http.Request) {
 
 	err := s.store.DeleteContainer(id)
 	if err != nil {
-		if err == store.ErrContainerNotFound {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -157,7 +153,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 
 	item, err := s.store.UpdateItem(id, name, description)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -179,7 +175,7 @@ func (s *Server) HandleItemDelete(w http.ResponseWriter, r *http.Request) {
 
 	err := s.store.DeleteItem(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -243,11 +239,7 @@ func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	if err := s.store.DeletePrinter(id); err != nil {
-		if err == store.ErrPrinterNotFound {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {

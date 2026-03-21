@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/shared/webutil"
-	"github.com/erxyi/qlx/internal/store"
 )
 
 type upsertTagRequest struct {
@@ -65,7 +64,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 
 	tag, err := s.store.UpdateTag(r.PathValue("id"), req.Name)
 	if err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -77,7 +76,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleTagDelete(w http.ResponseWriter, r *http.Request) {
 	err := s.store.DeleteTag(r.PathValue("id"))
 	if err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -93,7 +92,7 @@ func (s *Server) HandleTagMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.store.MoveTag(r.PathValue("id"), req.ParentID); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -115,7 +114,7 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.AddItemTag(r.PathValue("id"), req.TagID); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -126,7 +125,7 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleItemTagRemove(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.RemoveItemTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -144,7 +143,7 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store.AddContainerTag(r.PathValue("id"), req.TagID); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
@@ -155,22 +154,11 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleContainerTagRemove(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.RemoveContainerTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
-		writeTagError(w, err)
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-}
-
-func writeTagError(w http.ResponseWriter, err error) {
-	switch err {
-	case store.ErrTagNotFound, store.ErrItemNotFound, store.ErrContainerNotFound:
-		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-	case store.ErrTagHasChildren:
-		webutil.JSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
-	default:
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
 }
