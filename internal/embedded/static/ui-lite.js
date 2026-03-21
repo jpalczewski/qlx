@@ -176,6 +176,7 @@
 
     var parts = [];
     if (status.battery >= 0) parts.push('Battery: ' + status.battery + '%');
+    if (status.print_width_mm > 0) parts.push(status.print_width_mm + 'mm @ ' + status.dpi + 'dpi');
     if (status.label_type) parts.push('Label: ' + status.label_type);
     if (status.total_labels >= 0) parts.push('Labels: ' + status.used_labels + '/' + status.total_labels);
     parts.push(status.lid_closed ? 'Lid: closed' : 'Lid: OPEN');

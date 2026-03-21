@@ -90,10 +90,20 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 		tr = &transport.TraceTransport{Inner: tr}
 	}
 
+	// Find model info for DPI/width
+	var modelInfo *encoder.ModelInfo
+	for _, mi := range enc.Models() {
+		if mi.ID == cfg.Model {
+			info := mi
+			modelInfo = &info
+			break
+		}
+	}
+
 	// Stop existing session if any
 	m.DisconnectPrinter(printerID)
 
-	session := NewSession(*cfg, tr, enc, m.onStatusUpdate)
+	session := NewSession(*cfg, tr, enc, modelInfo, m.onStatusUpdate)
 
 	m.mu.Lock()
 	m.sessions[printerID] = session

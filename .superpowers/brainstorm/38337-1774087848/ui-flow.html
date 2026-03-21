@@ -1,0 +1,141 @@
+<h2>Sekcja 2: UI Flow — strony i nawigacja</h2>
+<p class="subtitle">Jak użytkownik porusza się między designerem, listą szablonów i drukowaniem</p>
+
+<div class="mockup">
+  <div class="mockup-header">Mapa stron</div>
+  <div class="mockup-body" style="padding: 24px; font-family: monospace; font-size: 13px;">
+
+    <!-- Nav bar mock -->
+    <div style="display: flex; gap: 16px; padding: 8px 16px; background: #1a1a2e; border-radius: 6px; margin-bottom: 20px; border: 1px solid #555;">
+      <span style="color: #e94560; font-weight: bold;">QLX</span>
+      <span style="color: #aaa;">|</span>
+      <span style="color: #eee;">Containers</span>
+      <span style="color: #eee;">Printers</span>
+      <span style="color: #64B5F6; font-weight: bold;">Templates</span>
+      <span style="color: #aaa; font-style: italic; margin-left: auto;">&#x1F5A8; Ready</span>
+    </div>
+
+    <!-- Page boxes -->
+    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <!-- Templates page -->
+      <div style="flex: 1; min-width: 220px; border: 2px solid #64B5F6; border-radius: 8px; padding: 12px;">
+        <div style="color: #64B5F6; font-weight: bold; margin-bottom: 8px;">/ui/templates</div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; margin-bottom: 6px;">
+          <div style="color: #eee;">Filter by tag: <span style="background: #0f3460; padding: 2px 6px; border-radius: 3px; font-size: 11px;">inventory</span> <span style="background: #0f3460; padding: 2px 6px; border-radius: 3px; font-size: 11px;">containers</span></div>
+        </div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span style="color: #eee;">Standard Inventory</span>
+          <span style="color: #888; font-size: 11px;">universal</span>
+        </div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span style="color: #eee;">Compact B1</span>
+          <span style="color: #888; font-size: 11px;">printer:B1</span>
+        </div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span style="color: #eee;">Container Label</span>
+          <span style="color: #888; font-size: 11px;">universal</span>
+        </div>
+        <div style="text-align: center;">
+          <span style="color: #4ecca3; border: 1px solid #4ecca3; padding: 4px 12px; border-radius: 4px;">+ New Template</span>
+        </div>
+      </div>
+
+      <!-- Designer page -->
+      <div style="flex: 1.5; min-width: 280px; border: 2px solid #FFB74D; border-radius: 8px; padding: 12px;">
+        <div style="color: #FFB74D; font-weight: bold; margin-bottom: 8px;">/ui/templates/{id}/edit</div>
+        <div style="display: flex; gap: 8px;">
+          <!-- Toolbar -->
+          <div style="width: 50px; border: 1px solid #444; border-radius: 4px; padding: 6px; text-align: center;">
+            <div style="margin-bottom: 6px; font-size: 16px;" title="Text">T</div>
+            <div style="margin-bottom: 6px; font-size: 14px;" title="QR">&#x25A3;</div>
+            <div style="margin-bottom: 6px; font-size: 14px;" title="Barcode">|||</div>
+            <div style="margin-bottom: 6px; font-size: 14px;" title="Line">&mdash;</div>
+            <div style="font-size: 14px;" title="Image">&#x1F5BC;</div>
+          </div>
+          <!-- Canvas -->
+          <div style="flex: 1; border: 2px dashed #555; border-radius: 4px; padding: 16px; min-height: 120px; position: relative;">
+            <div style="color: #888; font-size: 11px; position: absolute; top: 4px; right: 6px;">50 x 30 mm</div>
+            <div style="color: #eee; font-weight: bold; font-size: 14px;">Screwdriver Set</div>
+            <div style="color: #aaa; font-size: 11px; margin-top: 4px;">Workshop &rarr; Shelf A</div>
+            <div style="border-top: 1px solid #555; margin: 8px 0;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+              <div style="color: #888; font-size: 10px;">|||| |||| ||||</div>
+              <div style="width: 40px; height: 40px; border: 1px solid #888; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #888;">QR</div>
+            </div>
+          </div>
+          <!-- Properties -->
+          <div style="width: 130px; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 11px;">
+            <div style="color: #FFB74D; font-weight: bold; margin-bottom: 6px;">Properties</div>
+            <div style="color: #aaa; margin-bottom: 3px;">Font: <span style="color: #eee;">Sans Bold</span></div>
+            <div style="color: #aaa; margin-bottom: 3px;">Size: <span style="color: #eee;">16</span></div>
+            <div style="color: #aaa; margin-bottom: 3px;">Align: <span style="color: #eee;">Left</span></div>
+            <div style="color: #aaa; margin-bottom: 3px;">Text: <span style="color: #81C784;">{{name}}</span></div>
+            <div style="border-top: 1px solid #444; margin: 6px 0;"></div>
+            <div style="color: #aaa; margin-bottom: 3px;">X: <span style="color: #eee;">2</span> Y: <span style="color: #eee;">2</span></div>
+            <div style="color: #aaa;">W: <span style="color: #eee;">30</span></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end;">
+          <span style="color: #aaa; border: 1px solid #555; padding: 3px 10px; border-radius: 4px; font-size: 12px;">Cancel</span>
+          <span style="color: #4ecca3; border: 1px solid #4ecca3; padding: 3px 10px; border-radius: 4px; font-size: 12px;">Save</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print flow -->
+    <div style="margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap;">
+
+      <!-- Item print -->
+      <div style="flex: 1; min-width: 220px; border: 2px solid #4ecca3; border-radius: 8px; padding: 12px;">
+        <div style="color: #4ecca3; font-weight: bold; margin-bottom: 8px;">/ui/items/{id} — Print section</div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 12px;">
+          <div style="color: #aaa; margin-bottom: 4px;">Printer: <span style="color: #eee;">Niimbot B1 &#x25BE;</span></div>
+          <div style="color: #aaa; margin-bottom: 4px;">Template: <span style="color: #eee;">Standard Inventory &#x25BE;</span></div>
+          <div style="border: 1px dashed #555; border-radius: 4px; padding: 8px; margin: 8px 0; text-align: center; min-height: 60px;">
+            <div style="color: #888; font-size: 11px;">Live preview with item data</div>
+            <div style="color: #eee; font-size: 13px; margin-top: 4px;">Screwdriver Set</div>
+          </div>
+          <div style="text-align: center;">
+            <span style="background: #4ecca3; color: #1a1a2e; padding: 4px 16px; border-radius: 4px; font-weight: bold;">&#x1F5A8; Print</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch print -->
+      <div style="flex: 1; min-width: 220px; border: 2px solid #CE93D8; border-radius: 8px; padding: 12px;">
+        <div style="color: #CE93D8; font-weight: bold; margin-bottom: 8px;">/ui/containers/{id} — Batch print</div>
+        <div style="border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 12px;">
+          <div style="color: #aaa; margin-bottom: 4px;">Printer: <span style="color: #eee;">Niimbot B1 &#x25BE;</span></div>
+          <div style="color: #aaa; margin-bottom: 4px;">Template: <span style="color: #eee;">Standard Inventory &#x25BE;</span></div>
+          <div style="color: #aaa; margin-bottom: 4px;">
+            <span style="color: #eee;">&#x2610;</span> Include sub-containers
+          </div>
+          <div style="color: #aaa; margin-bottom: 4px;">Items: <span style="color: #eee;">12</span></div>
+          <div style="text-align: center; margin-top: 8px;">
+            <span style="background: #CE93D8; color: #1a1a2e; padding: 4px 16px; border-radius: 4px; font-weight: bold;">&#x1F5A8; Print All (12)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Pasuje ten flow?</h3>
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tak, dalej</h3>
+      <p>Nawigacja i rozkład stron OK</p>
+    </div>
+  </div>
+  <div class="option" data-choice="modify" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Chcę coś zmienić</h3>
+      <p>Napisz w terminalu</p>
+    </div>
+  </div>
+</div>

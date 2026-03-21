@@ -25,17 +25,23 @@ type PrinterSession struct {
 }
 
 // NewSession creates a session. onUpdate is called when status changes.
-func NewSession(cfg store.PrinterConfig, tr transport.Transport, enc encoder.Encoder, onUpdate func(string, PrinterStatus)) *PrinterSession {
+// modelInfo provides DPI and print width for display.
+func NewSession(cfg store.PrinterConfig, tr transport.Transport, enc encoder.Encoder, modelInfo *encoder.ModelInfo, onUpdate func(string, PrinterStatus)) *PrinterSession {
 	var querier encoder.StatusQuerier
 	if q, ok := enc.(encoder.StatusQuerier); ok {
 		querier = q
+	}
+	st := PrinterStatus{Battery: -1, TotalLabels: -1, UsedLabels: -1}
+	if modelInfo != nil {
+		st.DPI = modelInfo.DPI
+		st.PrintWidthMm = modelInfo.PrintWidthPx * 254 / (modelInfo.DPI * 10) // px * 25.4 / DPI
 	}
 	return &PrinterSession{
 		config:   cfg,
 		tr:       tr,
 		enc:      enc,
 		querier:  querier,
-		status:   PrinterStatus{Battery: -1, TotalLabels: -1, UsedLabels: -1},
+		status:   st,
 		stop:     make(chan struct{}),
 		stopped:  make(chan struct{}),
 		onUpdate: onUpdate,
