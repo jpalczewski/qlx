@@ -8,10 +8,9 @@ test.describe('Template management', () => {
   const tag1 = 'etykieta';
   const tag2 = 'test';
 
-  test('shows empty template list', async ({ page, app }) => {
+  test('templates page loads', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/ui/templates`);
     await expect(page.locator('h1')).toContainText('Szablony');
-    await expect(page.locator('p.empty')).toContainText('Brak szablonów');
   });
 
   test('navigate to template designer', async ({ page, app }) => {

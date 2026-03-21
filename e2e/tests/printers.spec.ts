@@ -5,10 +5,9 @@ test.describe('Printer management', () => {
 
   const printerName = `Test Printer ${Date.now()}`;
 
-  test('shows empty printer list', async ({ page, app }) => {
+  test('printers page loads', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/ui/printers`);
     await expect(page.locator('h1')).toContainText('Drukarki');
-    await expect(page.locator('.empty')).toContainText('Brak skonfigurowanych drukarek');
   });
 
   test('add printer via form', async ({ page, app }) => {
@@ -81,6 +80,7 @@ test.describe('Printer management', () => {
     await page.click(`.printer-card:has-text("${printerName}") button:has-text("Usuń")`);
     await responsePromise;
 
-    await expect(page.locator('.empty')).toContainText('Brak skonfigurowanych drukarek');
+    // Printer should be gone (other printers from other tests may still exist)
+    await expect(page.locator(`.printer-card:has-text("${printerName}")`)).not.toBeVisible();
   });
 });
