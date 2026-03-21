@@ -88,6 +88,9 @@ func initSchemas() {
 // GetSchema returns a built-in schema by name.
 func GetSchema(name string) (Schema, bool) {
 	schemasOnce.Do(initSchemas)
+	if schemasInitErr != nil {
+		return Schema{}, false
+	}
 	s, ok := builtinSchemas[name]
 	return s, ok
 }
@@ -95,6 +98,9 @@ func GetSchema(name string) (Schema, bool) {
 // SchemaNames returns sorted names of all built-in schemas.
 func SchemaNames() []string {
 	schemasOnce.Do(initSchemas)
+	if schemasInitErr != nil {
+		return nil
+	}
 	names := make([]string, 0, len(builtinSchemas))
 	for n := range builtinSchemas {
 		names = append(names, n)

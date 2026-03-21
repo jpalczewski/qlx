@@ -10,6 +10,7 @@ data/
 .serena/
 .superpowers/
 .worktrees/
+docs/superpowers/
 qlx-e2e-test
 .playwright-mcp
 *.png
