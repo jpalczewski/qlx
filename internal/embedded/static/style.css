@@ -833,23 +833,51 @@ dialog::backdrop { background: rgba(0,0,0,0.5); }
 }
 
 /* Quick entry forms */
-.quick-entry { display: flex; gap: 0.5rem; padding: 0.5rem 0; }
+.quick-entry {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    align-items: center;
+    transition: border-color 0.2s;
+}
+.quick-entry:focus-within {
+    border-color: var(--accent);
+    border-style: solid;
+}
 .quick-entry input[type="text"],
 .quick-entry input[type="number"] {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--bg);
+    padding: 0.4rem 0;
+    border: none;
+    background: transparent;
     color: var(--text);
-    font-size: 0.9rem;
-}
-.quick-entry input[type="text"]:focus,
-.quick-entry input[type="number"]:focus {
+    font-size: 0.95rem;
     outline: none;
-    border-color: var(--accent);
+}
+.quick-entry input[type="text"]::placeholder,
+.quick-entry input[type="number"]::placeholder {
+    color: var(--text-muted);
+}
+.quick-entry-icon {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1;
+    user-select: none;
+    flex-shrink: 0;
+}
+.quick-entry:focus-within .quick-entry-icon {
+    color: var(--accent);
 }
 .quick-entry input[type="text"] { flex: 1; }
-.quick-entry input[type="number"] { width: 5rem; }
+.quick-entry input[type="number"] {
+    width: 4rem;
+    text-align: center;
+    border-left: 1px solid var(--border);
+    padding-left: 0.5rem;
+}
 
 /* Search in nav */
 #global-search {

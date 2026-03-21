@@ -32,6 +32,7 @@
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) this.reset()">
             <input type="hidden" name="parent_id" value="{{ if .Container }}{{ .Container.ID }}{{ end }}">
+            <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy kontener..." required>
         </form>
     </section>
@@ -61,7 +62,9 @@
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) this.reset()">
             <input type="hidden" name="container_id" value="{{ .Container.ID }}">
+            <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy przedmiot..." required>
+            <input type="number" name="quantity" value="1" min="1" placeholder="Ilość">
         </form>
         {{ end }}
     </section>

@@ -27,6 +27,7 @@
       hx-swap="beforeend"
       hx-on::after-request="if(event.detail.successful) this.reset()">
     {{ if .Parent }}<input type="hidden" name="parent_id" value="{{ .Parent.ID }}">{{ end }}
+    <span class="quick-entry-icon">+</span>
     <input type="text" name="name" placeholder="Nowy tag..." required>
 </form>
 {{ end }}
