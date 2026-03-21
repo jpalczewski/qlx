@@ -605,7 +605,7 @@ a.button.secondary:hover {
     background: var(--bg-alt);
 }
 
-.designer-canvas-wrap {
+.designer-canvas-area {
     flex: 1;
     border: 2px dashed var(--border);
     border-radius: 8px;
@@ -617,7 +617,12 @@ a.button.secondary:hover {
     background: var(--bg-alt);
 }
 
-.designer-preview-wrap {
+.designer-canvas-area .canvas-container {
+    border: 1px solid #444;
+    background: #ffffff;
+}
+
+.designer-preview-area {
     width: 200px;
     flex-shrink: 0;
     display: flex;
@@ -625,13 +630,13 @@ a.button.secondary:hover {
     gap: 0.5rem;
 }
 
-.designer-preview-wrap h3 {
+.designer-preview-area h3 {
     font-size: 0.9rem;
     color: var(--text-muted);
     margin: 0;
 }
 
-.designer-preview-wrap canvas {
+.designer-preview-area canvas {
     border: 1px solid var(--border);
     border-radius: 4px;
     max-width: 100%;
@@ -758,12 +763,12 @@ a.button.secondary:hover {
         overflow-x: auto;
     }
 
-    .designer-preview-wrap,
+    .designer-preview-area,
     .designer-properties {
         width: 100%;
     }
 
-    .designer-canvas-wrap {
+    .designer-canvas-area {
         min-height: 300px;
     }
 

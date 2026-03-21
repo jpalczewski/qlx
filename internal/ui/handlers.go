@@ -256,13 +256,30 @@ func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 		BarcodeID:   item.ID,
 	}
 
-	if err := s.printerManager.Print(req.PrinterID, data, req.TemplateName); err != nil {
-		webutil.LogError("print failed: %v", err)
-		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
+	// Check if this is a legacy template (server-side rendering) or designer template
+	switch req.TemplateName {
+	case "simple", "standard", "compact", "detailed":
+		// Legacy templates: server-side rendering via label.Render()
+		if err := s.printerManager.Print(req.PrinterID, data, req.TemplateName); err != nil {
+			webutil.LogError("print failed: %v", err)
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+	default:
+		// Designer template: return template + item data for client-side rendering
+		tmpl := s.store.GetTemplate(req.TemplateName)
+		if tmpl == nil {
+			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
+			return
+		}
+		webutil.JSON(w, http.StatusOK, map[string]any{
+			"ok":        true,
+			"render":    "client",
+			"template":  tmpl,
+			"item_data": data,
+		})
 	}
-
-	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) HandleTemplates(w http.ResponseWriter, r *http.Request) {

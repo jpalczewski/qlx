@@ -10,12 +10,21 @@
   var debounceTimer = null;
 
   function init() {
+    // Dispose previous canvases if re-initializing (HTMX navigation)
+    if (fabricCanvas) {
+      try { fabricCanvas.dispose(); } catch (e) {}
+      fabricCanvas = null;
+    }
+    if (previewCanvas) {
+      try { previewCanvas.dispose(); } catch (e) {}
+      previewCanvas = null;
+    }
+
     app = document.getElementById("designer-app");
     if (!app) return;
 
     templateId = app.getAttribute("data-template-id") || "";
     var templateJson = app.getAttribute("data-template-json") || "[]";
-    var printerModels = app.getAttribute("data-printer-models") || "";
     previewData = {};
     try {
       previewData = JSON.parse(app.getAttribute("data-preview-data") || "{}");
@@ -33,8 +42,19 @@
     // Init Fabric canvas
     var canvasEl = document.getElementById("label-canvas");
     if (!canvasEl) return;
+
+    // Clean up stale Fabric state from previous HTMX swap
+    canvasEl.removeAttribute("data-fabric");
+    canvasEl.className = "";
     canvasEl.width = size.width;
     canvasEl.height = size.height;
+
+    // Remove any leftover Fabric wrapper from previous init
+    var oldWrapper = canvasEl.closest(".canvas-container");
+    if (oldWrapper && oldWrapper.parentNode) {
+      oldWrapper.parentNode.insertBefore(canvasEl, oldWrapper);
+      oldWrapper.remove();
+    }
 
     fabricCanvas = new fabric.Canvas("label-canvas", {
       width: size.width,
@@ -46,6 +66,13 @@
     // Init preview canvas
     var previewEl = document.getElementById("preview-canvas");
     if (previewEl) {
+      previewEl.removeAttribute("data-fabric");
+      previewEl.className = "";
+      var oldPreviewWrapper = previewEl.closest(".canvas-container");
+      if (oldPreviewWrapper && oldPreviewWrapper.parentNode) {
+        oldPreviewWrapper.parentNode.insertBefore(previewEl, oldPreviewWrapper);
+        oldPreviewWrapper.remove();
+      }
       previewCanvas = new fabric.StaticCanvas("preview-canvas", {
         width: size.width,
         height: size.height,
@@ -57,6 +84,8 @@
     if (elements.length > 0) {
       window.QlxFormat.qlxToCanvas(fabricCanvas, elements).then(function () {
         updatePreview();
+      }).catch(function (err) {
+        console.error("Failed to load template elements:", err);
       });
     }
 
@@ -114,6 +143,7 @@
   }
 
   function addText() {
+    if (!fabricCanvas) return;
     var tb = new fabric.Textbox("{{name}}", {
       left: 10,
       top: 10,
@@ -134,6 +164,7 @@
   }
 
   function addQR() {
+    if (!fabricCanvas) return;
     window.QlxFormat.qlxToCanvas(fabricCanvas, [{
       type: "qr", x: 10, y: 10, size: 80, content: "{{qr_url}}"
     }]).then(function () {
@@ -145,10 +176,11 @@
         fabricCanvas.setActiveObject(last);
       }
       onCanvasModified();
-    });
+    }).catch(function (err) { console.error("QR add failed:", err); });
   }
 
   function addBarcode() {
+    if (!fabricCanvas) return;
     window.QlxFormat.qlxToCanvas(fabricCanvas, [{
       type: "barcode", x: 10, y: 10, width: 150, height: 50, content: "{{id}}", format: "code128"
     }]).then(function () {
@@ -160,10 +192,11 @@
         fabricCanvas.setActiveObject(last);
       }
       onCanvasModified();
-    });
+    }).catch(function (err) { console.error("Barcode add failed:", err); });
   }
 
   function addLine() {
+    if (!fabricCanvas) return;
     var line = new fabric.Line([0, 0, 150, 0], {
       left: 10,
       top: 50,
@@ -179,6 +212,7 @@
   }
 
   function addImgPlaceholder() {
+    if (!fabricCanvas) return;
     var rect = new fabric.Rect({
       left: 10,
       top: 10,
@@ -199,6 +233,7 @@
   }
 
   function deleteSelected() {
+    if (!fabricCanvas) return;
     var active = fabricCanvas.getActiveObject();
     if (active) {
       fabricCanvas.remove(active);
@@ -525,6 +560,8 @@
     if (elements.length > 0) {
       window.QlxFormat.qlxToCanvas(previewCanvas, elements, previewData).then(function () {
         previewCanvas.renderAll();
+      }).catch(function (err) {
+        console.error("Preview render failed:", err);
       });
     }
   }
@@ -650,8 +687,11 @@
     tryInit();
   }
 
-  // Re-init after HTMX swaps
-  document.body.addEventListener("htmx:afterSwap", function () {
-    tryInit();
-  });
+  // Re-init after HTMX swaps (register only once)
+  if (!window.__designerHtmxBound) {
+    document.body.addEventListener("htmx:afterSwap", function () {
+      tryInit();
+    });
+    window.__designerHtmxBound = true;
+  }
 })();

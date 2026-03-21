@@ -56,7 +56,40 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({printer_id: printer, template: tmpl})
                 }).then(function(r){ return r.json(); }).then(function(d){
-                    result.textContent = d.ok ? 'Wydrukowano!' : ('Błąd: ' + d.error);
+                    if (!d.ok) { result.textContent = 'Błąd: ' + (d.error || 'unknown'); return; }
+                    if (d.render !== 'client') { result.textContent = 'Wydrukowano!'; return; }
+                    // Client-side rendering for designer templates
+                    result.textContent = 'Renderowanie...';
+                    var elements = [];
+                    try { elements = JSON.parse(d.template.elements || '[]'); } catch(e) {}
+                    var itemData = d.item_data || {};
+                    var params = {
+                        name: itemData.Name || '', description: itemData.Description || '',
+                        location: itemData.Location || '', id: '{{ .Item.ID }}',
+                        qr_url: '/ui/items/{{ .Item.ID }}',
+                        date: new Date().toISOString().slice(0,10),
+                        time: new Date().toTimeString().slice(0,5),
+                        printer: ''
+                    };
+                    // Create off-screen canvas for rendering
+                    var w = d.template.width_mm > 0 ? Math.round(d.template.width_mm * 203/25.4) : (d.template.width_px || 384);
+                    var h = d.template.height_mm > 0 ? Math.round(d.template.height_mm * 203/25.4) : (d.template.height_px || 240);
+                    var tmpCanvas = document.createElement('canvas');
+                    tmpCanvas.width = w; tmpCanvas.height = h;
+                    tmpCanvas.style.display = 'none';
+                    document.body.appendChild(tmpCanvas);
+                    var fc = new fabric.StaticCanvas(tmpCanvas, {width:w, height:h, backgroundColor:'#ffffff'});
+                    window.QlxFormat.qlxToCanvas(fc, elements, params).then(function(){
+                        fc.renderAll();
+                        return window.LabelPrint.print(fc, printer, 2);
+                    }).then(function(){
+                        result.textContent = 'Wydrukowano!';
+                    }).catch(function(e){
+                        result.textContent = 'Błąd: ' + e;
+                    }).finally(function(){
+                        fc.dispose();
+                        if(tmpCanvas.parentNode) tmpCanvas.parentNode.removeChild(tmpCanvas);
+                    });
                 }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
             })()">🖨️ Drukuj</button>
             {{ else }}

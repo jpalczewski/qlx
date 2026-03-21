@@ -1,5 +1,6 @@
 window.LabelDither = (function () {
   function dither(sourceCanvas) {
+    if (!sourceCanvas || !sourceCanvas.getContext) return sourceCanvas;
     var w = sourceCanvas.width;
     var h = sourceCanvas.height;
     var srcCtx = sourceCanvas.getContext("2d");
