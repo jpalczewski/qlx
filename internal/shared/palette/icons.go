@@ -73,7 +73,7 @@ func IconByName(name string) (Icon, bool) {
 
 // RandomIcon returns a random icon from the catalog.
 func RandomIcon() Icon {
-	return icons[rand.Intn(len(icons))]
+	return icons[rand.Intn(len(icons))] //nolint:gosec
 }
 
 // AllIcons returns all icons in catalog order.

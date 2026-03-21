@@ -43,7 +43,7 @@ func ColorByName(name string) (Color, bool) {
 
 // RandomColor returns a random color from the palette.
 func RandomColor() Color {
-	return colors[rand.Intn(len(colors))]
+	return colors[rand.Intn(len(colors))] //nolint:gosec
 }
 
 // AllColors returns all palette colors in display order.

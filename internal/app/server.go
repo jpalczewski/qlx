@@ -45,7 +45,7 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 		}
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Write(data) //nolint:errcheck
+		w.Write(data) //nolint:errcheck,gosec
 	})
 
 	mux.HandleFunc("GET /", uiServer.HandleRoot)

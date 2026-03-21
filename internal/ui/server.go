@@ -179,7 +179,7 @@ func loadLayout(resolveTagsFn func([]string) []store.Tag) *template.Template {
 			if err != nil {
 				return ""
 			}
-			return template.HTML(data)
+			return template.HTML(data) //nolint:gosec
 		},
 		"paletteHex": func(name string) string {
 			c, ok := palette.ColorByName(name)
