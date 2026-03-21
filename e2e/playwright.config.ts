@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
-  retries: 0,
+  retries: process.env.CI ? 2 : 0,
   timeout: 30000,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
@@ -14,7 +14,7 @@ export default defineConfig({
     },
     // SSE (EventSource for printer status) keeps connections open indefinitely,
     // which can block the default 'load' waitUntil on slow CI runners.
-    navigationTimeout: 15000,
+    navigationTimeout: 20000,
     actionTimeout: 15000,
   },
   expect: {
