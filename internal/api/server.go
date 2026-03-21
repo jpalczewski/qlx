@@ -7,16 +7,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
 
 type Server struct {
-	store *store.Store
+	store        *store.Store
+	printService *print.PrintService
 }
 
-func NewServer(s *store.Store) *Server {
-	return &Server{store: s}
+func NewServer(s *store.Store, ps *print.PrintService) *Server {
+	return &Server{store: s, printService: ps}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -37,6 +40,12 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/export/json", s.HandleExportJSON)
 	mux.HandleFunc("GET /api/export/csv", s.HandleExportCSV)
+
+	mux.HandleFunc("GET /api/printers", s.HandlePrinters)
+	mux.HandleFunc("POST /api/printers", s.HandlePrinterCreate)
+	mux.HandleFunc("DELETE /api/printers/{id}", s.HandlePrinterDelete)
+	mux.HandleFunc("GET /api/encoders", s.HandleEncoders)
+	mux.HandleFunc("POST /api/items/{id}/print", s.HandlePrint)
 }
 
 type upsertContainerRequest struct {
@@ -277,13 +286,114 @@ func (s *Server) HandleExportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type addPrinterRequest struct {
+	Name      string `json:"name"`
+	Encoder   string `json:"encoder"`
+	Model     string `json:"model"`
+	Transport string `json:"transport"`
+	Address   string `json:"address"`
+}
+
+type printRequest struct {
+	PrinterID string `json:"printer_id"`
+	Template  string `json:"template"`
+}
+
+func (s *Server) HandlePrinters(w http.ResponseWriter, r *http.Request) {
+	webutil.JSON(w, http.StatusOK, s.store.AllPrinters())
+}
+
+func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
+	var req addPrinterRequest
+	if isJSONBody(r) {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	} else {
+		req.Name = r.FormValue("name")
+		req.Encoder = r.FormValue("encoder")
+		req.Model = r.FormValue("model")
+		req.Transport = r.FormValue("transport")
+		req.Address = r.FormValue("address")
+	}
+
+	printer := s.store.AddPrinter(req.Name, req.Encoder, req.Model, req.Transport, req.Address)
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+	webutil.JSON(w, http.StatusCreated, printer)
+}
+
+func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
+	err := s.store.DeletePrinter(r.PathValue("id"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+func (s *Server) HandleEncoders(w http.ResponseWriter, r *http.Request) {
+	type encoderInfo struct {
+		Name   string              `json:"name"`
+		Models []map[string]string `json:"models"`
+	}
+
+	var result []encoderInfo
+	for name, enc := range s.printService.AvailableEncoders() {
+		info := encoderInfo{Name: name}
+		for _, m := range enc.Models() {
+			info.Models = append(info.Models, map[string]string{
+				"id":   m.ID,
+				"name": m.Name,
+			})
+		}
+		result = append(result, info)
+	}
+	webutil.JSON(w, http.StatusOK, result)
+}
+
+func (s *Server) HandlePrint(w http.ResponseWriter, r *http.Request) {
+	var req printRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		return
+	}
+
+	item := s.store.GetItem(r.PathValue("id"))
+	if item == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	path := s.store.ContainerPath(item.ContainerID)
+	var pathStrs []string
+	for _, c := range path {
+		pathStrs = append(pathStrs, c.Name)
+	}
+	data := label.LabelData{
+		Name:        item.Name,
+		Description: item.Description,
+		Location:    strings.Join(pathStrs, " → "),
+		QRContent:   "/item/" + item.ID,
+		BarcodeID:   item.ID,
+	}
+
+	if err := s.printService.Print(req.PrinterID, data, req.Template); err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 func isJSONBody(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Content-Type"), "application/json")
 }
 
 func writeStoreError(w http.ResponseWriter, err error) {
 	switch err {
-	case store.ErrContainerNotFound, store.ErrItemNotFound:
+	case store.ErrContainerNotFound, store.ErrItemNotFound, store.ErrPrinterNotFound:
 		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 	case store.ErrContainerHasChildren, store.ErrContainerHasItems:
 		webutil.JSON(w, http.StatusConflict, map[string]string{"error": err.Error()})

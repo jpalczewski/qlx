@@ -6,11 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	qlprint "github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/store"
 )
 
 func TestUIRoot_RenderModes(t *testing.T) {
-	srv := NewServer(store.NewMemoryStore())
+	mem := store.NewMemoryStore()
+	srv := NewServer(mem, qlprint.NewPrintService(mem))
 
 	fullReq := httptest.NewRequest("GET", "/ui", nil)
 	fullRes := httptest.NewRecorder()
@@ -37,7 +39,8 @@ func TestUIRoot_RenderModes(t *testing.T) {
 }
 
 func TestRootRedirectsToUI(t *testing.T) {
-	srv := NewServer(store.NewMemoryStore())
+	mem := store.NewMemoryStore()
+	srv := NewServer(mem, qlprint.NewPrintService(mem))
 	req := httptest.NewRequest("GET", "/", nil)
 	res := httptest.NewRecorder()
 
@@ -54,7 +57,7 @@ func TestRootRedirectsToUI(t *testing.T) {
 func TestUIAddItemInContainer(t *testing.T) {
 	mem := store.NewMemoryStore()
 	container := mem.CreateContainer("", "Box", "")
-	srv := NewServer(mem)
+	srv := NewServer(mem, qlprint.NewPrintService(mem))
 
 	form := url.Values{}
 	form.Set("container_id", container.ID)
