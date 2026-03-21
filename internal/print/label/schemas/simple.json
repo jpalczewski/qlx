@@ -3,6 +3,6 @@
   "padding": 8,
   "elements": [
     {"slot": "title", "font_size": 40, "align": "center", "wrap": true},
-    {"slot": "description", "font_size": 15, "align": "center", "wrap": true}
+    {"slot": "description", "font_size": 20, "align": "center", "wrap": true}
   ]
 }
