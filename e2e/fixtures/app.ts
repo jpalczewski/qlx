@@ -28,11 +28,26 @@ function buildBinary() {
   }
 }
 
+type AppFixtures = {
+  /** Override page to set lang=pl cookie before each test */
+  page: import('@playwright/test').Page;
+};
+
 type AppWorkerFixtures = {
   app: { baseURL: string; port: number; dataDir: string };
 };
 
-export const test = base.extend<{}, AppWorkerFixtures>({
+export const test = base.extend<AppFixtures, AppWorkerFixtures>({
+  page: async ({ page, app }, use) => {
+    // Set lang=pl cookie so i18n is deterministic regardless of system locale
+    await page.context().addCookies([{
+      name: 'lang',
+      value: 'pl',
+      domain: '127.0.0.1',
+      path: '/',
+    }]);
+    await use(page);
+  },
   app: [async ({}, use) => {
     buildBinary();
 
