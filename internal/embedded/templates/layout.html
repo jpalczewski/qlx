@@ -14,6 +14,10 @@
         <a href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
         <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Drukarki</a>
         <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">Szablony</a>
+        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">Tagi</a>
+        <input type="search" id="global-search" placeholder="Szukaj..."
+               hx-get="/ui/search" hx-trigger="input changed delay:300ms"
+               hx-target="#content" name="q">
         <span id="printer-status"></span>
     </nav>
     <main id="content">

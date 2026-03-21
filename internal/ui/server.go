@@ -52,6 +52,25 @@ type TemplateListData struct {
 	ActiveTag string
 }
 
+type TagTreeData struct {
+	Tags   []store.Tag
+	Parent *store.Tag
+	Path   []store.Tag
+}
+
+type SearchResultsData struct {
+	Query      string
+	Containers []store.Container
+	Items      []store.Item
+	Tags       []store.Tag
+}
+
+type TagChipsData struct {
+	ObjectID   string
+	ObjectType string
+	Tags       []store.Tag
+}
+
 type DesignerData struct {
 	TemplateID        string
 	TemplateName      string
@@ -72,11 +91,26 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	}
 	layoutTmpl := template.Must(template.New("layout").Funcs(template.FuncMap{
 		"dict": dict,
+		"resolveTags": func(ids []string) []store.Tag {
+			var tags []store.Tag
+			for _, id := range ids {
+				if t := s.GetTag(id); t != nil {
+					tags = append(tags, *t)
+				}
+			}
+			return tags
+		},
 	}).Parse(string(layoutContent)))
 
 	sharedFiles := []string{
 		"templates/partials/breadcrumb.html",
 		"templates/components/form_fields.html",
+		"templates/partials/container_list_item.html",
+		"templates/partials/item_list_item.html",
+		"templates/partials/tag_list_item.html",
+		"templates/partials/tag_chips.html",
+		"templates/partials/tree_children.html",
+		"templates/partials/tag_tree_children.html",
 	}
 	for _, path := range sharedFiles {
 		content, err := embedded.Templates.ReadFile(path)
@@ -94,6 +128,8 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		"printers":          "templates/printers.html",
 		"templates":         "templates/templates.html",
 		"template-designer": "templates/template_designer.html",
+		"tags":              "templates/tags.html",
+		"search":            "templates/search.html",
 	}
 
 	templates := make(map[string]*template.Template)
@@ -170,6 +206,33 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /ui/actions/templates/{id}", s.HandleTemplateDelete)
 	mux.HandleFunc("POST /ui/actions/templates", s.HandleTemplateSave)
 	mux.HandleFunc("PUT /ui/actions/templates/{id}", s.HandleTemplateSave)
+
+	// Tags UI
+	mux.HandleFunc("GET /ui/tags", s.HandleTags)
+	mux.HandleFunc("POST /ui/actions/tags", s.HandleTagCreate)
+	mux.HandleFunc("PUT /ui/actions/tags/{id}", s.HandleTagUpdate)
+	mux.HandleFunc("DELETE /ui/actions/tags/{id}", s.HandleTagDelete)
+	mux.HandleFunc("POST /ui/actions/tags/{id}/move", s.HandleTagMove)
+
+	// Tag assignment
+	mux.HandleFunc("POST /ui/actions/items/{id}/tags", s.HandleItemTagAdd)
+	mux.HandleFunc("DELETE /ui/actions/items/{id}/tags/{tag_id}", s.HandleItemTagRemove)
+	mux.HandleFunc("POST /ui/actions/containers/{id}/tags", s.HandleContainerTagAdd)
+	mux.HandleFunc("DELETE /ui/actions/containers/{id}/tags/{tag_id}", s.HandleContainerTagRemove)
+
+	// Partials
+	mux.HandleFunc("GET /ui/partials/tree", s.HandleTreePartial)
+	mux.HandleFunc("GET /ui/partials/tree/search", s.HandleTreeSearchPartial)
+	mux.HandleFunc("GET /ui/partials/tag-tree", s.HandleTagTreePartial)
+	mux.HandleFunc("GET /ui/partials/tag-tree/search", s.HandleTagTreeSearchPartial)
+
+	// Bulk
+	mux.HandleFunc("POST /ui/actions/bulk/move", s.HandleBulkMove)
+	mux.HandleFunc("POST /ui/actions/bulk/delete", s.HandleBulkDelete)
+	mux.HandleFunc("POST /ui/actions/bulk/tags", s.HandleBulkTags)
+
+	// Search
+	mux.HandleFunc("GET /ui/search", s.HandleSearch)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
@@ -186,6 +249,20 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	}
 
 	if err := tmpl.ExecuteTemplate(w, templateName, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// renderPartial executes a named template directly without the layout wrapper.
+// Use this for HTMX partial responses (fragments, not full pages).
+func (s *Server) renderPartial(w http.ResponseWriter, tmplName, defineName string, data any) {
+	tmpl, ok := s.templates[tmplName]
+	if !ok {
+		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, defineName, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

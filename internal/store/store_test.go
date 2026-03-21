@@ -101,7 +101,7 @@ func TestItemCRUD(t *testing.T) {
 	s := NewMemoryStore()
 	container := s.CreateContainer("", "Box", "")
 
-	item := s.CreateItem(container.ID, "Cable", "HDMI cable")
+	item := s.CreateItem(container.ID, "Cable", "HDMI cable", 1)
 	if item.ID == "" {
 		t.Error("CreateItem should set ID")
 	}
@@ -216,9 +216,9 @@ func TestContainerItems(t *testing.T) {
 	container := s.CreateContainer("", "Box", "")
 	other := s.CreateContainer("", "Other", "")
 
-	item1 := s.CreateItem(container.ID, "Item 1", "")
-	item2 := s.CreateItem(container.ID, "Item 2", "")
-	_ = s.CreateItem(other.ID, "Item 3", "")
+	item1 := s.CreateItem(container.ID, "Item 1", "", 1)
+	item2 := s.CreateItem(container.ID, "Item 2", "", 1)
+	_ = s.CreateItem(other.ID, "Item 3", "", 1)
 
 	items := s.ContainerItems(container.ID)
 	if len(items) != 2 {
@@ -244,7 +244,7 @@ func TestMoveItem(t *testing.T) {
 
 	container1 := s.CreateContainer("", "Box 1", "")
 	container2 := s.CreateContainer("", "Box 2", "")
-	item := s.CreateItem(container1.ID, "Item", "")
+	item := s.CreateItem(container1.ID, "Item", "", 1)
 
 	if err := s.MoveItem(item.ID, container2.ID); err != nil {
 		t.Fatalf("MoveItem error = %v", err)
@@ -326,7 +326,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	container := s1.CreateContainer("", "Room", "A room")
-	item := s1.CreateItem(container.ID, "Cable", "HDMI")
+	item := s1.CreateItem(container.ID, "Cable", "HDMI", 1)
 
 	if err := s1.Save(); err != nil {
 		t.Fatalf("Save() error = %v", err)
@@ -418,7 +418,7 @@ func TestDeleteContainer_Constraints(t *testing.T) {
 
 	parent := s.CreateContainer("", "Parent", "")
 	child := s.CreateContainer(parent.ID, "Child", "")
-	item := s.CreateItem(parent.ID, "Item", "")
+	item := s.CreateItem(parent.ID, "Item", "", 1)
 
 	err := s.DeleteContainer(parent.ID)
 	if !errors.Is(err, ErrContainerHasChildren) {

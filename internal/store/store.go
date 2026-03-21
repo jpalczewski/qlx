@@ -23,11 +23,13 @@ var (
 )
 
 type storeData struct {
+	Version    int                       `json:"version"`
 	Containers map[string]*Container     `json:"containers"`
 	Items      map[string]*Item          `json:"items"`
 	Printers   map[string]*PrinterConfig `json:"printers"`
 	Templates  map[string]*Template      `json:"templates"`
 	Assets     map[string]*Asset         `json:"assets"`
+	Tags       map[string]*Tag           `json:"tags"`
 }
 
 type Store struct {
@@ -39,6 +41,51 @@ type Store struct {
 	printers   map[string]*PrinterConfig
 	templates  map[string]*Template
 	assets     map[string]*Asset
+	tags       map[string]*Tag
+}
+
+// loadStoreData reads path, runs pending migrations, and returns a storeData.
+// Returns nil, nil when the file does not exist or is empty.
+func loadStoreData(path string) (*storeData, error) {
+	raw, fileVersion, err := loadRaw(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if len(raw) == 0 {
+		return nil, nil
+	}
+
+	fileData, err := migrateIfNeeded(path, raw, fileVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var d storeData
+	if err := json.Unmarshal(fileData, &d); err != nil {
+		return nil, err
+	}
+
+	return &d, nil
+}
+
+// migrateIfNeeded runs pending migrations when fileVersion < currentVersion,
+// persists the result atomically, and returns the (possibly migrated) JSON bytes.
+func migrateIfNeeded(path string, raw map[string]any, fileVersion int) ([]byte, error) {
+	if fileVersion < currentVersion {
+		migrated, _, err := runMigrations(path, raw, fileVersion)
+		if err != nil {
+			return nil, err
+		}
+		if err := writeAtomic(path, migrated); err != nil {
+			return nil, err
+		}
+		return migrated, nil
+	}
+	return json.Marshal(raw)
 }
 
 func NewStore(path string) (*Store, error) {
@@ -51,40 +98,33 @@ func NewStore(path string) (*Store, error) {
 		printers:   make(map[string]*PrinterConfig),
 		templates:  make(map[string]*Template),
 		assets:     make(map[string]*Asset),
+		tags:       make(map[string]*Tag),
 	}
 
-	//nolint:gosec // G304: path from trusted CLI input
-	fileData, err := os.ReadFile(path)
+	d, err := loadStoreData(path)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return s, nil
+		return nil, err
+	}
+
+	if d != nil {
+		if d.Containers != nil {
+			s.containers = d.Containers
 		}
-		return nil, err
-	}
-
-	if len(fileData) == 0 {
-		return s, nil
-	}
-
-	var d storeData
-	if err := json.Unmarshal(fileData, &d); err != nil {
-		return nil, err
-	}
-
-	if d.Containers != nil {
-		s.containers = d.Containers
-	}
-	if d.Items != nil {
-		s.items = d.Items
-	}
-	if d.Printers != nil {
-		s.printers = d.Printers
-	}
-	if d.Templates != nil {
-		s.templates = d.Templates
-	}
-	if d.Assets != nil {
-		s.assets = d.Assets
+		if d.Items != nil {
+			s.items = d.Items
+		}
+		if d.Printers != nil {
+			s.printers = d.Printers
+		}
+		if d.Templates != nil {
+			s.templates = d.Templates
+		}
+		if d.Assets != nil {
+			s.assets = d.Assets
+		}
+		if d.Tags != nil {
+			s.tags = d.Tags
+		}
 	}
 
 	return s, nil
@@ -104,11 +144,13 @@ func (s *Store) Save() error {
 	}
 
 	data, err := json.Marshal(&storeData{
+		Version:    currentVersion,
 		Containers: s.containers,
 		Items:      s.items,
 		Printers:   s.printers,
 		Templates:  s.templates,
 		Assets:     s.assets,
+		Tags:       s.tags,
 	})
 	if err != nil {
 		return err
@@ -133,6 +175,7 @@ func (s *Store) CreateContainer(parentID, name, description string) *Container {
 		Name:        name,
 		Description: description,
 		CreatedAt:   time.Now(),
+		TagIDs:      []string{},
 	}
 	s.containers[c.ID] = c
 	return c
@@ -182,9 +225,14 @@ func (s *Store) DeleteContainer(id string) error {
 	return nil
 }
 
-func (s *Store) CreateItem(containerID, name, description string) *Item {
+// CreateItem creates a new item in the given container. If quantity is less than 1 it defaults to 1.
+func (s *Store) CreateItem(containerID, name, description string, quantity int) *Item {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if quantity < 1 {
+		quantity = 1
+	}
 
 	item := &Item{
 		ID:          uuid.New().String(),
@@ -192,6 +240,8 @@ func (s *Store) CreateItem(containerID, name, description string) *Item {
 		Name:        name,
 		Description: description,
 		CreatedAt:   time.Now(),
+		Quantity:    quantity,
+		TagIDs:      []string{},
 	}
 	s.items[item.ID] = item
 	return item
@@ -328,6 +378,7 @@ func NewMemoryStore() *Store {
 		printers:   make(map[string]*PrinterConfig),
 		templates:  make(map[string]*Template),
 		assets:     make(map[string]*Asset),
+		tags:       make(map[string]*Tag),
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"image/color"
 	imagedraw "image/draw"
 	"sync"
+	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
@@ -63,13 +64,23 @@ func (m *PrinterManager) Start() {
 	}
 }
 
-// Stop disconnects all printers.
+// Stop disconnects all printers with a timeout per session.
 func (m *PrinterManager) Stop() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for id, session := range m.sessions {
 		webutil.LogInfo("disconnecting %s", session.config.Name)
-		session.Stop()
+		done := make(chan struct{})
+		go func() {
+			session.Stop()
+			close(done)
+		}()
+		select {
+		case <-done:
+			// clean disconnect
+		case <-time.After(5 * time.Second):
+			webutil.LogError("timeout disconnecting %s, forcing", session.config.Name)
+		}
 		delete(m.sessions, id)
 	}
 }
@@ -115,6 +126,10 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 
 	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
 	if err := session.Start(); err != nil {
+		// Remove failed session from map so Stop() doesn't hang on it
+		m.mu.Lock()
+		delete(m.sessions, printerID)
+		m.mu.Unlock()
 		return fmt.Errorf("connect %s: %w", cfg.Name, err)
 	}
 

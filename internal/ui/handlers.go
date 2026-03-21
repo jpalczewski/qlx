@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,6 +47,13 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
+
+	// Quick entry: return just the new <li> fragment for HTMX append
+	if webutil.IsHTMX(r) {
+		s.renderPartial(w, "containers", "container-list-item", container)
+		return
+	}
+
 	data, _ := s.containerViewModel(container.ID)
 	s.render(w, r, "containers", data)
 }
@@ -107,6 +115,12 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	containerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")                //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description")  //nolint:gosec // G120: internal tool, no untrusted input
+	quantity := 1
+	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
+		if q, err := strconv.Atoi(qStr); err == nil {
+			quantity = q
+		}
+	}
 
 	if strings.TrimSpace(name) == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
@@ -117,8 +131,14 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.store.CreateItem(containerID, name, description)
+	item := s.store.CreateItem(containerID, name, description, quantity)
 	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+
+	// Quick entry: return just the new <li> fragment for HTMX append
+	if webutil.IsHTMX(r) {
+		s.renderPartial(w, "containers", "item-list-item", item)
 		return
 	}
 
