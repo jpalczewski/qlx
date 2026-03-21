@@ -108,4 +108,12 @@
         </section>
     </article>
 </div>
+{{ if .Templates }}
+<script src="/static/fabric.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/jsbarcode.all.min.js"></script>
+<script src="/static/qlx-format.js"></script>
+<script src="/static/label-dither.js"></script>
+<script src="/static/label-print.js"></script>
+{{ end }}
 {{ end }}
