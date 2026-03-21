@@ -20,7 +20,7 @@ test.describe('Tags', () => {
     parentTagId = parent.id;
 
     // Navigate to parent tag page directly (full page load, no HTMX)
-    await page.goto(`${app.baseURL}/ui/tags?parent=${parentTagId}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/ui/tags?parent_id=${parentTagId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(parentTagName);
 
     // Create child via quick entry
@@ -49,7 +49,7 @@ test.describe('Tags', () => {
     }
 
     // Navigate to child tag page directly
-    await page.goto(`${app.baseURL}/ui/tags?parent=${childTagId}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/ui/tags?parent_id=${childTagId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(childTagName);
 
     // Breadcrumb should contain the parent tag name
