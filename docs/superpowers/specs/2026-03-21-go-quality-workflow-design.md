@@ -11,7 +11,7 @@ Pre-commit hooks, CI pipeline, and automated changelog/versioning for QLX — a 
 ### Pre-commit hook (<3s)
 - `gofmt -l` — check formatting (fail on unformatted files, no auto-fix)
 - `go vet ./...` — built-in static analysis
-- `golangci-lint run --fast` — minimal fast linter subset: `govet`, `staticcheck`, `errcheck`, `unused`
+- `golangci-lint run --enable-only govet,staticcheck,errcheck` — explicit fast subset (no `unused` — false positives with build tags `ble`/`minimal`)
 
 ### Commit-msg hook
 - Validate conventional commit format via regex
@@ -22,6 +22,8 @@ Pre-commit hooks, CI pipeline, and automated changelog/versioning for QLX — a 
 
 **File:** `.github/workflows/ci.yml`
 **Trigger:** PR to `main` + push to `main`
+**Go version:** `1.25` (pinned, matches go.mod)
+**golangci-lint-action:** `v6` (pinned major version)
 
 ### Jobs
 
@@ -31,7 +33,7 @@ Pre-commit hooks, CI pipeline, and automated changelog/versioning for QLX — a 
 - Blocks merge on failure
 
 **`test`**
-- `go test ./... -race -coverprofile=coverage.out`
+- `CGO_ENABLED=1 go test ./... -race -coverprofile=coverage.out` (race detector requires CGO; ubuntu-latest provides gcc by default)
 - Upload coverage as artifact (no external service)
 
 **`build`**
@@ -51,18 +53,18 @@ Pre-commit hooks, CI pipeline, and automated changelog/versioning for QLX — a 
 | `govet` | static analysis from Go | pre-commit + CI |
 | `staticcheck` | advanced vet | pre-commit + CI |
 | `errcheck` | uncaught errors | pre-commit + CI |
-| `unused` | dead code | pre-commit + CI |
+| `unused` | dead code | CI only (false positives with build tags locally) |
 | `gosec` | security issues | CI only |
 | `gocritic` | code style, performance | CI only |
 | `ineffassign` | inefficient assignments | CI only |
 | `misspell` | typos in comments/strings | CI only |
-| `gocyclo` | cyclomatic complexity (limit ~15) | CI only |
+| `gocyclo` | cyclomatic complexity (limit 15) | CI only |
 
 **Exclusions:**
 - `*_test.go` — relaxed rules (no `errcheck`)
 - Default build tags (no `ble`) — BLE code requires CGO/CoreBluetooth, not available on CI
 
-**Local vs CI:** lefthook runs `golangci-lint run --fast`, CI runs full `golangci-lint run`.
+**Local vs CI:** lefthook runs `golangci-lint run --enable-only govet,staticcheck,errcheck` (explicit subset, avoids build tag issues), CI runs full `golangci-lint run` with all linters enabled in `.golangci.yml`.
 
 ## 4. Changelog + Versioning (release-please)
 
