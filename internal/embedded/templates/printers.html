@@ -18,6 +18,11 @@
     <p class="empty">Brak skonfigurowanych drukarek</p>
     {{ end }}
 
+    <section class="ble-scan">
+        <button onclick="scanBLE()" class="button">🔍 Skanuj Bluetooth</button>
+        <div id="ble-results"></div>
+    </section>
+
     <section class="actions">
         <details>
             <summary>+ Dodaj drukarkę</summary>
@@ -47,6 +52,7 @@
                     <select id="transport" name="transport">
                         <option value="usb">USB</option>
                         <option value="serial">Serial/Bluetooth</option>
+                        <option value="ble">Bluetooth (BLE)</option>
                         <option value="remote">Remote QLX</option>
                     </select>
                 </div>
@@ -59,4 +65,72 @@
         </details>
     </section>
 </div>
+<script>
+function scanBLE() {
+    var container = document.getElementById('ble-results');
+    container.textContent = '';
+    var loading = document.createElement('p');
+    loading.textContent = 'Skanowanie... (5s)';
+    container.appendChild(loading);
+
+    fetch('/api/bluetooth/scan')
+        .then(function(r) {
+            if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || r.statusText); });
+            return r.json();
+        })
+        .then(function(devices) {
+            container.textContent = '';
+            if (!devices || devices.length === 0) {
+                var empty = document.createElement('p');
+                empty.className = 'empty';
+                empty.textContent = 'Nie znaleziono drukarek';
+                container.appendChild(empty);
+                return;
+            }
+            var ul = document.createElement('ul');
+            ul.className = 'container-list';
+            devices.forEach(function(d) {
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.href = '#';
+                a.className = 'container-item';
+                a.onclick = function(e) {
+                    e.preventDefault();
+                    fillPrinter(d.name, d.address);
+                };
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'name';
+                nameSpan.textContent = d.name;
+                var descSpan = document.createElement('span');
+                descSpan.className = 'desc';
+                descSpan.textContent = 'RSSI: ' + d.rssi + ' dBm | ' + d.address;
+                a.appendChild(nameSpan);
+                a.appendChild(descSpan);
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
+        })
+        .catch(function(err) {
+            container.textContent = '';
+            var errP = document.createElement('p');
+            errP.className = 'empty';
+            errP.textContent = 'Błąd: ' + err.message;
+            container.appendChild(errP);
+        });
+}
+
+function fillPrinter(name, address) {
+    var nameInput = document.getElementById('name');
+    var encoderSelect = document.getElementById('encoder');
+    var transportSelect = document.getElementById('transport');
+    var addressInput = document.getElementById('address');
+    if (nameInput) nameInput.value = name;
+    if (encoderSelect) encoderSelect.value = 'niimbot';
+    if (transportSelect) transportSelect.value = 'ble';
+    if (addressInput) addressInput.value = address;
+    var details = document.querySelector('details');
+    if (details) details.open = true;
+}
+</script>
 {{ end }}
