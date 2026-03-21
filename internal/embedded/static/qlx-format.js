@@ -40,15 +40,19 @@ window.QlxFormat = (function () {
     if (!t) return null;
 
     if (t === "text") {
+      // Account for Fabric scaling: when user resizes text with handles,
+      // Fabric changes scaleX/scaleY instead of fontSize/width.
+      var effectiveSize = Math.round((obj.fontSize || 16) * (obj.scaleY || 1));
+      var effectiveWidth = Math.round((obj.width || 100) * (obj.scaleX || 1));
       return {
         type: "text",
         x: Math.round(obj.left),
         y: Math.round(obj.top),
-        width: Math.round(obj.width),
-        height: Math.round(obj.height),
+        width: effectiveWidth,
+        height: Math.round((obj.height || 0) * (obj.scaleY || 1)),
         text: obj.qlxTemplate || obj.text || "",
         font: fabricFontToQlx(obj.fontFamily),
-        size: obj.fontSize || 16,
+        size: effectiveSize,
         bold: obj.fontWeight === "bold",
         italic: obj.fontStyle === "italic",
         align: obj.textAlign || "left"
