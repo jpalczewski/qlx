@@ -55,9 +55,9 @@
         {{ if .Printers }}
         <div class="form-group">
             <label for="container-print-printer">Drukarka</label>
-            <select id="container-print-printer">
+            <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
                 {{ range .Printers }}
-                <option value="{{ .ID }}">{{ .Name }}</option>
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
                 {{ end }}
             </select>
         </div>
@@ -65,7 +65,7 @@
             <label for="container-print-template">Szablon</label>
             <select id="container-print-template">
                 {{ range .Templates }}
-                <option value="{{ .ID }}">{{ .Name }}</option>
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                 {{ end }}
                 <optgroup label="Legacy">
                     <option value="simple">Prosty</option>
