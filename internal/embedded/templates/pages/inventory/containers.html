@@ -7,7 +7,8 @@
     {{ end }}
 
     {{ if .Data.Container }}
-    <div class="container-header">
+    <div class="container-header" {{ if .Data.Container.Color }}style="border-left: 3px solid {{ paletteHex .Data.Container.Color }}"{{ end }}>
+        <span class="entity-icon large">{{ if .Data.Container.Icon }}{{ icon .Data.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>
         <h2>{{ .Data.Container.Name }}</h2>
         <a href="/ui/containers/{{ .Data.Container.ID }}/edit" hx-get="/ui/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
     </div>
