@@ -110,11 +110,42 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 	inventory *service.InventoryService, bulk *service.BulkService,
 	tagsSvc *service.TagService, search *service.SearchService,
 	printersSvc *service.PrinterService) *Server {
-	layoutContent, err := embedded.Templates.ReadFile("templates/layouts/base.html")
+
+	templates := loadTemplates(s)
+
+	staticFS, err := fs.Sub(embedded.Static, "static")
 	if err != nil {
 		panic(err)
 	}
-	layoutTmpl := template.Must(template.New("layout").Funcs(template.FuncMap{
+
+	return &Server{
+		store:          s,
+		printerManager: pm,
+		templates:      templates,
+		staticFS:       staticFS,
+		translations:   tr,
+		inventory:      inventory,
+		bulk:           bulk,
+		tags:           tagsSvc,
+		search:         search,
+		printers:       printersSvc,
+	}
+}
+
+// loadTemplates discovers and parses all HTML templates from the embedded FS.
+func loadTemplates(s *store.Store) map[string]*template.Template {
+	layoutTmpl := loadLayout(s)
+	mergeHTMLDir(layoutTmpl, "templates/partials")
+	mergeHTMLDir(layoutTmpl, "templates/components")
+	return discoverPages(layoutTmpl)
+}
+
+func loadLayout(s *store.Store) *template.Template {
+	content, err := embedded.Templates.ReadFile("templates/layouts/base.html")
+	if err != nil {
+		panic(err)
+	}
+	return template.Must(template.New("layout").Funcs(template.FuncMap{
 		"dict": dict,
 		"resolveTags": func(ids []string) []store.Tag {
 			var tags []store.Tag
@@ -125,37 +156,33 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 			}
 			return tags
 		},
-	}).Parse(string(layoutContent)))
+	}).Parse(string(content)))
+}
 
-	// Discover and parse all partials and components into the shared layout template.
-	for _, dir := range []string{"templates/partials", "templates/components"} {
-		err := fs.WalkDir(embedded.Templates, dir, func(fpath string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			if d.IsDir() || path.Ext(fpath) != ".html" {
-				return nil
-			}
-			content, err := embedded.Templates.ReadFile(fpath)
-			if err != nil {
-				return err
-			}
-			layoutTmpl = template.Must(layoutTmpl.Parse(string(content)))
-			return nil
-		})
-		if err != nil {
-			panic(err)
+// mergeHTMLDir walks a directory and parses all .html files into tmpl.
+func mergeHTMLDir(tmpl *template.Template, dir string) {
+	err := fs.WalkDir(embedded.Templates, dir, func(fpath string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || path.Ext(fpath) != ".html" {
+			return walkErr
 		}
-	}
-
-	// Discover page templates and build the templates map.
-	templates := make(map[string]*template.Template)
-	err = fs.WalkDir(embedded.Templates, "templates/pages", func(fpath string, d fs.DirEntry, err error) error {
+		content, err := embedded.Templates.ReadFile(fpath)
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || path.Ext(fpath) != ".html" {
-			return nil
+		template.Must(tmpl.Parse(string(content)))
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// discoverPages walks templates/pages/ and registers each .html as a named template.
+func discoverPages(layoutTmpl *template.Template) map[string]*template.Template {
+	templates := make(map[string]*template.Template)
+	err := fs.WalkDir(embedded.Templates, "templates/pages", func(fpath string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || path.Ext(fpath) != ".html" {
+			return walkErr
 		}
 		name := strings.ReplaceAll(strings.TrimSuffix(path.Base(fpath), ".html"), "_", "-")
 		content, err := embedded.Templates.ReadFile(fpath)
@@ -175,24 +202,7 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 	if err != nil {
 		panic(err)
 	}
-
-	staticFS, err := fs.Sub(embedded.Static, "static")
-	if err != nil {
-		panic(err)
-	}
-
-	return &Server{
-		store:          s,
-		printerManager: pm,
-		templates:      templates,
-		staticFS:       staticFS,
-		translations:   tr,
-		inventory:      inventory,
-		bulk:           bulk,
-		tags:           tagsSvc,
-		search:         search,
-		printers:       printersSvc,
-	}
+	return templates
 }
 
 func dict(values ...any) (map[string]any, error) {

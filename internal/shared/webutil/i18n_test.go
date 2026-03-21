@@ -43,7 +43,7 @@ func TestTranslations_LoadFromFS(t *testing.T) {
 func TestLangMiddleware_Cookie(t *testing.T) {
 	handler := LangMiddleware("pl")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := r.Context().Value(LangKey).(string)
-		_, _ = w.Write([]byte(lang))
+		_, _ = w.Write([]byte(lang)) //nolint:gosec // G705: test helper, no user input
 	}))
 	req := httptest.NewRequest("GET", "/", nil)
 	req.AddCookie(&http.Cookie{Name: "lang", Value: "en"})
@@ -57,7 +57,7 @@ func TestLangMiddleware_Cookie(t *testing.T) {
 func TestLangMiddleware_Default(t *testing.T) {
 	handler := LangMiddleware("pl")(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := r.Context().Value(LangKey).(string)
-		_, _ = w.Write([]byte(lang))
+		_, _ = w.Write([]byte(lang)) //nolint:gosec // G705: test helper, no user input
 	}))
 	req := httptest.NewRequest("GET", "/", nil)
 	rec := httptest.NewRecorder()
