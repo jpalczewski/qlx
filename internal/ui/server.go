@@ -43,6 +43,12 @@ type EncoderData struct {
 	Models []encoder.ModelInfo
 }
 
+type TemplateListData struct {
+	Templates []store.Template
+	Tags      []string
+	ActiveTag string
+}
+
 func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
 	if err != nil {
@@ -70,6 +76,7 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		"item-form":      "templates/item_form.html",
 		"container-form": "templates/container_form.html",
 		"printers":       "templates/printers.html",
+		"templates":       "templates/templates.html",
 	}
 
 	templates := make(map[string]*template.Template)
@@ -135,6 +142,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /ui/actions/printers", s.HandlePrinterCreate)
 	mux.HandleFunc("DELETE /ui/actions/printers/{id}", s.HandlePrinterDelete)
 	mux.HandleFunc("POST /ui/actions/items/{id}/print", s.HandleItemPrint)
+
+	mux.HandleFunc("GET /ui/templates", s.HandleTemplates)
+	mux.HandleFunc("DELETE /ui/actions/templates/{id}", s.HandleTemplateDelete)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/erxyi/qlx/internal/print/label"
@@ -256,4 +257,50 @@ func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandleTemplates(w http.ResponseWriter, r *http.Request) {
+	activeTag := r.URL.Query().Get("tag")
+	all := s.store.AllTemplates()
+
+	tagSet := make(map[string]bool)
+	for _, t := range all {
+		for _, tag := range t.Tags {
+			tagSet[tag] = true
+		}
+	}
+	tags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+
+	var filtered []store.Template
+	if activeTag == "" {
+		filtered = all
+	} else {
+		for _, t := range all {
+			for _, tag := range t.Tags {
+				if tag == activeTag {
+					filtered = append(filtered, t)
+					break
+				}
+			}
+		}
+	}
+
+	s.render(w, r, "templates", TemplateListData{
+		Templates: filtered,
+		Tags:      tags,
+		ActiveTag: activeTag,
+	})
+}
+
+func (s *Server) HandleTemplateDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	s.store.DeleteTemplate(id)
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+	s.HandleTemplates(w, r)
 }
