@@ -12,5 +12,5 @@ data/
 .worktrees/
 qlx-e2e-test
 .playwright-mcp
-screenshot-*.png
+*.png
 test-results/.last-run.json
