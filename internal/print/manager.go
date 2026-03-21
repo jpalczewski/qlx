@@ -2,6 +2,7 @@ package print
 
 import (
 	"fmt"
+	"image"
 	"sync"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
@@ -207,6 +208,58 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 	}
 
 	webutil.LogInfo("print complete on %s", cfg.Name)
+	return nil
+}
+
+// PrintImage sends a pre-rendered image directly to the printer, bypassing label rendering.
+func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
+	cfg := m.store.GetPrinter(printerID)
+	if cfg == nil {
+		return fmt.Errorf("printer not found: %s", printerID)
+	}
+
+	enc, ok := m.encoders[cfg.Encoder]
+	if !ok {
+		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
+	}
+
+	var modelInfo *encoder.ModelInfo
+	for _, mi := range enc.Models() {
+		if mi.ID == cfg.Model {
+			info := mi
+			modelInfo = &info
+			break
+		}
+	}
+	if modelInfo == nil {
+		return fmt.Errorf("model not found: %s", cfg.Model)
+	}
+
+	m.mu.RLock()
+	session, ok := m.sessions[printerID]
+	m.mu.RUnlock()
+
+	if !ok || !session.Status().Connected {
+		// No active session — try to connect first
+		if err := m.ConnectPrinter(printerID); err != nil {
+			return fmt.Errorf("connect for print: %w", err)
+		}
+		m.mu.RLock()
+		session = m.sessions[printerID]
+		m.mu.RUnlock()
+	}
+
+	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
+	opts := encoder.PrintOpts{
+		Density:  modelInfo.DensityDefault,
+		AutoCut:  true,
+		Quantity: 1,
+	}
+	if err := session.Print(img, cfg.Model, opts); err != nil {
+		return fmt.Errorf("encode: %w", err)
+	}
+
+	webutil.LogInfo("print image complete on %s", cfg.Name)
 	return nil
 }
 

@@ -100,6 +100,33 @@ func TestPrinterManager_ConnectDisconnect(t *testing.T) {
 	}
 }
 
+func TestPrinterManager_PrintImage(t *testing.T) {
+	mgr, mockTr := newManagerWithMock(t)
+
+	printer := mgr.store.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+
+	if err := mgr.PrintImage(printer.ID, img); err != nil {
+		t.Fatalf("PrintImage() returned unexpected error: %v", err)
+	}
+
+	if len(mockTr.Written) == 0 {
+		t.Error("expected data to be written to transport, got none")
+	}
+}
+
+func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
+	s := store.NewMemoryStore()
+	mgr := NewPrinterManager(s)
+
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	err := mgr.PrintImage("nonexistent-id", img)
+	if err == nil {
+		t.Fatal("expected error for unknown printer, got nil")
+	}
+}
+
 func TestPrinterManager_AvailableEncoders(t *testing.T) {
 	s := store.NewMemoryStore()
 	mgr := NewPrinterManager(s)
