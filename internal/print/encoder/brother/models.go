@@ -3,14 +3,14 @@ package brother
 import "github.com/erxyi/qlx/internal/print/encoder"
 
 type qlModel struct {
-	ID              string
-	Name            string
-	BytesPerRow     int
-	MinLengthDots   int
-	MaxLengthDots   int
-	Compression     bool
-	ModeSwitching   bool
-	Cutting         bool
+	ID            string
+	Name          string
+	BytesPerRow   int
+	MinLengthDots int
+	MaxLengthDots int
+	Compression   bool
+	ModeSwitching bool
+	Cutting       bool
 }
 
 var ql700 = qlModel{
@@ -25,7 +25,7 @@ func modelInfo(m qlModel) encoder.ModelInfo {
 	return encoder.ModelInfo{
 		ID: m.ID, Name: m.Name, DPI: 300,
 		PrintWidthPx: m.BytesPerRow * 8,
-		MediaTypes: []string{"endless", "die-cut"},
+		MediaTypes:   []string{"endless", "die-cut"},
 		DensityRange: [2]int{1, 1}, DensityDefault: 1,
 	}
 }

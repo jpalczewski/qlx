@@ -1,0 +1,80 @@
+{{ define "template-designer" }}
+<div class="designer-view" id="designer-app"
+     data-template-id="{{ .TemplateID }}"
+     data-template-json="{{ .TemplateJSON }}"
+     data-printer-models="{{ .PrinterModelsJSON }}"
+     data-preview-data="{{ .PreviewDataJSON }}">
+
+    <header class="designer-header">
+        <div class="designer-meta">
+            <div class="form-group">
+                <label for="template-name">Nazwa</label>
+                <input type="text" id="template-name" value="{{ .TemplateName }}" placeholder="Nazwa szablonu">
+            </div>
+            <div class="form-group">
+                <label for="template-tags">Tagi</label>
+                <input type="text" id="template-tags" value="{{ .TemplateTags }}" placeholder="tag1, tag2">
+            </div>
+            <div class="form-group">
+                <label for="template-target">Cel</label>
+                <select id="template-target">
+                    <option value="universal"{{ if eq .Target "universal" }} selected{{ end }}>Uniwersalny (mm)</option>
+                    {{ range .PrinterModels }}
+                    <option value="printer:{{ .ID }}"{{ if eq (printf "printer:%s" .ID) $.Target }} selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="template-width">Szerokość</label>
+                <input type="number" id="template-width" value="{{ .Width }}" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+                <label for="template-height">Wysokość</label>
+                <input type="number" id="template-height" value="{{ .Height }}" step="0.1" min="1">
+                <span id="size-unit">{{ if eq .Target "universal" }}mm{{ else }}px{{ end }}</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="designer-body">
+        <div class="designer-toolbar" id="toolbar">
+            <button type="button" data-tool="text" title="Tekst">T</button>
+            <button type="button" data-tool="qr" title="Kod QR">QR</button>
+            <button type="button" data-tool="barcode" title="Kod kreskowy">|||</button>
+            <button type="button" data-tool="line" title="Linia">—</button>
+            <button type="button" data-tool="img" title="Obraz">🖼</button>
+            <button type="button" data-tool="delete" title="Usuń zaznaczone">✕</button>
+        </div>
+
+        <div class="designer-center">
+            <div class="designer-canvas-area">
+                <canvas id="label-canvas"></canvas>
+            </div>
+            <div class="designer-preview-area">
+                <h4>Preview</h4>
+                <canvas id="preview-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="designer-properties" id="properties-panel">
+            <div id="props-content">
+                <p class="empty">Zaznacz element</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="designer-footer">
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content" class="button secondary">Anuluj</a>
+        <button type="button" id="save-template" class="button">Zapisz</button>
+    </footer>
+</div>
+
+<script src="/static/fabric.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/jsbarcode.all.min.js"></script>
+<script src="/static/qlx-format.js"></script>
+<script src="/static/label-params.js"></script>
+<script src="/static/label-dither.js"></script>
+<script src="/static/label-print.js"></script>
+<script src="/static/label-designer.js"></script>
+{{ end }}

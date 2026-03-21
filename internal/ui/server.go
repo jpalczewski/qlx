@@ -25,6 +25,8 @@ type ContainerListData struct {
 	Items     []store.Item
 	Container *store.Container
 	Path      []store.Container
+	Printers  []store.PrinterConfig
+	Templates []store.Template
 }
 
 type ItemDetailData struct {
@@ -42,6 +44,25 @@ type PrintersData struct {
 type EncoderData struct {
 	Name   string
 	Models []encoder.ModelInfo
+}
+
+type TemplateListData struct {
+	Templates []store.Template
+	Tags      []string
+	ActiveTag string
+}
+
+type DesignerData struct {
+	TemplateID        string
+	TemplateName      string
+	TemplateTags      string
+	Target            string
+	Width             float64
+	Height            float64
+	TemplateJSON      string
+	PrinterModels     []encoder.ModelInfo
+	PrinterModelsJSON string
+	PreviewDataJSON   string
 }
 
 func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
@@ -66,11 +87,13 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	}
 
 	templateFiles := map[string]string{
-		"containers":     "templates/containers.html",
-		"item":           "templates/item.html",
-		"item-form":      "templates/item_form.html",
-		"container-form": "templates/container_form.html",
-		"printers":       "templates/printers.html",
+		"containers":        "templates/containers.html",
+		"item":              "templates/item.html",
+		"item-form":         "templates/item_form.html",
+		"container-form":    "templates/container_form.html",
+		"printers":          "templates/printers.html",
+		"templates":         "templates/templates.html",
+		"template-designer": "templates/template_designer.html",
 	}
 
 	templates := make(map[string]*template.Template)
@@ -136,6 +159,17 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /ui/actions/printers", s.HandlePrinterCreate)
 	mux.HandleFunc("DELETE /ui/actions/printers/{id}", s.HandlePrinterDelete)
 	mux.HandleFunc("POST /ui/actions/items/{id}/print", s.HandleItemPrint)
+	mux.HandleFunc("POST /ui/actions/print-image", s.HandlePrintImage)
+	mux.HandleFunc("POST /ui/actions/assets", s.HandleAssetUpload)
+	mux.HandleFunc("GET /ui/actions/assets/{id}", s.HandleAssetServe)
+	mux.HandleFunc("GET /ui/actions/containers/{id}/items-json", s.HandleContainerItemsJSON)
+
+	mux.HandleFunc("GET /ui/templates", s.HandleTemplates)
+	mux.HandleFunc("GET /ui/templates/new", s.HandleTemplateNew)
+	mux.HandleFunc("GET /ui/templates/{id}/edit", s.HandleTemplateEdit)
+	mux.HandleFunc("DELETE /ui/actions/templates/{id}", s.HandleTemplateDelete)
+	mux.HandleFunc("POST /ui/actions/templates", s.HandleTemplateSave)
+	mux.HandleFunc("PUT /ui/actions/templates/{id}", s.HandleTemplateSave)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
@@ -157,9 +191,14 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 }
 
 func (s *Server) containerViewModel(containerID string) (ContainerListData, bool) {
+	printers := s.store.AllPrinters()
+	templates := s.store.AllTemplates()
+
 	if containerID == "" {
 		return ContainerListData{
-			Children: s.store.ContainerChildren(""),
+			Children:  s.store.ContainerChildren(""),
+			Printers:  printers,
+			Templates: templates,
 		}, true
 	}
 
@@ -173,6 +212,8 @@ func (s *Server) containerViewModel(containerID string) (ContainerListData, bool
 		Items:     s.store.ContainerItems(containerID),
 		Container: container,
 		Path:      s.store.ContainerPath(containerID),
+		Printers:  printers,
+		Templates: templates,
 	}, true
 }
 

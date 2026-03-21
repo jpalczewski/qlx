@@ -49,6 +49,75 @@
     </section>
     {{ end }}
 
+    {{ if .Container }}
+    <section class="print-section">
+        <h3>Drukuj etykiety</h3>
+        {{ if .Printers }}
+        <div class="form-group">
+            <label for="container-print-printer">Drukarka</label>
+            <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
+                {{ range .Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="container-print-template">Szablon</label>
+            <select id="container-print-template">
+                {{ range .Templates }}
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
+                {{ end }}
+                <optgroup label="Legacy">
+                    <option value="simple">Prosty</option>
+                    <option value="standard">Standardowy</option>
+                    <option value="compact">Kompaktowy</option>
+                    <option value="detailed">Szczegółowy</option>
+                </optgroup>
+            </select>
+        </div>
+        <button id="container-print-all-btn" onclick="(function(){
+            var printer = document.getElementById('container-print-printer').value;
+            var tmpl = document.getElementById('container-print-template').value;
+            var result = document.getElementById('container-print-result');
+            result.textContent = 'Pobieranie przedmiotów...';
+            fetch('/ui/actions/containers/{{ .Container.ID }}/items-json')
+                .then(function(r){ return r.json(); })
+                .then(function(items){
+                    if (!items || items.length === 0) {
+                        result.textContent = 'Brak przedmiotów do wydruku.';
+                        return;
+                    }
+                    result.textContent = 'Drukowanie ' + items.length + ' etykiet...';
+                    var printed = 0;
+                    var errors = [];
+                    function printNext(i) {
+                        if (i >= items.length) {
+                            if (errors.length > 0) {
+                                result.textContent = 'Wydrukowano ' + printed + '/' + items.length + '. Błędy: ' + errors.join(', ');
+                            } else {
+                                result.textContent = 'Wydrukowano ' + printed + ' etykiet!';
+                            }
+                            return;
+                        }
+                        fetch('/ui/actions/items/' + items[i].id + '/print', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({printer_id: printer, template: tmpl})
+                        }).then(function(r){ return r.json(); }).then(function(d){
+                            if (d.ok) { printed++; } else { errors.push(items[i].name + ': ' + d.error); }
+                            printNext(i + 1);
+                        }).catch(function(e){ errors.push(items[i].name + ': ' + e); printNext(i + 1); });
+                    }
+                    printNext(0);
+                }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
+        })()">Drukuj wszystkie przedmioty</button>
+        {{ else }}
+        <p class="empty">Brak skonfigurowanych drukarek. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Dodaj drukarkę</a>.</p>
+        {{ end }}
+        <div id="container-print-result"></div>
+    </section>
+    {{ end }}
+
     <section class="actions">
         <details>
             <summary>+ Dodaj kontener</summary>
@@ -78,4 +147,12 @@
     {{ end }}
     {{ end }}
 </div>
+{{ if .Templates }}
+<script src="/static/fabric.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/jsbarcode.all.min.js"></script>
+<script src="/static/qlx-format.js"></script>
+<script src="/static/label-dither.js"></script>
+<script src="/static/label-print.js"></script>
+{{ end }}
 {{ end }}

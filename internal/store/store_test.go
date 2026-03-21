@@ -442,3 +442,142 @@ func TestDeleteContainer_Constraints(t *testing.T) {
 		t.Fatalf("DeleteContainer parent error = %v", err)
 	}
 }
+
+func TestTemplateCRUD(t *testing.T) {
+	s := NewMemoryStore()
+
+	// Create
+	tmpl := s.CreateTemplate("Address Label", []string{"shipping"}, "universal", 62, 29, 0, 0, `[{"type":"text","value":"Hello"}]`)
+	if tmpl.ID == "" {
+		t.Error("CreateTemplate should set ID")
+	}
+	if tmpl.Name != "Address Label" {
+		t.Errorf("Name = %q, want %q", tmpl.Name, "Address Label")
+	}
+	if tmpl.Target != "universal" {
+		t.Errorf("Target = %q, want %q", tmpl.Target, "universal")
+	}
+	if tmpl.CreatedAt.IsZero() {
+		t.Error("CreatedAt should be set")
+	}
+
+	// Get
+	got := s.GetTemplate(tmpl.ID)
+	if got == nil {
+		t.Fatal("GetTemplate returned nil")
+	}
+	if got.Name != "Address Label" {
+		t.Errorf("GetTemplate Name = %q, want %q", got.Name, "Address Label")
+	}
+
+	// Get nonexistent
+	if s.GetTemplate("nonexistent") != nil {
+		t.Error("GetTemplate should return nil for nonexistent ID")
+	}
+
+	// List
+	s.CreateTemplate("QR Label", []string{"inventory"}, "printer:B1", 0, 0, 384, 240, `[]`)
+	all := s.AllTemplates()
+	if len(all) != 2 {
+		t.Errorf("AllTemplates count = %d, want 2", len(all))
+	}
+
+	// Update (SaveTemplate)
+	tmpl.Name = "Updated Label"
+	tmpl.Elements = `[{"type":"text","value":"Updated"}]`
+	s.SaveTemplate(*tmpl)
+
+	updated := s.GetTemplate(tmpl.ID)
+	if updated.Name != "Updated Label" {
+		t.Errorf("SaveTemplate Name = %q, want %q", updated.Name, "Updated Label")
+	}
+	if updated.UpdatedAt.Before(tmpl.CreatedAt) {
+		t.Error("UpdatedAt should be after CreatedAt")
+	}
+
+	// Delete
+	s.DeleteTemplate(tmpl.ID)
+	if s.GetTemplate(tmpl.ID) != nil {
+		t.Error("DeleteTemplate should remove template")
+	}
+	if len(s.AllTemplates()) != 1 {
+		t.Errorf("AllTemplates after delete = %d, want 1", len(s.AllTemplates()))
+	}
+
+	// Delete nonexistent (should not panic)
+	s.DeleteTemplate("nonexistent")
+}
+
+func TestAssetCRUD(t *testing.T) {
+	tmpDir := t.TempDir()
+	assetsDir := filepath.Join(tmpDir, "assets")
+	path := filepath.Join(tmpDir, "data.json")
+
+	s, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+
+	imgData := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A} // PNG header
+	var assetID string
+
+	t.Run("Save", func(t *testing.T) {
+		asset, err := s.SaveAsset("logo.png", "image/png", imgData)
+		if err != nil {
+			t.Fatalf("SaveAsset error = %v", err)
+		}
+		if asset.ID == "" {
+			t.Error("should set ID")
+		}
+		if asset.Name != "logo.png" {
+			t.Errorf("Name = %q, want %q", asset.Name, "logo.png")
+		}
+		assetID = asset.ID
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		got := s.GetAsset(assetID)
+		if got == nil {
+			t.Fatal("returned nil")
+		}
+		if got.Name != "logo.png" {
+			t.Errorf("Name = %q, want %q", got.Name, "logo.png")
+		}
+		if s.GetAsset("nonexistent") != nil {
+			t.Error("should return nil for nonexistent")
+		}
+	})
+
+	t.Run("ReadData", func(t *testing.T) {
+		data, err := s.AssetData(assetID)
+		if err != nil {
+			t.Fatalf("error = %v", err)
+		}
+		if len(data) != len(imgData) {
+			t.Errorf("length = %d, want %d", len(data), len(imgData))
+		}
+		if _, err := s.AssetData("nonexistent"); err == nil {
+			t.Error("should error for nonexistent")
+		}
+	})
+
+	t.Run("List", func(t *testing.T) {
+		if _, err := s.SaveAsset("icon.jpg", "image/jpeg", []byte{0xFF, 0xD8}); err != nil {
+			t.Fatal(err)
+		}
+		if len(s.AllAssets()) != 2 {
+			t.Errorf("count = %d, want 2", len(s.AllAssets()))
+		}
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		s.DeleteAsset(assetID)
+		if s.GetAsset(assetID) != nil {
+			t.Error("should remove asset")
+		}
+		if _, err := os.Stat(filepath.Join(assetsDir, assetID+".bin")); !os.IsNotExist(err) {
+			t.Error("should remove file from disk")
+		}
+		s.DeleteAsset("nonexistent") // should not panic
+	})
+}

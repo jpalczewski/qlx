@@ -129,6 +129,48 @@
       });
   }
 
+  // Filter templates by selected printer model
+  window.filterTemplates = function(printerSelectId, templateSelectId) {
+    var printerSel = document.getElementById(printerSelectId);
+    var templateSel = document.getElementById(templateSelectId);
+    if (!printerSel || !templateSel) return;
+
+    var selected = printerSel.options[printerSel.selectedIndex];
+    var model = selected ? selected.getAttribute("data-model") : "";
+
+    var firstVisible = null;
+    var currentHidden = false;
+
+    Array.from(templateSel.options).forEach(function(opt) {
+      var target = opt.getAttribute("data-target");
+      // Legacy options (no data-target) and universal are always visible
+      if (!target || target === "universal" || target === "printer:" + model) {
+        opt.hidden = false;
+        opt.disabled = false;
+        if (!firstVisible) firstVisible = opt;
+      } else {
+        opt.hidden = true;
+        opt.disabled = true;
+        if (opt.selected) currentHidden = true;
+      }
+    });
+
+    // If current selection is now hidden, select first visible
+    if (currentHidden && firstVisible) {
+      firstVisible.selected = true;
+    }
+  };
+
+  // Run filter on HTMX swap (when page loads via HTMX)
+  document.body.addEventListener("htmx:afterSwap", function() {
+    if (document.getElementById("print-printer")) {
+      window.filterTemplates("print-printer", "print-template");
+    }
+    if (document.getElementById("container-print-printer")) {
+      window.filterTemplates("container-print-printer", "container-print-template");
+    }
+  });
+
   // Init on page load
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initDragDrop);
@@ -229,6 +271,14 @@
         }
       })
       .catch(function() {});
+  }
+
+  // Filter templates on initial page load
+  if (document.getElementById("print-printer")) {
+    window.filterTemplates("print-printer", "print-template");
+  }
+  if (document.getElementById("container-print-printer")) {
+    window.filterTemplates("container-print-printer", "container-print-template");
   }
 
   // Start SSE + fetch initial state on load

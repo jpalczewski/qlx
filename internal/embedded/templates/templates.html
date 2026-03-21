@@ -1,0 +1,43 @@
+{{ define "templates" }}
+<div class="templates-view">
+    <h1>Szablony</h1>
+
+    {{ if .Tags }}
+    <div class="tag-filter-bar">
+        {{ if .ActiveTag }}
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content" class="tag">wszystkie</a>
+        {{ end }}
+        {{ range .Tags }}
+        <a href="/ui/templates?tag={{ . }}" hx-get="/ui/templates?tag={{ . }}" hx-target="#content"
+           class="tag{{ if eq . $.ActiveTag }} active{{ end }}">{{ . }}</a>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    {{ if .Templates }}
+    <ul class="container-list">
+        {{ range .Templates }}
+        <li>
+            <div class="template-card">
+                <span class="name">{{ .Name }}</span>
+                <span class="badge">{{ .Target }}</span>
+                {{ range .Tags }}
+                <span class="tag">{{ . }}</span>
+                {{ end }}
+                <div class="template-actions">
+                    <a href="/ui/templates/{{ .ID }}/edit" hx-get="/ui/templates/{{ .ID }}/edit" hx-target="#content" class="button">Edytuj</a>
+                    <button hx-delete="/ui/actions/templates/{{ .ID }}" hx-target="#content" hx-confirm="Usunąć szablon?" class="danger">Usuń</button>
+                </div>
+            </div>
+        </li>
+        {{ end }}
+    </ul>
+    {{ else }}
+    <p class="empty">Brak szablonów</p>
+    {{ end }}
+
+    <section class="actions">
+        <a href="/ui/templates/new" hx-get="/ui/templates/new" hx-target="#content" class="button">+ Nowy szablon</a>
+    </section>
+</div>
+{{ end }}
