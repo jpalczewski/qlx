@@ -68,12 +68,29 @@ func LogRequest(method, path string, status int, duration time.Duration) {
 	)
 }
 
+var TraceEnabled bool
+
 func LogError(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s[ERROR]%s %s\n", colorRed, colorReset, fmt.Sprintf(format, args...))
 }
 
 func LogInfo(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s[INFO]%s  %s\n", colorCyan, colorReset, fmt.Sprintf(format, args...))
+}
+
+func LogTrace(format string, args ...any) {
+	if !TraceEnabled {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "%s[TRACE]%s %s\n", colorGray, colorReset, fmt.Sprintf(format, args...))
+}
+
+// HexDump formats bytes as hex string, max maxBytes shown.
+func HexDump(data []byte, maxBytes int) string {
+	if len(data) <= maxBytes {
+		return fmt.Sprintf("%x", data)
+	}
+	return fmt.Sprintf("%x... (%d bytes)", data[:maxBytes], len(data))
 }
 
 // LoggingMiddleware wraps an http.Handler with colored request logging.

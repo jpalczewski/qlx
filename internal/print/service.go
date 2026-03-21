@@ -73,10 +73,13 @@ func (ps *PrintService) Print(printerID string, data label.LabelData, templateNa
 		return fmt.Errorf("render: %w", err)
 	}
 
-	// 5. Create transport
+	// 5. Create transport (with trace wrapper if enabled)
 	tr := ps.transportFactory(cfg.Transport)
 	if tr == nil {
 		return fmt.Errorf("unknown transport: %s", cfg.Transport)
+	}
+	if webutil.TraceEnabled {
+		tr = &transport.TraceTransport{Inner: tr}
 	}
 
 	// 6. Open transport

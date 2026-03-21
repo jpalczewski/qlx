@@ -9,6 +9,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/transport"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
 const (
@@ -74,6 +75,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 0. CONNECT (initial negotiate, like niimbluelib)
+	webutil.LogTrace("niimbot: === print start: model=%s rows=%d width=%d density=%d ===", model, rows, width, density)
 	if err := e.transceive(tr, cmdConnect, []byte{0x01}, respOffsetStandard); err != nil {
 		return fmt.Errorf("CONNECT: %w", err)
 	}
@@ -113,6 +115,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 6. Send image rows (fire-and-forget, with inter-packet delay)
+	webutil.LogTrace("niimbot: sending %d image rows...", rows)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		rowNum := uint16(y - bounds.Min.Y)
 		rowData := e.encodeRow(img, y, bounds.Min.X, m.PrintheadPx)
@@ -141,6 +144,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 7. PAGE_END
+	webutil.LogTrace("niimbot: image rows sent, sending PAGE_END")
 	if err := e.transceive(tr, cmdPageEnd, []byte{0x01}, respOffsetStandard); err != nil {
 		return fmt.Errorf("PAGE_END: %w", err)
 	}
@@ -185,10 +189,11 @@ func (e *NiimbotEncoder) transceiveWithResponse(tr transport.Transport, cmdType 
 		}
 
 		if resp.Type == expectedType {
+			webutil.LogTrace("niimbot: cmd 0x%02x → resp 0x%02x [%s]", cmdType, resp.Type, webutil.HexDump(resp.Data, 16))
 			return resp, nil
 		}
 
-		// Skip unsolicited packets (0xD3=PrinterCheckLine, 0xC6=ResetTimeout, etc.)
+		webutil.LogTrace("niimbot: cmd 0x%02x → skip unsolicited 0x%02x [%s]", cmdType, resp.Type, webutil.HexDump(resp.Data, 16))
 	}
 
 	return Packet{}, fmt.Errorf("cmd 0x%02x: expected resp 0x%02x, got too many unexpected packets", cmdType, expectedType)

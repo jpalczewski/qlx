@@ -30,7 +30,10 @@ func main() {
 	port := flag.String("port", "8080", "server port")
 	host := flag.String("host", "0.0.0.0", "host to bind")
 	dataDir := flag.String("data", "./data", "data directory for JSON store")
+	trace := flag.Bool("trace", false, "enable trace logging (hex dump of printer communication)")
 	flag.Parse()
+
+	webutil.TraceEnabled = *trace
 
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create data directory: %v\n", err)
@@ -57,6 +60,9 @@ func main() {
 	}
 
 	go func() {
+		if *trace {
+			webutil.LogInfo("trace logging enabled")
+		}
 		webutil.LogInfo("QLX starting on %s (device: %s, data: %s)", addr, *device, *dataDir)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Fprintf(os.Stderr, "server error: %v\n", err)
