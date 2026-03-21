@@ -11,6 +11,7 @@ import (
 	"github.com/erxyi/qlx/internal/embedded"
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
+	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -34,6 +35,11 @@ type Server struct {
 	templates      map[string]*template.Template
 	staticFS       fs.FS
 	translations   *webutil.Translations
+	inventory      *service.InventoryService
+	bulk           *service.BulkService
+	tags           *service.TagService
+	search         *service.SearchService
+	printers       *service.PrinterService
 }
 
 type ContainerListData struct {
@@ -100,7 +106,10 @@ type DesignerData struct {
 	PreviewDataJSON   string
 }
 
-func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations) *Server {
+func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations,
+	inventory *service.InventoryService, bulk *service.BulkService,
+	tagsSvc *service.TagService, search *service.SearchService,
+	printersSvc *service.PrinterService) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layouts/base.html")
 	if err != nil {
 		panic(err)
@@ -172,7 +181,18 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 		panic(err)
 	}
 
-	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS, translations: tr}
+	return &Server{
+		store:          s,
+		printerManager: pm,
+		templates:      templates,
+		staticFS:       staticFS,
+		translations:   tr,
+		inventory:      inventory,
+		bulk:           bulk,
+		tags:           tagsSvc,
+		search:         search,
+		printers:       printersSvc,
+	}
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -333,48 +353,48 @@ func (s *Server) HandleSetLang(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) containerViewModel(containerID string) (ContainerListData, bool) {
-	printers := s.store.AllPrinters()
-	templates := s.store.AllTemplates()
+	printersList := s.printers.AllPrinters()
+	templatesList := s.store.AllTemplates()
 
 	if containerID == "" {
 		return ContainerListData{
-			Children:  s.store.ContainerChildren(""),
-			Printers:  printers,
-			Templates: templates,
+			Children:  s.inventory.ContainerChildren(""),
+			Printers:  printersList,
+			Templates: templatesList,
 		}, true
 	}
 
-	container := s.store.GetContainer(containerID)
+	container := s.inventory.GetContainer(containerID)
 	if container == nil {
 		return ContainerListData{}, false
 	}
 
 	return ContainerListData{
-		Children:  s.store.ContainerChildren(containerID),
-		Items:     s.store.ContainerItems(containerID),
+		Children:  s.inventory.ContainerChildren(containerID),
+		Items:     s.inventory.ContainerItems(containerID),
 		Container: container,
-		Path:      s.store.ContainerPath(containerID),
-		Printers:  printers,
-		Templates: templates,
+		Path:      s.inventory.ContainerPath(containerID),
+		Printers:  printersList,
+		Templates: templatesList,
 	}, true
 }
 
 func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
-	item := s.store.GetItem(itemID)
+	item := s.inventory.GetItem(itemID)
 	if item == nil {
 		return ItemDetailData{}, false
 	}
 
 	return ItemDetailData{
 		Item:      item,
-		Path:      s.store.ContainerPath(item.ContainerID),
-		Printers:  s.store.AllPrinters(),
+		Path:      s.inventory.ContainerPath(item.ContainerID),
+		Printers:  s.printers.AllPrinters(),
 		Templates: s.store.AllTemplates(),
 	}, true
 }
 
 func (s *Server) printersViewModel() PrintersData {
-	printers := s.store.AllPrinters()
+	printersList := s.printers.AllPrinters()
 	var encoders []EncoderData
 	for name, enc := range s.printerManager.AvailableEncoders() {
 		encoders = append(encoders, EncoderData{
@@ -383,7 +403,7 @@ func (s *Server) printersViewModel() PrintersData {
 		})
 	}
 	return PrintersData{
-		Printers: printers,
+		Printers: printersList,
 		Encoders: encoders,
 	}
 }

@@ -43,8 +43,9 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container := s.store.CreateContainer(parentID, name, description)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	container, err := s.inventory.CreateContainer(parentID, name, description)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -63,12 +64,9 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
 
-	_, err := s.store.UpdateContainer(id, name, description)
+	_, err := s.inventory.UpdateContainer(id, name, description)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -79,18 +77,14 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleContainerDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	container := s.store.GetContainer(id)
+	container := s.inventory.GetContainer(id)
 	var parentID string
 	if container != nil {
 		parentID = container.ParentID
 	}
 
-	err := s.store.DeleteContainer(id)
-	if err != nil {
+	if err := s.inventory.DeleteContainer(id); err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -127,8 +121,9 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := s.store.CreateItem(containerID, name, description, quantity)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	item, err := s.inventory.CreateItem(containerID, name, description, quantity)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -151,12 +146,9 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
 
-	item, err := s.store.UpdateItem(id, name, description)
+	item, err := s.inventory.UpdateItem(id, name, description)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -167,18 +159,14 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleItemDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	item := s.store.GetItem(id)
+	item := s.inventory.GetItem(id)
 	var containerID string
 	if item != nil {
 		containerID = item.ContainerID
 	}
 
-	err := s.store.DeleteItem(id)
-	if err != nil {
+	if err := s.inventory.DeleteItem(id); err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -190,11 +178,8 @@ func (s *Server) HandleContainerMove(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	newParentID := r.FormValue("parent_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if err := s.store.MoveContainer(id, newParentID); err != nil {
+	if err := s.inventory.MoveContainer(id, newParentID); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -204,11 +189,8 @@ func (s *Server) HandleItemMove(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	newContainerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if err := s.store.MoveItem(id, newContainerID); err != nil {
+	if err := s.inventory.MoveItem(id, newContainerID); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -226,8 +208,8 @@ func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
 	transport := r.FormValue("transport") //nolint:gosec // G120: internal tool, no untrusted input
 	address := r.FormValue("address")     //nolint:gosec // G120: internal tool, no untrusted input
 
-	s.store.AddPrinter(name, enc, model, transport, address)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if _, err := s.printers.AddPrinter(name, enc, model, transport, address); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -238,11 +220,8 @@ func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	if err := s.store.DeletePrinter(id); err != nil {
+	if err := s.printers.DeletePrinter(id); err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -253,7 +232,7 @@ func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	item := s.store.GetItem(id)
+	item := s.inventory.GetItem(id)
 	if item == nil {
 		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "item not found"})
 		return
@@ -268,7 +247,7 @@ func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := s.store.ContainerPath(item.ContainerID)
+	path := s.inventory.ContainerPath(item.ContainerID)
 	pathParts := make([]string, 0, len(path))
 	for _, c := range path {
 		pathParts = append(pathParts, c.Name)
@@ -318,11 +297,11 @@ func (s *Server) HandleTemplates(w http.ResponseWriter, r *http.Request) {
 			tagSet[tag] = true
 		}
 	}
-	tags := make([]string, 0, len(tagSet))
+	templateTags := make([]string, 0, len(tagSet))
 	for tag := range tagSet {
-		tags = append(tags, tag)
+		templateTags = append(templateTags, tag)
 	}
-	sort.Strings(tags)
+	sort.Strings(templateTags)
 
 	var filtered []store.Template
 	if activeTag == "" {
@@ -340,7 +319,7 @@ func (s *Server) HandleTemplates(w http.ResponseWriter, r *http.Request) {
 
 	s.render(w, r, "templates", TemplateListData{
 		Templates: filtered,
-		Tags:      tags,
+		Tags:      templateTags,
 		ActiveTag: activeTag,
 	})
 }
@@ -519,13 +498,13 @@ func (s *Server) HandleAssetUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = file.Close() }()
 
-	data, err := io.ReadAll(file)
+	fileData, err := io.ReadAll(file)
 	if err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	asset, err := s.store.SaveAsset(header.Filename, header.Header.Get("Content-Type"), data)
+	asset, err := s.store.SaveAsset(header.Filename, header.Header.Get("Content-Type"), fileData)
 	if err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -544,7 +523,7 @@ func (s *Server) HandleAssetServe(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := s.store.AssetData(id)
+	assetData, err := s.store.AssetData(id)
 	if err != nil {
 		http.Error(w, "asset read error", http.StatusInternalServerError)
 		return
@@ -559,16 +538,16 @@ func (s *Server) HandleAssetServe(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", ct)
 	//nolint:gosec // G705: Content-Type is sanitized above, data is user-uploaded image
-	_, _ = w.Write(data)
+	_, _ = w.Write(assetData)
 }
 
 func (s *Server) HandleContainerItemsJSON(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	items := s.store.ContainerItems(id)
+	items := s.inventory.ContainerItems(id)
 
 	var result []map[string]string
 	for _, item := range items {
-		path := s.store.ContainerPath(item.ContainerID)
+		path := s.inventory.ContainerPath(item.ContainerID)
 		var parts []string
 		for _, c := range path {
 			parts = append(parts, c.Name)

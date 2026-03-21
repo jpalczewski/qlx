@@ -47,8 +47,9 @@ func (s *Server) HandleBulkMove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemIDs, containerIDs := splitBulkIDs(req.IDs)
-	errs := s.store.BulkMove(itemIDs, containerIDs, req.TargetContainerID)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	errs, err := s.bulk.Move(itemIDs, containerIDs, req.TargetContainerID)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -67,8 +68,9 @@ func (s *Server) HandleBulkDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemIDs, containerIDs := splitBulkIDs(req.IDs)
-	deleted, errs := s.store.BulkDelete(itemIDs, containerIDs)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	deleted, errs, err := s.bulk.Delete(itemIDs, containerIDs)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -87,11 +89,8 @@ func (s *Server) HandleBulkTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemIDs, containerIDs := splitBulkIDs(req.IDs)
-	if err := s.store.BulkAddTag(itemIDs, containerIDs, req.TagID); err != nil {
+	if err := s.bulk.AddTag(itemIDs, containerIDs, req.TagID); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 

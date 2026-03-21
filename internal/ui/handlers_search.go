@@ -14,9 +14,9 @@ func (s *Server) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if q != "" {
-		data.Containers = s.store.SearchContainers(q)
-		data.Items = s.store.SearchItems(q)
-		data.Tags = s.store.SearchTags(q)
+		data.Containers = s.search.SearchContainers(q)
+		data.Items = s.search.SearchItems(q)
+		data.Tags = s.search.SearchTags(q)
 	}
 
 	s.render(w, r, "search", data)

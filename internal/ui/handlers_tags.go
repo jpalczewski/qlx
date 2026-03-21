@@ -14,22 +14,22 @@ func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 	var parent *store.Tag
 	var path []store.Tag
 	if parentID != "" {
-		parent = s.store.GetTag(parentID)
+		parent = s.tags.GetTag(parentID)
 		if parent == nil {
 			http.NotFound(w, r)
 			return
 		}
 		// Path includes the parent itself; exclude the last element for breadcrumb display
-		fullPath := s.store.TagPath(parentID)
+		fullPath := s.tags.TagPath(parentID)
 		if len(fullPath) > 0 {
 			path = fullPath[:len(fullPath)-1]
 		}
 	}
 
-	tags := s.store.TagChildren(parentID)
+	tagList := s.tags.TagChildren(parentID)
 
 	data := TagTreeData{
-		Tags:   tags,
+		Tags:   tagList,
 		Parent: parent,
 		Path:   path,
 	}
@@ -42,8 +42,9 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")          //nolint:gosec // G120: internal tool, no untrusted input
 	parentID := r.FormValue("parent_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag := s.store.CreateTag(parentID, name)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	tag, err := s.tags.CreateTag(parentID, name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -63,12 +64,9 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	name := r.FormValue("name") //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag, err := s.store.UpdateTag(id, name)
+	tag, err := s.tags.UpdateTag(id, name)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -84,17 +82,14 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleTagDelete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	tag := s.store.GetTag(id)
+	tag := s.tags.GetTag(id)
 	var parentID string
 	if tag != nil {
 		parentID = tag.ParentID
 	}
 
-	if err := s.store.DeleteTag(id); err != nil {
+	if err := s.tags.DeleteTag(id); err != nil {
 		webutil.WriteStoreErrorText(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 
@@ -110,11 +105,8 @@ func (s *Server) HandleTagMove(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	newParentID := r.FormValue("parent_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if err := s.store.MoveTag(id, newParentID); err != nil {
+	if err := s.tags.MoveTag(id, newParentID); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -124,7 +116,7 @@ func (s *Server) HandleTagMove(w http.ResponseWriter, r *http.Request) {
 func (s *Server) resolveTagIDs(ids []string) []store.Tag {
 	tags := make([]store.Tag, 0, len(ids))
 	for _, id := range ids {
-		if t := s.store.GetTag(id); t != nil {
+		if t := s.tags.GetTag(id); t != nil {
 			tags = append(tags, *t)
 		}
 	}
@@ -137,15 +129,12 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	tagID := r.FormValue("tag_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if err := s.store.AddItemTag(id, tagID); err != nil {
+	if err := s.tags.AddItemTag(id, tagID); err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
 	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
-		return
-	}
 
-	item := s.store.GetItem(id)
+	item := s.inventory.GetItem(id)
 	if item == nil {
 		http.NotFound(w, r)
 		return
@@ -165,15 +154,12 @@ func (s *Server) HandleItemTagRemove(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	tagID := r.PathValue("tag_id")
 
-	if err := s.store.RemoveItemTag(id, tagID); err != nil {
+	if err := s.tags.RemoveItemTag(id, tagID); err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
 	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
-		return
-	}
 
-	item := s.store.GetItem(id)
+	item := s.inventory.GetItem(id)
 	if item == nil {
 		http.NotFound(w, r)
 		return
@@ -193,15 +179,12 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	tagID := r.FormValue("tag_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if err := s.store.AddContainerTag(id, tagID); err != nil {
+	if err := s.tags.AddContainerTag(id, tagID); err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
 	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
-		return
-	}
 
-	container := s.store.GetContainer(id)
+	container := s.inventory.GetContainer(id)
 	if container == nil {
 		http.NotFound(w, r)
 		return
@@ -221,15 +204,12 @@ func (s *Server) HandleContainerTagRemove(w http.ResponseWriter, r *http.Request
 	id := r.PathValue("id")
 	tagID := r.PathValue("tag_id")
 
-	if err := s.store.RemoveContainerTag(id, tagID); err != nil {
+	if err := s.tags.RemoveContainerTag(id, tagID); err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
 	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
-		return
-	}
 
-	container := s.store.GetContainer(id)
+	container := s.inventory.GetContainer(id)
 	if container == nil {
 		http.NotFound(w, r)
 		return

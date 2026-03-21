@@ -6,6 +6,7 @@ import (
 	"github.com/erxyi/qlx/internal/api"
 	"github.com/erxyi/qlx/internal/embedded"
 	qlprint "github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 	"github.com/erxyi/qlx/internal/ui"
@@ -21,8 +22,14 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 		panic(err)
 	}
 
-	uiServer := ui.NewServer(s, pm, translations)
-	apiServer := api.NewServer(s, pm, translations)
+	inventory := service.NewInventoryService(s)
+	bulk := service.NewBulkService(s)
+	tags := service.NewTagService(s)
+	search := service.NewSearchService(s)
+	printers := service.NewPrinterService(s)
+
+	uiServer := ui.NewServer(s, pm, translations, inventory, bulk, tags, search, printers)
+	apiServer := api.NewServer(s, pm, translations, inventory, bulk, tags, search, printers)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(uiServer.StaticFS()))))

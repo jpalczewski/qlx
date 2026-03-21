@@ -17,8 +17,8 @@ func (s *Server) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]any{
-		"containers": s.store.SearchContainers(q),
-		"items":      s.store.SearchItems(q),
-		"tags":       s.store.SearchTags(q),
+		"containers": s.search.SearchContainers(q),
+		"items":      s.search.SearchItems(q),
+		"tags":       s.search.SearchTags(q),
 	})
 }
