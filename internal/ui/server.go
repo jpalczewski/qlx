@@ -28,9 +28,10 @@ type ContainerListData struct {
 }
 
 type ItemDetailData struct {
-	Item     *store.Item
-	Path     []store.Container
-	Printers []store.PrinterConfig
+	Item      *store.Item
+	Path      []store.Container
+	Printers  []store.PrinterConfig
+	Templates []store.Template
 }
 
 type PrintersData struct {
@@ -84,12 +85,12 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	}
 
 	templateFiles := map[string]string{
-		"containers":     "templates/containers.html",
-		"item":           "templates/item.html",
-		"item-form":      "templates/item_form.html",
-		"container-form": "templates/container_form.html",
-		"printers":       "templates/printers.html",
-		"templates":          "templates/templates.html",
+		"containers":        "templates/containers.html",
+		"item":              "templates/item.html",
+		"item-form":         "templates/item_form.html",
+		"container-form":    "templates/container_form.html",
+		"printers":          "templates/printers.html",
+		"templates":         "templates/templates.html",
 		"template-designer": "templates/template_designer.html",
 	}
 
@@ -210,9 +211,10 @@ func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
 	}
 
 	return ItemDetailData{
-		Item:     item,
-		Path:     s.store.ContainerPath(item.ContainerID),
-		Printers: s.store.AllPrinters(),
+		Item:      item,
+		Path:      s.store.ContainerPath(item.ContainerID),
+		Printers:  s.store.AllPrinters(),
+		Templates: s.store.AllTemplates(),
 	}, true
 }
 
