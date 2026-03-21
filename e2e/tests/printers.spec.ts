@@ -25,7 +25,7 @@ test.describe('Printer management', () => {
     await page.click('button:has-text("Dodaj")');
     await responsePromise;
 
-    await expect(page.locator('.printer-card .name')).toContainText(printerName);
+    await expect(page.locator(`.printer-card:has-text("${printerName}")`)).toBeVisible();
   });
 
   test('BLE scan button triggers request', async ({ page, app }) => {
