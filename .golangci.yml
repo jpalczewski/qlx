@@ -17,12 +17,11 @@ linters:
   settings:
     gocyclo:
       min-complexity: 15
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-    - path: (ble|bluetooth)\.go
-      linters:
-        - unused
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+      - path: (ble|bluetooth)\.go
+        linters:
+          - unused

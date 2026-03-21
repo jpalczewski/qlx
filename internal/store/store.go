@@ -41,7 +41,8 @@ type Store struct {
 	assets     map[string]*Asset
 }
 
-func NewStore(path, assetsDir string) (*Store, error) {
+func NewStore(path string) (*Store, error) {
+	assetsDir := filepath.Join(filepath.Dir(path), "assets")
 	s := &Store{
 		path:       path,
 		assetsDir:  assetsDir,

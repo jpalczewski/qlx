@@ -33,33 +33,34 @@ func main() {
 	trace := flag.Bool("trace", false, "enable trace logging (hex dump of printer communication)")
 	flag.Parse()
 
-	webutil.TraceEnabled = *trace
-	if *trace {
-		traceFile, err := os.OpenFile(filepath.Join(*dataDir, "trace.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err := run(*device, *port, *host, *dataDir, *trace); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run(device, port, host, dataDir string, trace bool) error {
+	webutil.TraceEnabled = trace
+
+	//nolint:gosec // G301: intentional permissions for data directory (readable by owner)
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		return fmt.Errorf("failed to create data directory: %w", err)
+	}
+
+	if trace {
+		//nolint:gosec // G302: intentional permissions for trace log (readable by owner)
+		traceFile, err := os.OpenFile(filepath.Join(dataDir, "trace.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to open trace log: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("failed to open trace log: %w", err)
 		}
 		defer func() { _ = traceFile.Close() }()
 		webutil.SetTraceFile(traceFile)
 	}
 
-	if err := os.MkdirAll(*dataDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create data directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	assetsDir := filepath.Join(*dataDir, "assets")
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create assets directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	storePath := filepath.Join(*dataDir, "data.json")
-	s, err := store.NewStore(storePath, assetsDir)
+	storePath := filepath.Join(dataDir, "data.json")
+	s, err := store.NewStore(storePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load store: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
 	pm := qlprint.NewPrinterManager(s)
@@ -70,20 +71,20 @@ func main() {
 
 	server := app.NewServer(s, pm)
 
-	addr := fmt.Sprintf("%s:%s", *host, *port)
+	addr := fmt.Sprintf("%s:%s", host, port)
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: server,
+		Addr:              addr,
+		Handler:           server,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		if *trace {
+		if trace {
 			webutil.LogInfo("trace logging enabled")
 		}
-		webutil.LogInfo("QLX starting on %s (device: %s, data: %s)", addr, *device, *dataDir)
+		webutil.LogInfo("QLX starting on %s (device: %s, data: %s)", addr, device, dataDir)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Fprintf(os.Stderr, "server error: %v\n", err)
-			os.Exit(1)
 		}
 	}()
 
@@ -97,9 +98,9 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "shutdown error: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("shutdown error: %w", err)
 	}
 
 	webutil.LogInfo("server stopped")
+	return nil
 }

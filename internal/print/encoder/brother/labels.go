@@ -1,6 +1,6 @@
 package brother
 
-type labelDef struct {
+type labelDef struct { //nolint:unused // label dimension table, reserved for future media detection
 	ID           string
 	TapeWidthMm  int
 	TapeLengthMm int
@@ -16,7 +16,7 @@ const (
 	mediaDieCut     byte = 0x0B
 )
 
-var allLabels = []labelDef{
+var allLabels = []labelDef{ //nolint:unused // label dimension table, reserved for future media detection
 	{"62", 62, 0, 696, 0, 12, 35, mediaContinuous},
 	{"29", 29, 0, 306, 0, 6, 35, mediaContinuous},
 	{"29x90", 29, 90, 306, 991, 6, 0, mediaDieCut},
