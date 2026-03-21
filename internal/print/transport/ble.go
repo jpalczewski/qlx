@@ -15,8 +15,20 @@ var niimbotServiceUUID = bluetooth.NewUUID([16]byte{
 	0x8c, 0x15, 0xfa, 0xa9, 0xae, 0xf0, 0xc3, 0xf2,
 })
 
+var (
+	bleAdapter     = bluetooth.DefaultAdapter
+	bleEnableOnce  sync.Once
+	bleEnableError error
+)
+
+func enableBLE() error {
+	bleEnableOnce.Do(func() {
+		bleEnableError = bleAdapter.Enable()
+	})
+	return bleEnableError
+}
+
 type BLETransport struct {
-	adapter   *bluetooth.Adapter
 	device    bluetooth.Device
 	char      bluetooth.DeviceCharacteristic
 	mu        sync.Mutex
@@ -27,15 +39,14 @@ type BLETransport struct {
 func (t *BLETransport) Name() string { return "ble" }
 
 func (t *BLETransport) Open(address string) error {
-	t.adapter = bluetooth.DefaultAdapter
-	if err := t.adapter.Enable(); err != nil {
+	if err := enableBLE(); err != nil {
 		return err
 	}
 
 	addr := bluetooth.Address{}
 	addr.Set(address)
 
-	device, err := t.adapter.Connect(addr, bluetooth.ConnectionParams{})
+	device, err := bleAdapter.Connect(addr, bluetooth.ConnectionParams{})
 	if err != nil {
 		return err
 	}
@@ -59,7 +70,6 @@ func (t *BLETransport) Open(address string) error {
 
 	var found bool
 	for _, c := range chars {
-		// Find characteristic that supports write-without-response and notify
 		t.char = c
 		found = true
 		break
@@ -69,7 +79,6 @@ func (t *BLETransport) Open(address string) error {
 		return errors.New("suitable characteristic not found")
 	}
 
-	// Enable notifications
 	err = t.char.EnableNotifications(func(buf []byte) {
 		t.mu.Lock()
 		t.recvBuf = append(t.recvBuf, buf...)
@@ -99,7 +108,6 @@ func (t *BLETransport) Read(buf []byte) (int, error) {
 	if !t.connected {
 		return 0, errors.New("BLE not connected")
 	}
-	// Poll for data with timeout
 	for i := 0; i < 50; i++ {
 		t.mu.Lock()
 		if len(t.recvBuf) > 0 {
@@ -131,8 +139,7 @@ type BLEScanResult struct {
 
 // ScanBLE scans for Niimbot BLE printers for 5 seconds.
 func ScanBLE() ([]BLEScanResult, error) {
-	adapter := bluetooth.DefaultAdapter
-	if err := adapter.Enable(); err != nil {
+	if err := enableBLE(); err != nil {
 		return nil, err
 	}
 
@@ -142,11 +149,11 @@ func ScanBLE() ([]BLEScanResult, error) {
 
 	go func() {
 		time.Sleep(5 * time.Second)
-		adapter.StopScan()
+		bleAdapter.StopScan()
 		close(done)
 	}()
 
-	err := adapter.Scan(func(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
+	err := bleAdapter.Scan(func(adapter *bluetooth.Adapter, device bluetooth.ScanResult) {
 		name := device.LocalName()
 		if name == "" {
 			return

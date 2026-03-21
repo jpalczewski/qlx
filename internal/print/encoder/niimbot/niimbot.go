@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/transport"
 )
 
 const (
+	cmdConnect         = 0xC1
 	cmdSetDensity      = 0x21
 	cmdSetLabelType    = 0x23
 	cmdPrintStart      = 0x01
@@ -20,9 +22,12 @@ const (
 	cmdPrintEmptyRow   = 0x84
 	cmdPageEnd         = 0xE3
 	cmdPrintEnd        = 0xF3
+	cmdPrintStatus     = 0xA3
 
 	respOffsetStandard = 1
 	respOffsetDensity  = 16
+
+	packetIntervalMs   = 10
 )
 
 // NiimbotEncoder implements the Encoder interface for Niimbot printers.
@@ -41,6 +46,7 @@ func (e *NiimbotEncoder) Models() []encoder.ModelInfo {
 }
 
 // Encode executes the full B1 print protocol flow.
+// Based on niimbluelib B1PrintTask: connect → init → page → image → end → poll status.
 func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.PrintOpts, tr transport.Transport) error {
 	var m niimbotModel
 	found := false
@@ -67,6 +73,11 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		density = m.DensityDefault
 	}
 
+	// 0. CONNECT (initial negotiate, like niimbluelib)
+	if err := e.transceive(tr, cmdConnect, []byte{0x01}, respOffsetStandard); err != nil {
+		return fmt.Errorf("CONNECT: %w", err)
+	}
+
 	// 1. SET_DENSITY
 	if err := e.transceive(tr, cmdSetDensity, []byte{byte(density)}, respOffsetDensity); err != nil {
 		return fmt.Errorf("SET_DENSITY: %w", err)
@@ -77,13 +88,11 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return fmt.Errorf("SET_LABEL_TYPE: %w", err)
 	}
 
-	// 3. PRINT_START: [totalPages:u16 BE, 0x00, 0x00, 0x00, pageColor:u8, 0x00] (7 bytes)
+	// 3. PRINT_START (7-byte variant for B1)
 	printStartData := make([]byte, 7)
 	binary.BigEndian.PutUint16(printStartData[0:2], 1) // totalPages = 1
-	printStartData[2] = 0x00
-	printStartData[3] = 0x00
-	printStartData[4] = 0x00
-	printStartData[5] = 0x01 // pageColor
+	// bytes 2-4: zeros
+	printStartData[5] = 0x00 // pageColor
 	printStartData[6] = 0x00
 	if err := e.transceive(tr, cmdPrintStart, printStartData, respOffsetStandard); err != nil {
 		return fmt.Errorf("PRINT_START: %w", err)
@@ -94,7 +103,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return fmt.Errorf("PAGE_START: %w", err)
 	}
 
-	// 5. SET_PAGE_SIZE: [rows:u16 BE, cols:u16 BE, copies:u16 BE]
+	// 5. SET_PAGE_SIZE (6-byte: rows, cols, copies)
 	pageSizeData := make([]byte, 6)
 	binary.BigEndian.PutUint16(pageSizeData[0:2], uint16(rows))
 	binary.BigEndian.PutUint16(pageSizeData[2:4], uint16(m.PrintheadPx))
@@ -103,27 +112,27 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return fmt.Errorf("SET_PAGE_SIZE: %w", err)
 	}
 
-	// 6. Send each image row
+	// 6. Send image rows (fire-and-forget, with inter-packet delay)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		rowNum := uint16(y - bounds.Min.Y)
 		rowData := e.encodeRow(img, y, bounds.Min.X, m.PrintheadPx)
 
+		time.Sleep(time.Duration(packetIntervalMs) * time.Millisecond)
+
 		if isAllZero(rowData) {
-			// PRINT_EMPTY_ROW: [rowNum:u16 BE, repeatCount:u8]
 			data := make([]byte, 3)
 			binary.BigEndian.PutUint16(data[0:2], rowNum)
-			data[2] = 1 // repeatCount
+			data[2] = 1
 			if err := e.sendOnly(tr, cmdPrintEmptyRow, data); err != nil {
 				return fmt.Errorf("PRINT_EMPTY_ROW row %d: %w", rowNum, err)
 			}
 		} else {
-			// PRINT_BITMAP_ROW: [rowNum:u16 BE, blackPxCount(3 bytes: 0,0,0), repeat:u8(1), bitmap_data]
 			data := make([]byte, 2+3+1+len(rowData))
 			binary.BigEndian.PutUint16(data[0:2], rowNum)
 			data[2] = 0x00
 			data[3] = 0x00
 			data[4] = 0x00
-			data[5] = 0x01 // repeat
+			data[5] = 0x01
 			copy(data[6:], rowData)
 			if err := e.sendOnly(tr, cmdPrintBitmapRow, data); err != nil {
 				return fmt.Errorf("PRINT_BITMAP_ROW row %d: %w", rowNum, err)
@@ -136,20 +145,19 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return fmt.Errorf("PAGE_END: %w", err)
 	}
 
-	// 8. PRINT_END — poll until response data[0] != 0
-	for {
+	// 8. Poll PRINT_END until done (like niimbluelib waitUntilPrintFinishedByPrintEndPoll)
+	for i := 0; i < 20; i++ {
+		time.Sleep(500 * time.Millisecond)
 		resp, err := e.transceiveWithResponse(tr, cmdPrintEnd, []byte{0x01}, respOffsetStandard)
 		if err != nil {
-			return fmt.Errorf("PRINT_END: %w", err)
+			return fmt.Errorf("PRINT_END poll: %w", err)
 		}
-		if len(resp.Data) > 0 && resp.Data[0] != 0 {
-			break
+		if len(resp.Data) > 0 && resp.Data[0] == 1 {
+			return nil // done!
 		}
-		// If data[0] == 0, printer is still busy; in practice with mock this won't loop
-		break
 	}
 
-	return nil
+	return fmt.Errorf("PRINT_END: printer did not finish after 10s")
 }
 
 // transceive sends a packet and reads+validates the response.
@@ -159,36 +167,73 @@ func (e *NiimbotEncoder) transceive(tr transport.Transport, cmdType byte, data [
 }
 
 // transceiveWithResponse sends a packet and returns the parsed response packet.
-// It reads exactly one packet from the transport by first reading the header bytes
-// to determine the data length, then reading the rest.
+// It reads packets from the transport, skipping unexpected ones (printer may send
+// unsolicited packets like PrinterCheckLine 0xD3 or ResetTimeout 0xC6), until the
+// expected response type arrives or max retries exceeded.
 func (e *NiimbotEncoder) transceiveWithResponse(tr transport.Transport, cmdType byte, data []byte, respOffset byte) (Packet, error) {
 	pkt := Packet{Type: cmdType, Data: data}
 	if _, err := tr.Write(pkt.ToBytes()); err != nil {
 		return Packet{}, fmt.Errorf("write cmd 0x%02x: %w", cmdType, err)
 	}
 
-	// Read the fixed header: 0x55 0x55 <type> <len> = 4 bytes
-	header := make([]byte, 4)
-	if err := readFull(tr, header); err != nil {
-		return Packet{}, fmt.Errorf("read header for cmd 0x%02x: %w", cmdType, err)
+	expectedType := cmdType + respOffset
+
+	for attempt := 0; attempt < 10; attempt++ {
+		resp, err := e.readOnePacket(tr, cmdType)
+		if err != nil {
+			return Packet{}, err
+		}
+
+		if resp.Type == expectedType {
+			return resp, nil
+		}
+
+		// Skip unsolicited packets (0xD3=PrinterCheckLine, 0xC6=ResetTimeout, etc.)
 	}
 
-	dlen := int(header[3])
-	// Read remaining: data + checksum + 0xAA 0xAA = dlen + 3 bytes
+	return Packet{}, fmt.Errorf("cmd 0x%02x: expected resp 0x%02x, got too many unexpected packets", cmdType, expectedType)
+}
+
+// readOnePacket reads exactly one Niimbot packet from the transport.
+// It synchronizes on the 0x55 0x55 header, skipping any stale bytes.
+func (e *NiimbotEncoder) readOnePacket(tr transport.Transport, cmdType byte) (Packet, error) {
+	// Sync to packet header 0x55 0x55
+	var prev byte
+	oneByte := make([]byte, 1)
+	for i := 0; i < 1024; i++ {
+		if err := readFull(tr, oneByte); err != nil {
+			return Packet{}, fmt.Errorf("sync header for cmd 0x%02x: %w", cmdType, err)
+		}
+		if prev == 0x55 && oneByte[0] == 0x55 {
+			break
+		}
+		prev = oneByte[0]
+		if i == 1023 {
+			return Packet{}, fmt.Errorf("cmd 0x%02x: could not sync to packet header", cmdType)
+		}
+	}
+
+	// Read type + len
+	typLen := make([]byte, 2)
+	if err := readFull(tr, typLen); err != nil {
+		return Packet{}, fmt.Errorf("read type/len for cmd 0x%02x: %w", cmdType, err)
+	}
+
+	dlen := int(typLen[1])
+	// Read data + checksum + 0xAA 0xAA
 	tail := make([]byte, dlen+3)
 	if err := readFull(tr, tail); err != nil {
 		return Packet{}, fmt.Errorf("read body for cmd 0x%02x: %w", cmdType, err)
 	}
 
-	full := append(header, tail...)
+	full := make([]byte, 0, 4+dlen+3)
+	full = append(full, 0x55, 0x55)
+	full = append(full, typLen...)
+	full = append(full, tail...)
+
 	resp, err := ParsePacket(full)
 	if err != nil {
 		return Packet{}, fmt.Errorf("parse resp for cmd 0x%02x: %w", cmdType, err)
-	}
-
-	expectedType := cmdType + respOffset
-	if resp.Type != expectedType {
-		return Packet{}, fmt.Errorf("cmd 0x%02x: expected resp type 0x%02x, got 0x%02x", cmdType, expectedType, resp.Type)
 	}
 
 	return resp, nil

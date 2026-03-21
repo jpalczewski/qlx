@@ -18,6 +18,7 @@ func mockResponse(cmdType byte, respOffset byte, data []byte) []byte {
 // Build combined response data for a full B1 print flow of an image with `rows` rows
 func buildMockResponses(rows int) []byte {
 	var resp []byte
+	resp = append(resp, mockResponse(0xC1, 1, []byte{0x01})...) // CONNECT
 	resp = append(resp, mockResponse(0x21, 16, []byte{0x01})...) // SET_DENSITY
 	resp = append(resp, mockResponse(0x23, 16, []byte{0x01})...) // SET_LABEL_TYPE
 	resp = append(resp, mockResponse(0x01, 1, []byte{0x01})...)  // PRINT_START
@@ -25,7 +26,7 @@ func buildMockResponses(rows int) []byte {
 	resp = append(resp, mockResponse(0x13, 1, []byte{0x01})...)  // SET_PAGE_SIZE
 	// No responses for bitmap rows
 	resp = append(resp, mockResponse(0xE3, 1, []byte{0x01})...) // PAGE_END
-	resp = append(resp, mockResponse(0xF3, 1, []byte{0x01})...) // PRINT_END
+	resp = append(resp, mockResponse(0xF3, 1, []byte{0x01})...) // PRINT_END (done=1)
 	return resp
 }
 
@@ -40,16 +41,28 @@ func TestNiimbotEncode_SendsDensity(t *testing.T) {
 		t.Fatalf("Encode error: %v", err)
 	}
 
-	// First packet should be SET_DENSITY (0x21) with data [0x03]
+	// First packet should be CONNECT (0xC1), second should be SET_DENSITY (0x21)
 	pkt, err := ParsePacket(mock.Written[:8])
 	if err != nil {
 		t.Fatalf("parse first packet: %v", err)
 	}
-	if pkt.Type != 0x21 {
-		t.Errorf("first packet type = %x, want 0x21", pkt.Type)
+	if pkt.Type != 0xC1 {
+		t.Errorf("first packet type = %x, want 0xC1 (CONNECT)", pkt.Type)
 	}
-	if len(pkt.Data) < 1 || pkt.Data[0] != 3 {
-		t.Errorf("density = %v, want [3]", pkt.Data)
+
+	// Find SET_DENSITY packet
+	found := false
+	for i := 0; i < len(mock.Written)-7; i++ {
+		if mock.Written[i] == 0x55 && mock.Written[i+1] == 0x55 && mock.Written[i+2] == 0x21 {
+			dpkt, derr := ParsePacket(mock.Written[i : i+8])
+			if derr == nil && len(dpkt.Data) > 0 && dpkt.Data[0] == 3 {
+				found = true
+			}
+			break
+		}
+	}
+	if !found {
+		t.Error("SET_DENSITY packet with density=3 not found")
 	}
 }
 
