@@ -23,25 +23,33 @@ var (
 )
 
 type storeData struct {
-	Containers map[string]*Container       `json:"containers"`
-	Items      map[string]*Item            `json:"items"`
-	Printers   map[string]*PrinterConfig   `json:"printers"`
+	Containers map[string]*Container     `json:"containers"`
+	Items      map[string]*Item          `json:"items"`
+	Printers   map[string]*PrinterConfig `json:"printers"`
+	Templates  map[string]*Template      `json:"templates"`
+	Assets     map[string]*Asset         `json:"assets"`
 }
 
 type Store struct {
 	mu         sync.RWMutex
 	path       string
+	assetsDir  string
 	containers map[string]*Container
 	items      map[string]*Item
 	printers   map[string]*PrinterConfig
+	templates  map[string]*Template
+	assets     map[string]*Asset
 }
 
-func NewStore(path string) (*Store, error) {
+func NewStore(path, assetsDir string) (*Store, error) {
 	s := &Store{
 		path:       path,
+		assetsDir:  assetsDir,
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
 		printers:   make(map[string]*PrinterConfig),
+		templates:  make(map[string]*Template),
+		assets:     make(map[string]*Asset),
 	}
 
 	fileData, err := os.ReadFile(path)
@@ -70,6 +78,12 @@ func NewStore(path string) (*Store, error) {
 	if d.Printers != nil {
 		s.printers = d.Printers
 	}
+	if d.Templates != nil {
+		s.templates = d.Templates
+	}
+	if d.Assets != nil {
+		s.assets = d.Assets
+	}
 
 	return s, nil
 }
@@ -90,6 +104,8 @@ func (s *Store) Save() error {
 		Containers: s.containers,
 		Items:      s.items,
 		Printers:   s.printers,
+		Templates:  s.templates,
+		Assets:     s.assets,
 	})
 	if err != nil {
 		return err
@@ -306,6 +322,8 @@ func NewMemoryStore() *Store {
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
 		printers:   make(map[string]*PrinterConfig),
+		templates:  make(map[string]*Template),
+		assets:     make(map[string]*Asset),
 	}
 }
 

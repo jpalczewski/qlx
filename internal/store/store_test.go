@@ -12,7 +12,7 @@ func TestNewStore(t *testing.T) {
 		tmpDir := t.TempDir()
 		path := filepath.Join(tmpDir, "data.json")
 
-		s, err := NewStore(path)
+		s, err := NewStore(path, filepath.Join(tmpDir, "assets"))
 		if err != nil {
 			t.Fatalf("NewStore() error = %v", err)
 		}
@@ -30,7 +30,7 @@ func TestNewStore(t *testing.T) {
 			t.Fatalf("setup: %v", err)
 		}
 
-		s, err := NewStore(path)
+		s, err := NewStore(path, filepath.Join(tmpDir, "assets"))
 		if err != nil {
 			t.Fatalf("NewStore() error = %v", err)
 		}
@@ -320,7 +320,7 @@ func TestPersistence(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "data.json")
 
-	s1, err := NewStore(path)
+	s1, err := NewStore(path, filepath.Join(tmpDir, "assets"))
 	if err != nil {
 		t.Fatalf("NewStore() error = %v", err)
 	}
@@ -332,7 +332,7 @@ func TestPersistence(t *testing.T) {
 		t.Fatalf("Save() error = %v", err)
 	}
 
-	s2, err := NewStore(path)
+	s2, err := NewStore(path, filepath.Join(tmpDir, "assets"))
 	if err != nil {
 		t.Fatalf("NewStore() second load error = %v", err)
 	}
@@ -400,11 +400,11 @@ func TestPrinterPersistence(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "data.json")
 
-	s1, _ := NewStore(path)
+	s1, _ := NewStore(path, filepath.Join(tmpDir, "assets"))
 	p := s1.AddPrinter("Test", "niimbot", "B1", "serial", "/dev/tty.BT")
 	s1.Save()
 
-	s2, _ := NewStore(path)
+	s2, _ := NewStore(path, filepath.Join(tmpDir, "assets"))
 	got := s2.GetPrinter(p.ID)
 	if got == nil || got.Name != "Test" {
 		t.Error("printer not persisted")

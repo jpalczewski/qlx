@@ -49,8 +49,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	assetsDir := filepath.Join(*dataDir, "assets")
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create assets directory: %v\n", err)
+		os.Exit(1)
+	}
+
 	storePath := filepath.Join(*dataDir, "data.json")
-	s, err := store.NewStore(storePath)
+	s, err := store.NewStore(storePath, assetsDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load store: %v\n", err)
 		os.Exit(1)
