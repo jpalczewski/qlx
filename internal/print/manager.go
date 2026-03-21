@@ -3,6 +3,8 @@ package print
 import (
 	"fmt"
 	"image"
+	"image/color"
+	imagedraw "image/draw"
 	"sync"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
@@ -10,6 +12,7 @@ import (
 	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
+	"golang.org/x/image/draw"
 )
 
 // TransportFactory creates a Transport by name.
@@ -23,12 +26,12 @@ type PrinterStatusEvent struct {
 
 // PrinterManager manages persistent printer sessions with heartbeat.
 type PrinterManager struct {
-	store      *store.Store
-	encoders   map[string]encoder.Encoder
-	sessions   map[string]*PrinterSession
-	mu         sync.RWMutex
-	sseMu      sync.Mutex
-	sseClients map[chan PrinterStatusEvent]struct{}
+	store       *store.Store
+	encoders    map[string]encoder.Encoder
+	sessions    map[string]*PrinterSession
+	mu          sync.RWMutex
+	sseMu       sync.Mutex
+	sseClients  map[chan PrinterStatusEvent]struct{}
 	transportFn TransportFactory
 }
 
@@ -247,6 +250,18 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		m.mu.RLock()
 		session = m.sessions[printerID]
 		m.mu.RUnlock()
+	}
+
+	// Scale image to match printer printhead width if needed
+	imgWidth := img.Bounds().Dx()
+	if imgWidth != modelInfo.PrintWidthPx && modelInfo.PrintWidthPx > 0 {
+		scale := float64(modelInfo.PrintWidthPx) / float64(imgWidth)
+		newH := int(float64(img.Bounds().Dy()) * scale)
+		dst := image.NewRGBA(image.Rect(0, 0, modelInfo.PrintWidthPx, newH))
+		imagedraw.Draw(dst, dst.Bounds(), image.NewUniform(color.White), image.Point{}, imagedraw.Src)
+		draw.BiLinear.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+		img = dst
+		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, modelInfo.PrintWidthPx, cfg.Model)
 	}
 
 	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
