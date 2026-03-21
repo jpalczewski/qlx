@@ -26,6 +26,9 @@
 
 .container-list .name,
 .item-list .name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
     font-size: 1.1rem;
 }
