@@ -441,6 +441,26 @@ a.button.secondary:hover {
     opacity: 0;
 }
 
+.printer-status {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.printer-card {
+    background: var(--bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.status-muted {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 @media (max-width: 600px) {
     nav {
         flex-direction: column;
