@@ -7,6 +7,10 @@ export default defineConfig({
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
     trace: 'on-first-retry',
+    locale: 'pl-PL',
+    extraHTTPHeaders: {
+      'Accept-Language': 'pl',
+    },
   },
   projects: [
     {
