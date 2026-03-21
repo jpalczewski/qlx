@@ -11,3 +11,6 @@ data/
 .superpowers/
 .worktrees/
 qlx-e2e-test
+.playwright-mcp
+screenshot-*.png
+test-results/.last-run.json

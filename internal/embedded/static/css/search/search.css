@@ -1,5 +1,16 @@
 /* Search in nav */
 #global-search {
-    flex: 0 1 200px; padding: 0.25rem 0.5rem; border-radius: 4px;
-    border: 1px solid var(--color-border); background: var(--color-bg-alt); color: var(--color-text);
+    margin-left: auto;
+    width: 180px;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+}
+
+#global-search:focus {
+    outline: none;
+    border-color: var(--color-accent);
 }
