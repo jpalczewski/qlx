@@ -9,8 +9,8 @@ import (
 
 type mockTagStore struct {
 	getTag             func(id string) *store.Tag
-	createTag          func(parentID, name string) *store.Tag
-	updateTag          func(id, name string) (*store.Tag, error)
+	createTag          func(parentID, name, color, icon string) *store.Tag
+	updateTag          func(id, name, color, icon string) (*store.Tag, error)
 	deleteTag          func(id string) error
 	moveTag            func(id, newParentID string) error
 	allTags            func() []store.Tag
@@ -24,13 +24,13 @@ type mockTagStore struct {
 
 	// ItemStore + ContainerStore (needed by TagService's store interface)
 	getItem           func(id string) *store.Item
-	createItem        func(containerID, name, desc string, qty int) *store.Item
-	updateItem        func(id, name, desc string, qty int) (*store.Item, error)
+	createItem        func(containerID, name, desc string, qty int, color, icon string) *store.Item
+	updateItem        func(id, name, desc string, qty int, color, icon string) (*store.Item, error)
 	deleteItem        func(id string) error
 	moveItem          func(id, containerID string) error
 	getContainer      func(id string) *store.Container
-	createContainer   func(parentID, name, desc string) *store.Container
-	updateContainer   func(id, name, desc string) (*store.Container, error)
+	createContainer   func(parentID, name, desc, color, icon string) *store.Container
+	updateContainer   func(id, name, desc, color, icon string) (*store.Container, error)
 	deleteContainer   func(id string) error
 	moveContainer     func(id, newParentID string) error
 	containerChildren func(parentID string) []store.Container
@@ -46,15 +46,15 @@ func (m *mockTagStore) GetTag(id string) *store.Tag {
 	}
 	return nil
 }
-func (m *mockTagStore) CreateTag(parentID, name string) *store.Tag {
+func (m *mockTagStore) CreateTag(parentID, name, color, icon string) *store.Tag {
 	if m.createTag != nil {
-		return m.createTag(parentID, name)
+		return m.createTag(parentID, name, color, icon)
 	}
 	return &store.Tag{ID: "t1", Name: name, ParentID: parentID}
 }
-func (m *mockTagStore) UpdateTag(id, name string) (*store.Tag, error) {
+func (m *mockTagStore) UpdateTag(id, name, color, icon string) (*store.Tag, error) {
 	if m.updateTag != nil {
-		return m.updateTag(id, name)
+		return m.updateTag(id, name, color, icon)
 	}
 	return &store.Tag{ID: id, Name: name}, nil
 }
@@ -124,15 +124,15 @@ func (m *mockTagStore) GetItem(id string) *store.Item {
 	}
 	return nil
 }
-func (m *mockTagStore) CreateItem(containerID, name, desc string, qty int) *store.Item {
+func (m *mockTagStore) CreateItem(containerID, name, desc string, qty int, color, icon string) *store.Item {
 	if m.createItem != nil {
-		return m.createItem(containerID, name, desc, qty)
+		return m.createItem(containerID, name, desc, qty, color, icon)
 	}
 	return &store.Item{ID: "i1", Name: name}
 }
-func (m *mockTagStore) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
+func (m *mockTagStore) UpdateItem(id, name, desc string, qty int, color, icon string) (*store.Item, error) {
 	if m.updateItem != nil {
-		return m.updateItem(id, name, desc, qty)
+		return m.updateItem(id, name, desc, qty, color, icon)
 	}
 	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
@@ -154,15 +154,15 @@ func (m *mockTagStore) GetContainer(id string) *store.Container {
 	}
 	return nil
 }
-func (m *mockTagStore) CreateContainer(parentID, name, desc string) *store.Container {
+func (m *mockTagStore) CreateContainer(parentID, name, desc, color, icon string) *store.Container {
 	if m.createContainer != nil {
-		return m.createContainer(parentID, name, desc)
+		return m.createContainer(parentID, name, desc, color, icon)
 	}
 	return &store.Container{ID: "c1", Name: name}
 }
-func (m *mockTagStore) UpdateContainer(id, name, desc string) (*store.Container, error) {
+func (m *mockTagStore) UpdateContainer(id, name, desc, color, icon string) (*store.Container, error) {
 	if m.updateContainer != nil {
-		return m.updateContainer(id, name, desc)
+		return m.updateContainer(id, name, desc, color, icon)
 	}
 	return &store.Container{ID: id, Name: name}, nil
 }
@@ -225,7 +225,7 @@ func TestTagService_CreateTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewTagService(tt.mock)
-			tag, err := svc.CreateTag("", "Electronics")
+			tag, err := svc.CreateTag("", "Electronics", "", "")
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -255,7 +255,7 @@ func TestTagService_UpdateTag(t *testing.T) {
 		{
 			name: "not found",
 			mock: &mockTagStore{
-				updateTag: func(_, _ string) (*store.Tag, error) {
+				updateTag: func(_, _, _, _ string) (*store.Tag, error) {
 					return nil, store.ErrTagNotFound
 				},
 			},
@@ -273,7 +273,7 @@ func TestTagService_UpdateTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewTagService(tt.mock)
-			_, err := svc.UpdateTag("t1", "Updated")
+			_, err := svc.UpdateTag("t1", "Updated", "", "")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}

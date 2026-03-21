@@ -55,7 +55,7 @@ func TestNewStore(t *testing.T) {
 func TestContainerCRUD(t *testing.T) {
 	s := NewMemoryStore()
 
-	c := s.CreateContainer("", "Room", "A room")
+	c := s.CreateContainer("", "Room", "A room", "", "")
 	if c.ID == "" {
 		t.Error("CreateContainer should set ID")
 	}
@@ -71,7 +71,7 @@ func TestContainerCRUD(t *testing.T) {
 		t.Errorf("GetContainer Name = %q, want %q", got.Name, "Room")
 	}
 
-	updated, err := s.UpdateContainer(c.ID, "Bedroom", "A bedroom")
+	updated, err := s.UpdateContainer(c.ID, "Bedroom", "A bedroom", "", "")
 	if err != nil {
 		t.Fatalf("UpdateContainer error = %v", err)
 	}
@@ -86,7 +86,7 @@ func TestContainerCRUD(t *testing.T) {
 		t.Error("DeleteContainer should remove container")
 	}
 
-	_, err = s.UpdateContainer("nonexistent", "Name", "")
+	_, err = s.UpdateContainer("nonexistent", "Name", "", "", "")
 	if !errors.Is(err, ErrContainerNotFound) {
 		t.Errorf("UpdateContainer error = %v, want ErrContainerNotFound", err)
 	}
@@ -99,9 +99,9 @@ func TestContainerCRUD(t *testing.T) {
 
 func TestItemCRUD(t *testing.T) {
 	s := NewMemoryStore()
-	container := s.CreateContainer("", "Box", "")
+	container := s.CreateContainer("", "Box", "", "", "")
 
-	item := s.CreateItem(container.ID, "Cable", "HDMI cable", 1)
+	item := s.CreateItem(container.ID, "Cable", "HDMI cable", 1, "", "")
 	if item.ID == "" {
 		t.Error("CreateItem should set ID")
 	}
@@ -117,7 +117,7 @@ func TestItemCRUD(t *testing.T) {
 		t.Errorf("GetItem Name = %q, want %q", got.Name, "Cable")
 	}
 
-	updated, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 5)
+	updated, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 5, "", "")
 	if err != nil {
 		t.Fatalf("UpdateItem error = %v", err)
 	}
@@ -129,7 +129,7 @@ func TestItemCRUD(t *testing.T) {
 	}
 
 	// Quantity 0 should preserve existing value.
-	preserved, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 0)
+	preserved, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 0, "", "")
 	if err != nil {
 		t.Fatalf("UpdateItem preserve qty error = %v", err)
 	}
@@ -144,7 +144,7 @@ func TestItemCRUD(t *testing.T) {
 		t.Error("DeleteItem should remove item")
 	}
 
-	_, err = s.UpdateItem("nonexistent", "Name", "", 1)
+	_, err = s.UpdateItem("nonexistent", "Name", "", 1, "", "")
 	if !errors.Is(err, ErrItemNotFound) {
 		t.Errorf("UpdateItem error = %v, want ErrItemNotFound", err)
 	}
@@ -158,9 +158,9 @@ func TestItemCRUD(t *testing.T) {
 func TestContainerPath(t *testing.T) {
 	s := NewMemoryStore()
 
-	root := s.CreateContainer("", "Room", "")
-	shelf := s.CreateContainer(root.ID, "Shelf", "")
-	box := s.CreateContainer(shelf.ID, "Box", "")
+	root := s.CreateContainer("", "Room", "", "", "")
+	shelf := s.CreateContainer(root.ID, "Shelf", "", "", "")
+	box := s.CreateContainer(shelf.ID, "Box", "", "", "")
 
 	path := s.ContainerPath(box.ID)
 	if len(path) != 3 {
@@ -190,10 +190,10 @@ func TestContainerPath(t *testing.T) {
 func TestContainerChildren(t *testing.T) {
 	s := NewMemoryStore()
 
-	root := s.CreateContainer("", "Room", "")
-	child1 := s.CreateContainer(root.ID, "Shelf 1", "")
-	_ = s.CreateContainer(root.ID, "Shelf 2", "")
-	grandchild := s.CreateContainer(child1.ID, "Box", "")
+	root := s.CreateContainer("", "Room", "", "", "")
+	child1 := s.CreateContainer(root.ID, "Shelf 1", "", "", "")
+	_ = s.CreateContainer(root.ID, "Shelf 2", "", "", "")
+	grandchild := s.CreateContainer(child1.ID, "Box", "", "", "")
 
 	children := s.ContainerChildren(root.ID)
 	if len(children) != 2 {
@@ -225,12 +225,12 @@ func TestContainerChildren(t *testing.T) {
 func TestContainerItems(t *testing.T) {
 	s := NewMemoryStore()
 
-	container := s.CreateContainer("", "Box", "")
-	other := s.CreateContainer("", "Other", "")
+	container := s.CreateContainer("", "Box", "", "", "")
+	other := s.CreateContainer("", "Other", "", "", "")
 
-	item1 := s.CreateItem(container.ID, "Item 1", "", 1)
-	item2 := s.CreateItem(container.ID, "Item 2", "", 1)
-	_ = s.CreateItem(other.ID, "Item 3", "", 1)
+	item1 := s.CreateItem(container.ID, "Item 1", "", 1, "", "")
+	item2 := s.CreateItem(container.ID, "Item 2", "", 1, "", "")
+	_ = s.CreateItem(other.ID, "Item 3", "", 1, "", "")
 
 	items := s.ContainerItems(container.ID)
 	if len(items) != 2 {
@@ -254,9 +254,9 @@ func TestContainerItems(t *testing.T) {
 func TestMoveItem(t *testing.T) {
 	s := NewMemoryStore()
 
-	container1 := s.CreateContainer("", "Box 1", "")
-	container2 := s.CreateContainer("", "Box 2", "")
-	item := s.CreateItem(container1.ID, "Item", "", 1)
+	container1 := s.CreateContainer("", "Box 1", "", "", "")
+	container2 := s.CreateContainer("", "Box 2", "", "", "")
+	item := s.CreateItem(container1.ID, "Item", "", 1, "", "")
 
 	if err := s.MoveItem(item.ID, container2.ID); err != nil {
 		t.Fatalf("MoveItem error = %v", err)
@@ -289,9 +289,9 @@ func TestMoveItem(t *testing.T) {
 func TestMoveContainer_PreventsCycle(t *testing.T) {
 	s := NewMemoryStore()
 
-	a := s.CreateContainer("", "A", "")
-	b := s.CreateContainer(a.ID, "B", "")
-	c := s.CreateContainer(b.ID, "C", "")
+	a := s.CreateContainer("", "A", "", "", "")
+	b := s.CreateContainer(a.ID, "B", "", "", "")
+	c := s.CreateContainer(b.ID, "C", "", "", "")
 
 	err := s.MoveContainer(a.ID, b.ID)
 	if !errors.Is(err, ErrCycleDetected) {
@@ -308,7 +308,7 @@ func TestMoveContainer_PreventsCycle(t *testing.T) {
 		t.Errorf("MoveContainer A->A error = %v, want ErrCycleDetected", err)
 	}
 
-	d := s.CreateContainer("", "D", "")
+	d := s.CreateContainer("", "D", "", "", "")
 	if err := s.MoveContainer(c.ID, d.ID); err != nil {
 		t.Fatalf("MoveContainer C->D error = %v", err)
 	}
@@ -337,8 +337,8 @@ func TestPersistence(t *testing.T) {
 		t.Fatalf("NewStore() error = %v", err)
 	}
 
-	container := s1.CreateContainer("", "Room", "A room")
-	item := s1.CreateItem(container.ID, "Cable", "HDMI", 1)
+	container := s1.CreateContainer("", "Room", "A room", "", "")
+	item := s1.CreateItem(container.ID, "Cable", "HDMI", 1, "", "")
 
 	if err := s1.Save(); err != nil {
 		t.Fatalf("Save() error = %v", err)
@@ -428,9 +428,9 @@ func TestPrinterPersistence(t *testing.T) {
 func TestDeleteContainer_Constraints(t *testing.T) {
 	s := NewMemoryStore()
 
-	parent := s.CreateContainer("", "Parent", "")
-	child := s.CreateContainer(parent.ID, "Child", "")
-	item := s.CreateItem(parent.ID, "Item", "", 1)
+	parent := s.CreateContainer("", "Parent", "", "", "")
+	child := s.CreateContainer(parent.ID, "Child", "", "", "")
+	item := s.CreateItem(parent.ID, "Item", "", 1, "", "")
 
 	err := s.DeleteContainer(parent.ID)
 	if !errors.Is(err, ErrContainerHasChildren) {

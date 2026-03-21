@@ -10,12 +10,12 @@ func setupBulkStore(t *testing.T) (*Store, *Container, *Container, *Container, *
 	t.Helper()
 	s := NewMemoryStore()
 
-	root := s.CreateContainer("", "Root", "")
-	child := s.CreateContainer(root.ID, "Child", "")
-	other := s.CreateContainer("", "Other", "")
+	root := s.CreateContainer("", "Root", "", "", "")
+	child := s.CreateContainer(root.ID, "Child", "", "", "")
+	other := s.CreateContainer("", "Other", "", "", "")
 
-	item1 := s.CreateItem(root.ID, "Item1", "", 1)
-	item2 := s.CreateItem(root.ID, "Item2", "", 1)
+	item1 := s.CreateItem(root.ID, "Item1", "", 1, "", "")
+	item2 := s.CreateItem(root.ID, "Item2", "", 1, "", "")
 
 	return s, root, child, other, item1, item2
 }
@@ -41,9 +41,9 @@ func TestBulkMoveItems(t *testing.T) {
 
 func TestBulkMoveContainers(t *testing.T) {
 	s := NewMemoryStore()
-	parent := s.CreateContainer("", "Parent", "")
-	a := s.CreateContainer("", "A", "")
-	b := s.CreateContainer("", "B", "")
+	parent := s.CreateContainer("", "Parent", "", "", "")
+	a := s.CreateContainer("", "A", "", "", "")
+	b := s.CreateContainer("", "B", "", "", "")
 
 	errs := s.MoveContainers([]string{a.ID, b.ID}, parent.ID)
 	if len(errs) != 0 {
@@ -62,8 +62,8 @@ func TestBulkMoveContainers(t *testing.T) {
 
 func TestBulkMoveContainersCycleDetection(t *testing.T) {
 	s := NewMemoryStore()
-	parent := s.CreateContainer("", "Parent", "")
-	child := s.CreateContainer(parent.ID, "Child", "")
+	parent := s.CreateContainer("", "Parent", "", "", "")
+	child := s.CreateContainer(parent.ID, "Child", "", "", "")
 
 	// Moving parent into child would create a cycle.
 	errs := s.MoveContainers([]string{parent.ID}, child.ID)
@@ -83,9 +83,9 @@ func TestBulkMoveContainersCycleDetection(t *testing.T) {
 
 func TestBulkMoveContainersIntraBatchAncestry(t *testing.T) {
 	s := NewMemoryStore()
-	ancestor := s.CreateContainer("", "Ancestor", "")
-	descendant := s.CreateContainer(ancestor.ID, "Descendant", "")
-	target := s.CreateContainer("", "Target", "")
+	ancestor := s.CreateContainer("", "Ancestor", "", "", "")
+	descendant := s.CreateContainer(ancestor.ID, "Descendant", "", "", "")
+	target := s.CreateContainer("", "Target", "", "", "")
 
 	// Moving both ancestor and its descendant in the same batch should fail.
 	errs := s.MoveContainers([]string{ancestor.ID, descendant.ID}, target.ID)
@@ -129,8 +129,8 @@ func TestBulkDeleteContainersRejectsNonEmpty(t *testing.T) {
 	// root has items (should fail), child is empty but has root as parent (should succeed),
 	// other is empty (should succeed).
 	// We also add an item to a grandchild to verify child-with-children is rejected.
-	grandchild := s.CreateContainer(child.ID, "Grandchild", "")
-	_ = s.CreateItem(grandchild.ID, "GItem", "", 1)
+	grandchild := s.CreateContainer(child.ID, "Grandchild", "", "", "")
+	_ = s.CreateItem(grandchild.ID, "GItem", "", 1, "", "")
 
 	// child has a child container (grandchild), so child should fail with ErrContainerHasChildren.
 	deleted, errs := s.DeleteContainers([]string{root.ID, child.ID, other.ID})
@@ -163,11 +163,11 @@ func TestBulkDeleteContainersRejectsNonEmpty(t *testing.T) {
 
 func TestBulkMove(t *testing.T) {
 	s := NewMemoryStore()
-	target := s.CreateContainer("", "Target", "")
-	c1 := s.CreateContainer("", "C1", "")
-	c2 := s.CreateContainer("", "C2", "")
-	item1 := s.CreateItem("", "I1", "", 1)
-	item2 := s.CreateItem("", "I2", "", 1)
+	target := s.CreateContainer("", "Target", "", "", "")
+	c1 := s.CreateContainer("", "C1", "", "", "")
+	c2 := s.CreateContainer("", "C2", "", "", "")
+	item1 := s.CreateItem("", "I1", "", 1, "", "")
+	item2 := s.CreateItem("", "I2", "", 1, "", "")
 
 	errs := s.BulkMove([]string{item1.ID, item2.ID}, []string{c1.ID, c2.ID}, target.ID)
 	if len(errs) != 0 {
@@ -190,10 +190,10 @@ func TestBulkMove(t *testing.T) {
 
 func TestBulkDelete(t *testing.T) {
 	s := NewMemoryStore()
-	c1 := s.CreateContainer("", "C1", "")
-	c2 := s.CreateContainer("", "C2", "")
-	item1 := s.CreateItem(c1.ID, "I1", "", 1)
-	item2 := s.CreateItem(c1.ID, "I2", "", 1)
+	c1 := s.CreateContainer("", "C1", "", "", "")
+	c2 := s.CreateContainer("", "C2", "", "", "")
+	item1 := s.CreateItem(c1.ID, "I1", "", 1, "", "")
+	item2 := s.CreateItem(c1.ID, "I2", "", 1, "", "")
 
 	// Delete items first then empty containers.
 	deleted, errs := s.BulkDelete([]string{item1.ID, item2.ID}, []string{c1.ID, c2.ID})
@@ -220,12 +220,12 @@ func TestBulkDelete(t *testing.T) {
 
 func TestBulkAddTag(t *testing.T) {
 	s := NewMemoryStore()
-	tag := s.CreateTag("", "Bulk")
+	tag := s.CreateTag("", "Bulk", "", "")
 
-	c1 := s.CreateContainer("", "C1", "")
-	c2 := s.CreateContainer("", "C2", "")
-	item1 := s.CreateItem(c1.ID, "I1", "", 1)
-	item2 := s.CreateItem(c1.ID, "I2", "", 1)
+	c1 := s.CreateContainer("", "C1", "", "", "")
+	c2 := s.CreateContainer("", "C2", "", "", "")
+	item1 := s.CreateItem(c1.ID, "I1", "", 1, "", "")
+	item2 := s.CreateItem(c1.ID, "I2", "", 1, "", "")
 
 	// Include a missing ID to verify skipping.
 	err := s.BulkAddTag(

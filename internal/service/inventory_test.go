@@ -10,16 +10,16 @@ import (
 // mockInventoryStore provides a configurable mock for InventoryService tests.
 type mockInventoryStore struct {
 	getContainer      func(id string) *store.Container
-	createContainer   func(parentID, name, desc string) *store.Container
-	updateContainer   func(id, name, desc string) (*store.Container, error)
+	createContainer   func(parentID, name, desc, color, icon string) *store.Container
+	updateContainer   func(id, name, desc, color, icon string) (*store.Container, error)
 	deleteContainer   func(id string) error
 	moveContainer     func(id, newParentID string) error
 	containerChildren func(parentID string) []store.Container
 	containerItems    func(containerID string) []store.Item
 	containerPath     func(id string) []store.Container
 	getItem           func(id string) *store.Item
-	createItem        func(containerID, name, desc string, qty int) *store.Item
-	updateItem        func(id, name, desc string, qty int) (*store.Item, error)
+	createItem        func(containerID, name, desc string, qty int, color, icon string) *store.Item
+	updateItem        func(id, name, desc string, qty int, color, icon string) (*store.Item, error)
 	deleteItem        func(id string) error
 	moveItem          func(id, containerID string) error
 	save              func() error
@@ -31,15 +31,15 @@ func (m *mockInventoryStore) GetContainer(id string) *store.Container {
 	}
 	return nil
 }
-func (m *mockInventoryStore) CreateContainer(parentID, name, desc string) *store.Container {
+func (m *mockInventoryStore) CreateContainer(parentID, name, desc, color, icon string) *store.Container {
 	if m.createContainer != nil {
-		return m.createContainer(parentID, name, desc)
+		return m.createContainer(parentID, name, desc, color, icon)
 	}
 	return &store.Container{ID: "c1", Name: name}
 }
-func (m *mockInventoryStore) UpdateContainer(id, name, desc string) (*store.Container, error) {
+func (m *mockInventoryStore) UpdateContainer(id, name, desc, color, icon string) (*store.Container, error) {
 	if m.updateContainer != nil {
-		return m.updateContainer(id, name, desc)
+		return m.updateContainer(id, name, desc, color, icon)
 	}
 	return &store.Container{ID: id, Name: name}, nil
 }
@@ -79,15 +79,15 @@ func (m *mockInventoryStore) GetItem(id string) *store.Item {
 	}
 	return nil
 }
-func (m *mockInventoryStore) CreateItem(containerID, name, desc string, qty int) *store.Item {
+func (m *mockInventoryStore) CreateItem(containerID, name, desc string, qty int, color, icon string) *store.Item {
 	if m.createItem != nil {
-		return m.createItem(containerID, name, desc, qty)
+		return m.createItem(containerID, name, desc, qty, color, icon)
 	}
 	return &store.Item{ID: "i1", Name: name}
 }
-func (m *mockInventoryStore) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
+func (m *mockInventoryStore) UpdateItem(id, name, desc string, qty int, color, icon string) (*store.Item, error) {
 	if m.updateItem != nil {
-		return m.updateItem(id, name, desc, qty)
+		return m.updateItem(id, name, desc, qty, color, icon)
 	}
 	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
@@ -120,7 +120,7 @@ func TestInventoryService_CreateContainer(t *testing.T) {
 		{
 			name: "success",
 			mock: &mockInventoryStore{
-				createContainer: func(_, name, _ string) *store.Container {
+				createContainer: func(_, name, _, _, _ string) *store.Container {
 					return &store.Container{ID: "c1", Name: name}
 				},
 			},
@@ -138,7 +138,7 @@ func TestInventoryService_CreateContainer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewInventoryService(tt.mock)
-			c, err := svc.CreateContainer("", "Box A", "desc")
+			c, err := svc.CreateContainer("", "Box A", "desc", "", "")
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -168,7 +168,7 @@ func TestInventoryService_UpdateContainer(t *testing.T) {
 		{
 			name: "not found",
 			mock: &mockInventoryStore{
-				updateContainer: func(_, _, _ string) (*store.Container, error) {
+				updateContainer: func(_, _, _, _, _ string) (*store.Container, error) {
 					return nil, store.ErrContainerNotFound
 				},
 			},
@@ -186,7 +186,7 @@ func TestInventoryService_UpdateContainer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewInventoryService(tt.mock)
-			_, err := svc.UpdateContainer("c1", "New Name", "desc")
+			_, err := svc.UpdateContainer("c1", "New Name", "desc", "", "")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -259,7 +259,7 @@ func TestInventoryService_CreateItem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewInventoryService(tt.mock)
-			_, err := svc.CreateItem("c1", "Item", "desc", 1)
+			_, err := svc.CreateItem("c1", "Item", "desc", 1, "", "")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}

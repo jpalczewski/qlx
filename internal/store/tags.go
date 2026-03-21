@@ -14,7 +14,7 @@ var (
 )
 
 // CreateTag creates a new tag with the given parent and name. parentID may be empty for a root tag.
-func (s *Store) CreateTag(parentID, name string) *Tag {
+func (s *Store) CreateTag(parentID, name, color, icon string) *Tag {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -22,6 +22,8 @@ func (s *Store) CreateTag(parentID, name string) *Tag {
 		ID:        uuid.New().String(),
 		ParentID:  parentID,
 		Name:      name,
+		Color:     color,
+		Icon:      icon,
 		CreatedAt: time.Now(),
 	}
 	s.tags[t.ID] = t
@@ -43,7 +45,7 @@ func (s *Store) GetTag(id string) *Tag {
 }
 
 // UpdateTag updates the name of the tag with the given id.
-func (s *Store) UpdateTag(id, name string) (*Tag, error) {
+func (s *Store) UpdateTag(id, name, color, icon string) (*Tag, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -53,6 +55,8 @@ func (s *Store) UpdateTag(id, name string) (*Tag, error) {
 	}
 
 	t.Name = name
+	t.Color = color
+	t.Icon = icon
 	s.dirty |= dirtyTags
 	copy := *t
 	return &copy, nil

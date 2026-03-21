@@ -38,7 +38,7 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag, err := s.tags.CreateTag(req.ParentID, req.Name)
+	tag, err := s.tags.CreateTag(req.ParentID, req.Name, "", "")
 	if err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -63,7 +63,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag, err := s.tags.UpdateTag(r.PathValue("id"), req.Name)
+	tag, err := s.tags.UpdateTag(r.PathValue("id"), req.Name, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return

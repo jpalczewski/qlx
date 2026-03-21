@@ -56,7 +56,7 @@ func TestRootRedirectsToUI(t *testing.T) {
 
 func TestUIAddItemInContainer(t *testing.T) {
 	mem := store.NewMemoryStore()
-	container := mem.CreateContainer("", "Box", "")
+	container := mem.CreateContainer("", "Box", "", "", "")
 	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 
 	form := url.Values{}

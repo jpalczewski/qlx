@@ -160,7 +160,7 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description)
+	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -177,7 +177,7 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	container, err := s.inventory.UpdateContainer(r.PathValue("id"), req.Name, req.Description)
+	container, err := s.inventory.UpdateContainer(r.PathValue("id"), req.Name, req.Description, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -227,7 +227,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
+	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -249,7 +249,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description, req.Quantity)
+	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description, req.Quantity, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return

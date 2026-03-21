@@ -42,7 +42,7 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")          //nolint:gosec // G120: internal tool, no untrusted input
 	parentID := r.FormValue("parent_id") //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag, err := s.tags.CreateTag(parentID, name)
+	tag, err := s.tags.CreateTag(parentID, name, "", "")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	name := r.FormValue("name") //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag, err := s.tags.UpdateTag(id, name)
+	tag, err := s.tags.UpdateTag(id, name, "", "")
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
