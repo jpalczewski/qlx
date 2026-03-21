@@ -28,9 +28,10 @@ type ContainerListData struct {
 }
 
 type ItemDetailData struct {
-	Item     *store.Item
-	Path     []store.Container
-	Printers []store.PrinterConfig
+	Item      *store.Item
+	Path      []store.Container
+	Printers  []store.PrinterConfig
+	Templates []store.Template
 }
 
 type PrintersData struct {
@@ -182,9 +183,10 @@ func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
 	}
 
 	return ItemDetailData{
-		Item:     item,
-		Path:     s.store.ContainerPath(item.ContainerID),
-		Printers: s.store.AllPrinters(),
+		Item:      item,
+		Path:      s.store.ContainerPath(item.ContainerID),
+		Printers:  s.store.AllPrinters(),
+		Templates: s.store.AllTemplates(),
 	}, true
 }
 

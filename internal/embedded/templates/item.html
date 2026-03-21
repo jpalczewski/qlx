@@ -35,10 +35,15 @@
             <div class="form-group">
                 <label for="print-template">Szablon</label>
                 <select id="print-template">
-                    <option value="simple">Prosty</option>
-                    <option value="standard">Standardowy</option>
-                    <option value="compact">Kompaktowy</option>
-                    <option value="detailed">Szczegółowy</option>
+                    {{ range .Templates }}
+                    <option value="{{ .ID }}">{{ .Name }}</option>
+                    {{ end }}
+                    <optgroup label="Legacy">
+                        <option value="simple">Prosty</option>
+                        <option value="standard">Standardowy</option>
+                        <option value="compact">Kompaktowy</option>
+                        <option value="detailed">Szczegółowy</option>
+                    </optgroup>
                 </select>
             </div>
             <button id="print-btn" onclick="(function(){
