@@ -20,5 +20,6 @@ require (
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/image v0.37.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	tinygo.org/x/bluetooth v0.14.0 // indirect
 )
