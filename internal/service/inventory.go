@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/validate"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -56,6 +59,12 @@ func (s *InventoryService) CreateContainer(parentID, name, desc, color, icon str
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
 	c := s.store.CreateContainer(parentID, name, desc, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -70,6 +79,12 @@ func (s *InventoryService) UpdateContainer(id, name, desc, color, icon string) (
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
+	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	c, err := s.store.UpdateContainer(id, name, desc, color, icon)
 	if err != nil {
@@ -114,6 +129,12 @@ func (s *InventoryService) CreateItem(containerID, name, desc string, qty int, c
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
 	item := s.store.CreateItem(containerID, name, desc, qty, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -129,6 +150,12 @@ func (s *InventoryService) UpdateItem(id, name, desc string, qty int, color, ico
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
+	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	item, err := s.store.UpdateItem(id, name, desc, qty, color, icon)
 	if err != nil {

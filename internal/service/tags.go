@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/validate"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -60,6 +63,12 @@ func (s *TagService) CreateTag(parentID, name, color, icon string) (*store.Tag, 
 	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
 		return nil, err
 	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
 	t := s.store.CreateTag(parentID, name, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -71,6 +80,12 @@ func (s *TagService) CreateTag(parentID, name, color, icon string) (*store.Tag, 
 func (s *TagService) UpdateTag(id, name, color, icon string) (*store.Tag, error) {
 	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
 		return nil, err
+	}
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	t, err := s.store.UpdateTag(id, name, color, icon)
 	if err != nil {

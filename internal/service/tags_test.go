@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/erxyi/qlx/internal/store"
@@ -240,6 +241,85 @@ func TestTagService_CreateTag(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTagService_PaletteValidation(t *testing.T) {
+	svc := NewTagService(&mockTagStore{
+		createTag: func(parentID, name, color, icon string) *store.Tag {
+			return &store.Tag{ID: "t1", Name: name, ParentID: parentID, Color: color, Icon: icon}
+		},
+	})
+
+	t.Run("create tag valid color and icon", func(t *testing.T) {
+		tag, err := svc.CreateTag("", "Electronics", "red", "wrench")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if tag.Color != "red" || tag.Icon != "wrench" {
+			t.Errorf("got color=%q icon=%q, want color=%q icon=%q", tag.Color, tag.Icon, "red", "wrench")
+		}
+	})
+
+	t.Run("create tag invalid color", func(t *testing.T) {
+		_, err := svc.CreateTag("", "Electronics", "notacolor", "")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid color") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid color")
+		}
+	})
+
+	t.Run("create tag invalid icon", func(t *testing.T) {
+		_, err := svc.CreateTag("", "Electronics", "", "notanicon")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid icon") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid icon")
+		}
+	})
+
+	t.Run("create tag empty color and icon", func(t *testing.T) {
+		_, err := svc.CreateTag("", "Electronics", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("update tag valid color and icon", func(t *testing.T) {
+		_, err := svc.UpdateTag("t1", "Electronics", "blue", "wrench")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("update tag invalid color", func(t *testing.T) {
+		_, err := svc.UpdateTag("t1", "Electronics", "notacolor", "")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid color") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid color")
+		}
+	})
+
+	t.Run("update tag invalid icon", func(t *testing.T) {
+		_, err := svc.UpdateTag("t1", "Electronics", "", "notanicon")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid icon") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid icon")
+		}
+	})
+
+	t.Run("update tag empty color and icon", func(t *testing.T) {
+		_, err := svc.UpdateTag("t1", "Electronics", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestTagService_UpdateTag(t *testing.T) {

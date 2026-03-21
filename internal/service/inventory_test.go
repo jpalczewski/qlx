@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/erxyi/qlx/internal/store"
@@ -153,6 +154,89 @@ func TestInventoryService_CreateContainer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInventoryService_PaletteValidation(t *testing.T) {
+	svc := NewInventoryService(&mockInventoryStore{
+		createContainer: func(_, name, _, color, icon string) *store.Container {
+			return &store.Container{ID: "c1", Name: name, Color: color, Icon: icon}
+		},
+	})
+
+	t.Run("create container valid color and icon", func(t *testing.T) {
+		c, err := svc.CreateContainer("", "Box", "", "red", "wrench")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if c.Color != "red" || c.Icon != "wrench" {
+			t.Errorf("got color=%q icon=%q, want color=%q icon=%q", c.Color, c.Icon, "red", "wrench")
+		}
+	})
+
+	t.Run("create container invalid color", func(t *testing.T) {
+		_, err := svc.CreateContainer("", "Box", "", "notacolor", "")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid color") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid color")
+		}
+	})
+
+	t.Run("create container invalid icon", func(t *testing.T) {
+		_, err := svc.CreateContainer("", "Box", "", "", "notanicon")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid icon") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid icon")
+		}
+	})
+
+	t.Run("create container empty color and icon", func(t *testing.T) {
+		_, err := svc.CreateContainer("", "Box", "", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("create item invalid icon", func(t *testing.T) {
+		_, err := svc.CreateItem("c1", "Item", "", 1, "", "notanicon")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid icon") {
+			t.Errorf("error %q does not contain %q", err.Error(), "invalid icon")
+		}
+	})
+
+	t.Run("update container valid color and icon", func(t *testing.T) {
+		_, err := svc.UpdateContainer("c1", "Box", "", "blue", "wrench")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("update container empty color and icon", func(t *testing.T) {
+		_, err := svc.UpdateContainer("c1", "Box", "", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("update item valid color and icon", func(t *testing.T) {
+		_, err := svc.UpdateItem("i1", "Item", "", 1, "green", "wrench")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("update item empty color and icon", func(t *testing.T) {
+		_, err := svc.UpdateItem("i1", "Item", "", 1, "", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
 }
 
 func TestInventoryService_UpdateContainer(t *testing.T) {
