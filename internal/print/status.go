@@ -11,8 +11,10 @@ type PrinterStatus struct {
 	LabelType    string    `json:"label_type"`     // "with-gaps", "transparent", etc.
 	TotalLabels  int       `json:"total_labels"`   // from RFID, -1 if unknown
 	UsedLabels   int       `json:"used_labels"`    // from RFID, -1 if unknown
-	PrintWidthMm int       `json:"print_width_mm"` // calculated from model DPI + printhead pixels
-	DPI          int       `json:"dpi"`
+	PrintWidthMm  int      `json:"print_width_mm"`  // from model DPI + printhead pixels
+	DPI           int      `json:"dpi"`
+	LabelWidthMm  int      `json:"label_width_mm"`  // from RFID barcode lookup, 0 if unknown
+	LabelHeightMm int      `json:"label_height_mm"` // from RFID barcode lookup, 0 if unknown
 	LastError    string    `json:"last_error"`
 	LastUpdated  time.Time `json:"last_updated"`
 }

@@ -80,6 +80,8 @@ func (s *PrinterSession) Start() error {
 				st.LabelType = rfid.LabelType
 				st.TotalLabels = rfid.TotalLabels
 				st.UsedLabels = rfid.UsedLabels
+				st.LabelWidthMm = rfid.LabelWidthMm
+				st.LabelHeightMm = rfid.LabelHeightMm
 			})
 		}
 

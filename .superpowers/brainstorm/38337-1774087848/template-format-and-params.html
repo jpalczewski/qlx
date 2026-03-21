@@ -1,0 +1,181 @@
+<h2>Sekcja 3: Format szablonu i parametry</h2>
+<p class="subtitle">Szczegóły elementów, dostępne zmienne, i zasady renderingu</p>
+
+<h3>Dostępne parametry (zmienne)</h3>
+<div class="mockup">
+  <div class="mockup-header">Template Variables</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 13px;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{name}}</td>
+        <td style="padding: 6px; color: #aaa;">Item or container name</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">item, container</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{description}}</td>
+        <td style="padding: 6px; color: #aaa;">Item or container description</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">item, container</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{location}}</td>
+        <td style="padding: 6px; color: #aaa;">Container path: "Room &rarr; Shelf &rarr; Box"</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">item, container</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{id}}</td>
+        <td style="padding: 6px; color: #aaa;">Item or container ID</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">item, container</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{qr_url}}</td>
+        <td style="padding: 6px; color: #aaa;">Full URL to item/container view</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">item, container</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{date}}</td>
+        <td style="padding: 6px; color: #aaa;">Print date (YYYY-MM-DD)</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">context</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{time}}</td>
+        <td style="padding: 6px; color: #aaa;">Print time (HH:MM)</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">context</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px; color: #81C784; font-family: monospace;">{{printer}}</td>
+        <td style="padding: 6px; color: #aaa;">Printer name</td>
+        <td style="padding: 6px; color: #888; font-size: 11px;">context</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Elementy — właściwości</h3>
+<div class="mockup">
+  <div class="mockup-header">Element Types &amp; Properties</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 12px; font-family: monospace;">
+
+    <!-- Text -->
+    <div style="border: 1px solid #64B5F6; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+      <div style="color: #64B5F6; font-weight: bold; margin-bottom: 6px;">text</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #aaa;">
+        <span>x, y <span style="color:#888">(position)</span></span>
+        <span>width <span style="color:#888">(text wrap boundary)</span></span>
+        <span>text <span style="color:#888">("{{name}}" or literal)</span></span>
+        <span>font <span style="color:#888">(sans / serif / mono)</span></span>
+        <span>size <span style="color:#888">(pt)</span></span>
+        <span>bold <span style="color:#888">(bool)</span></span>
+        <span>italic <span style="color:#888">(bool)</span></span>
+        <span>align <span style="color:#888">(left / center / right)</span></span>
+      </div>
+    </div>
+
+    <!-- QR -->
+    <div style="border: 1px solid #81C784; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+      <div style="color: #81C784; font-weight: bold; margin-bottom: 6px;">qr</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #aaa;">
+        <span>x, y <span style="color:#888">(position)</span></span>
+        <span>size <span style="color:#888">(width = height)</span></span>
+        <span>content <span style="color:#888">("{{qr_url}}" or literal)</span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- Barcode -->
+    <div style="border: 1px solid #FFB74D; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+      <div style="color: #FFB74D; font-weight: bold; margin-bottom: 6px;">barcode</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #aaa;">
+        <span>x, y <span style="color:#888">(position)</span></span>
+        <span>width, height <span style="color:#888">(dimensions)</span></span>
+        <span>content <span style="color:#888">("{{id}}" or literal)</span></span>
+        <span>format <span style="color:#888">(code128)</span></span>
+      </div>
+    </div>
+
+    <!-- Line -->
+    <div style="border: 1px solid #EF5350; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+      <div style="color: #EF5350; font-weight: bold; margin-bottom: 6px;">line</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #aaa;">
+        <span>x1, y1 <span style="color:#888">(start)</span></span>
+        <span>x2, y2 <span style="color:#888">(end)</span></span>
+        <span>thickness <span style="color:#888">(px)</span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- Image -->
+    <div style="border: 1px solid #CE93D8; border-radius: 6px; padding: 10px;">
+      <div style="color: #CE93D8; font-weight: bold; margin-bottom: 6px;">img</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #aaa;">
+        <span>x, y <span style="color:#888">(position)</span></span>
+        <span>width, height <span style="color:#888">(dimensions)</span></span>
+        <span>src <span style="color:#888">("asset:logo_id")</span></span>
+        <span>fit <span style="color:#888">(contain / cover / stretch)</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Rendering pipeline</h3>
+<div class="mockup">
+  <div class="mockup-header">From template to printer</div>
+  <div class="mockup-body" style="padding: 16px; font-family: monospace; font-size: 12px; color: #aaa;">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <div style="border: 1px solid #64B5F6; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #64B5F6;">Template JSON</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #81C784; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #81C784;">Fill params</span><br>
+        <span style="font-size: 10px;">{{name}} &rarr; "Screwdriver"</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #FFB74D; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #FFB74D;">Fabric Canvas</span><br>
+        <span style="font-size: 10px;">or Go renderer</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #EF5350; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #EF5350;">Dither</span><br>
+        <span style="font-size: 10px;">Floyd-Steinberg 1-bit</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #CE93D8; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #CE93D8;">PNG</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #ffc93c; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #ffc93c;">Encoder</span><br>
+        <span style="font-size: 10px;">Niimbot / Brother</span>
+      </div>
+      <span>&rarr;</span>
+      <div style="border: 1px solid #4ecca3; padding: 6px 10px; border-radius: 4px;">
+        <span style="color: #4ecca3;">&#x1F5A8; Print</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; border-top: 1px solid #444; padding-top: 12px;">
+      <div style="color: #FFB74D; margin-bottom: 6px;">Unit conversion (universal templates):</div>
+      <div>canvas_px = mm &times; (DPI / 25.4)</div>
+      <div style="color: #888; font-size: 11px; margin-top: 4px;">Example: 50mm @ 203 DPI = 400px canvas width</div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">OK?</h3>
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Pasuje</h3>
+      <p>Elementy, parametry i pipeline wyglądają dobrze</p>
+    </div>
+  </div>
+  <div class="option" data-choice="modify" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Uwagi</h3>
+      <p>Napisz co zmienić</p>
+    </div>
+  </div>
+</div>

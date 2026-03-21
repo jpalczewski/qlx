@@ -2,3 +2,9 @@
 {"type":"screen-added","file":"/Users/erxyi/Projekty/qlx/.superpowers/brainstorm/38337-1774087848/architecture-overview.html"}
 {"source":"user-event","type":"click","text":"A\n    \n      Tak, git\n      Architektura i format szablonu wyglądają dobrze, przechodzimy dalej","choice":"approve","id":null,"timestamp":1774087968929}
 {"type":"screen-added","file":"/Users/erxyi/Projekty/qlx/.superpowers/brainstorm/38337-1774087848/ui-flow.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      Tak, dalej\n      Nawigacja i rozkład stron OK","choice":"approve","id":null,"timestamp":1774088077928}
+{"type":"screen-added","file":"/Users/erxyi/Projekty/qlx/.superpowers/brainstorm/38337-1774087848/template-format-and-params.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      Pasuje\n      Elementy, parametry i pipeline wyglądają dobrze","choice":"approve","id":null,"timestamp":1774088151457}
+{"type":"screen-added","file":"/Users/erxyi/Projekty/qlx/.superpowers/brainstorm/38337-1774087848/api-and-store.html"}
+{"source":"user-event","type":"click","text":"A\n    \n      Zatwierdzone\n      API, store, fazy — wszystko OK, gotowe do spisania spec","choice":"approve","id":null,"timestamp":1774088350465}
+{"type":"screen-added","file":"/Users/erxyi/Projekty/qlx/.superpowers/brainstorm/38337-1774087848/waiting.html"}

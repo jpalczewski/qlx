@@ -46,7 +46,10 @@ type HeartbeatResult struct {
 
 // RfidResult contains tape/label info from RFID tag.
 type RfidResult struct {
-	LabelType   string
-	TotalLabels int
-	UsedLabels  int
+	LabelType     string
+	TotalLabels   int
+	UsedLabels    int
+	Barcode       string // EAN barcode from RFID (for cloud size lookup)
+	LabelWidthMm  int   // 0 if unknown
+	LabelHeightMm int   // 0 if unknown
 }

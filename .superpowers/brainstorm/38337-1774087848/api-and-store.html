@@ -1,0 +1,201 @@
+<h2>Sekcja 4: API, Store i fazowanie</h2>
+<p class="subtitle">Endpointy, persystencja szablonów, podział na fazy</p>
+
+<h3>API Endpoints</h3>
+<div class="mockup">
+  <div class="mockup-header">UI Endpoints (HTMX)</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 12px; font-family: monospace;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/ui/templates</td>
+        <td style="padding: 5px; color: #888;">List templates page</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/ui/templates/new</td>
+        <td style="padding: 5px; color: #888;">Designer — new template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/ui/templates/{id}/edit</td>
+        <td style="padding: 5px; color: #888;">Designer — edit template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/templates</td>
+        <td style="padding: 5px; color: #888;">Create template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #64B5F6;">PUT</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/templates/{id}</td>
+        <td style="padding: 5px; color: #888;">Update template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #EF5350;">DELETE</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/templates/{id}</td>
+        <td style="padding: 5px; color: #888;">Delete template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/templates/{id}/duplicate</td>
+        <td style="padding: 5px; color: #888;">Duplicate template</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/assets</td>
+        <td style="padding: 5px; color: #888;">Upload image asset (multipart)</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/assets/{id}</td>
+        <td style="padding: 5px; color: #888;">Serve image asset</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">Print Endpoints (updated)</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 12px; font-family: monospace;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/items/{id}/print</td>
+        <td style="padding: 5px; color: #888;">Print item (browser PNG)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/containers/{id}/print</td>
+        <td style="padding: 5px; color: #888;">Print container label</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/ui/actions/containers/{id}/print-all</td>
+        <td style="padding: 5px; color: #888;">Batch print all items</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top: 16px;">
+  <div class="mockup-header">REST API (faza 2)</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 12px; font-family: monospace;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/api/templates</td>
+        <td style="padding: 5px; color: #888;">List templates (JSON)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #81C784;">GET</td>
+        <td style="padding: 5px; color: #eee;">/api/templates/{id}</td>
+        <td style="padding: 5px; color: #888;">Get template (JSON)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/api/print</td>
+        <td style="padding: 5px; color: #888;">Server-side render + print</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #444;">
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/api/print/batch</td>
+        <td style="padding: 5px; color: #888;">Batch: container → all items</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px; color: #FFB74D;">POST</td>
+        <td style="padding: 5px; color: #eee;">/api/print/render</td>
+        <td style="padding: 5px; color: #888;">Render → return PNG (no print)</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Store — template w bazie</h3>
+<div class="mockup">
+  <div class="mockup-header">Template entity in Store</div>
+  <div class="mockup-body" style="padding: 16px;">
+    <pre style="color: #ccc; font-size: 12px; margin: 0; line-height: 1.5;"><span style="color: #64B5F6;">type Template struct</span> {
+    ID        string    <span style="color: #888;">// "tpl_abc123"</span>
+    Name      string    <span style="color: #888;">// "Standard Inventory"</span>
+    Tags      []string  <span style="color: #888;">// ["inventory", "items"]</span>
+    Target    string    <span style="color: #888;">// "universal" | "printer:B1"</span>
+    WidthMM   float64   <span style="color: #888;">// 50.0 (universal only)</span>
+    HeightMM  float64   <span style="color: #888;">// 30.0 (universal only)</span>
+    Elements  string    <span style="color: #888;">// JSON array of elements</span>
+    CreatedAt time.Time
+    UpdatedAt time.Time
+}
+
+<span style="color: #64B5F6;">type Asset struct</span> {
+    ID        string    <span style="color: #888;">// "asset_xyz789"</span>
+    Name      string    <span style="color: #888;">// "company-logo.png"</span>
+    Data      []byte    <span style="color: #888;">// image bytes</span>
+    MimeType  string    <span style="color: #888;">// "image/png"</span>
+    CreatedAt time.Time
+}</pre>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Fazy implementacji</h3>
+<div class="mockup">
+  <div class="mockup-header">Phased Rollout</div>
+  <div class="mockup-body" style="padding: 16px; font-size: 13px;">
+
+    <div style="border-left: 3px solid #4ecca3; padding: 8px 12px; margin-bottom: 12px;">
+      <div style="color: #4ecca3; font-weight: bold;">Phase 1 — MVP</div>
+      <ul style="color: #aaa; margin: 6px 0; padding-left: 20px;">
+        <li>Template CRUD in store + UI endpoints</li>
+        <li>Fabric.js designer (text, qr, barcode, line, img)</li>
+        <li>QLX JSON format with converter (Fabric &harr; QLX)</li>
+        <li>Live preview with item/container data</li>
+        <li>Browser-side PNG rendering + print</li>
+        <li>/ui/templates page with tag filtering</li>
+        <li>Asset upload for images</li>
+        <li>Print from item view with template selection</li>
+        <li>Print container labels</li>
+      </ul>
+    </div>
+
+    <div style="border-left: 3px solid #FFB74D; padding: 8px 12px; margin-bottom: 12px;">
+      <div style="color: #FFB74D; font-weight: bold;">Phase 2 — Server &amp; API</div>
+      <ul style="color: #aaa; margin: 6px 0; padding-left: 20px;">
+        <li>Go server-side renderer (QLX JSON &rarr; image.Draw)</li>
+        <li>Embedded fonts (sans, serif, mono + bold)</li>
+        <li>Floyd-Steinberg dithering in Go</li>
+        <li>REST API: /api/print, /api/print/render</li>
+        <li>Batch print from container (flat + recursive)</li>
+        <li>Universal templates (mm &rarr; px conversion)</li>
+      </ul>
+    </div>
+
+    <div style="border-left: 3px solid #CE93D8; padding: 8px 12px;">
+      <div style="color: #CE93D8; font-weight: bold;">Phase 3 — Polish</div>
+      <ul style="color: #aaa; margin: 6px 0; padding-left: 20px;">
+        <li>Template duplication</li>
+        <li>Snap-to-grid in designer</li>
+        <li>Undo/redo</li>
+        <li>Keyboard shortcuts</li>
+        <li>Checkbox item selection for batch</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top: 24px;">Pasuje?</h3>
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Zatwierdzone</h3>
+      <p>API, store, fazy — wszystko OK, gotowe do spisania spec</p>
+    </div>
+  </div>
+  <div class="option" data-choice="modify" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Poprawki</h3>
+      <p>Napisz w terminalu</p>
+    </div>
+  </div>
+</div>

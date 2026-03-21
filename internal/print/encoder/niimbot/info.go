@@ -6,6 +6,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/transport"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
 const (
@@ -80,7 +81,13 @@ func (e *NiimbotEncoder) RfidInfo(tr transport.Transport) (encoder.RfidResult, e
 	}
 
 	barcodeLen := int(data[idx])
-	idx += 1 + barcodeLen // skip barcode
+	idx++
+	barcode := ""
+	if idx+barcodeLen <= len(data) {
+		barcode = string(data[idx : idx+barcodeLen])
+		result.Barcode = barcode
+	}
+	idx += barcodeLen
 
 	if idx >= len(data) {
 		return result, nil
@@ -108,5 +115,42 @@ func (e *NiimbotEncoder) RfidInfo(tr transport.Transport) (encoder.RfidResult, e
 		result.LabelType = fmt.Sprintf("unknown-%d", labelType)
 	}
 
+	// Offline lookup for label dimensions by barcode
+	if barcode != "" {
+		w, h := lookupLabelSize(barcode)
+		result.LabelWidthMm = w
+		result.LabelHeightMm = h
+	}
+
 	return result, nil
+}
+
+// Known Niimbot label barcodes → dimensions (mm).
+// Sourced from product listings and RFID tag data.
+var knownLabels = map[string][2]int{
+	// B1 / B21 common labels (50mm printhead)
+	"6972842748577": {50, 30},  // T50*30-230
+	"6972842748584": {40, 30},  // T40*30-230
+	"6972842748591": {50, 80},  // T50*80-100
+	"6972842748607": {30, 15},  // T30*15-400
+	"6972842748614": {40, 60},  // T40*60-150
+	"6972842748621": {50, 50},  // T50*50-150
+	"6972842748638": {40, 40},  // T40*40-180
+	"6972842748645": {25, 15},  // T25*15-400
+	"6972842748652": {50, 25},  // T50*25-320
+	"6972842748669": {40, 20},  // T40*20-320
+	// D11 / D110 labels (12mm printhead)
+	"6972842748676": {12, 40},  // T12*40-160
+	"6972842748683": {15, 30},  // T15*30-210
+	"6972842748690": {14, 22},  // T14*22-260
+}
+
+// lookupLabelSize returns label dimensions for a known barcode.
+func lookupLabelSize(barcode string) (widthMm, heightMm int) {
+	if dims, ok := knownLabels[barcode]; ok {
+		webutil.LogTrace("niimbot: barcode %s → %dx%d mm (offline db)", barcode, dims[0], dims[1])
+		return dims[0], dims[1]
+	}
+	webutil.LogTrace("niimbot: barcode %s not in offline db", barcode)
+	return 0, 0
 }
