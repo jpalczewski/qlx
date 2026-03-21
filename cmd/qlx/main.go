@@ -56,11 +56,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	ps := qlprint.NewPrintService(s)
-	ps.RegisterEncoder(&brother.BrotherEncoder{})
-	ps.RegisterEncoder(&niimbot.NiimbotEncoder{})
+	pm := qlprint.NewPrinterManager(s)
+	pm.RegisterEncoder(&brother.BrotherEncoder{})
+	pm.RegisterEncoder(&niimbot.NiimbotEncoder{})
+	pm.Start()
+	defer pm.Stop()
 
-	server := app.NewServer(s, ps)
+	server := app.NewServer(s, pm)
 
 	addr := fmt.Sprintf("%s:%s", *host, *port)
 	srv := &http.Server{

@@ -249,7 +249,7 @@ func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 		BarcodeID:   item.ID,
 	}
 
-	if err := s.printService.Print(req.PrinterID, data, req.TemplateName); err != nil {
+	if err := s.printerManager.Print(req.PrinterID, data, req.TemplateName); err != nil {
 		webutil.LogError("print failed: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

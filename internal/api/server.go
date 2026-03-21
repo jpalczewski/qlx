@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -14,12 +15,12 @@ import (
 )
 
 type Server struct {
-	store        *store.Store
-	printService *print.PrintService
+	store          *store.Store
+	printerManager *print.PrinterManager
 }
 
-func NewServer(s *store.Store, ps *print.PrintService) *Server {
-	return &Server{store: s, printService: ps}
+func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
+	return &Server{store: s, printerManager: pm}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -46,6 +47,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/printers/{id}", s.HandlePrinterDelete)
 	mux.HandleFunc("GET /api/encoders", s.HandleEncoders)
 	mux.HandleFunc("POST /api/items/{id}/print", s.HandlePrint)
+	mux.HandleFunc("GET /api/printers/status", s.HandlePrinterStatuses)
+	mux.HandleFunc("GET /api/printers/{id}/status", s.HandlePrinterStatus)
+	mux.HandleFunc("POST /api/printers/{id}/connect", s.HandlePrinterConnect)
+	mux.HandleFunc("POST /api/printers/{id}/disconnect", s.HandlePrinterDisconnect)
+	mux.HandleFunc("GET /api/printers/events", s.HandlePrinterEvents)
 	s.registerBluetoothRoutes(mux)
 }
 
@@ -342,7 +348,7 @@ func (s *Server) HandleEncoders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var result []encoderInfo
-	for name, enc := range s.printService.AvailableEncoders() {
+	for name, enc := range s.printerManager.AvailableEncoders() {
 		info := encoderInfo{Name: name}
 		for _, m := range enc.Models() {
 			info.Models = append(info.Models, map[string]string{
@@ -381,12 +387,59 @@ func (s *Server) HandlePrint(w http.ResponseWriter, r *http.Request) {
 		BarcodeID:   item.ID,
 	}
 
-	if err := s.printService.Print(req.PrinterID, data, req.Template); err != nil {
+	if err := s.printerManager.Print(req.PrinterID, data, req.Template); err != nil {
 		webutil.LogError("print failed: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandlePrinterStatuses(w http.ResponseWriter, r *http.Request) {
+	webutil.JSON(w, http.StatusOK, s.printerManager.AllStatuses())
+}
+
+func (s *Server) HandlePrinterStatus(w http.ResponseWriter, r *http.Request) {
+	webutil.JSON(w, http.StatusOK, s.printerManager.GetStatus(r.PathValue("id")))
+}
+
+func (s *Server) HandlePrinterConnect(w http.ResponseWriter, r *http.Request) {
+	if err := s.printerManager.ConnectPrinter(r.PathValue("id")); err != nil {
+		webutil.LogError("connect printer: %v", err)
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandlePrinterDisconnect(w http.ResponseWriter, r *http.Request) {
+	s.printerManager.DisconnectPrinter(r.PathValue("id"))
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandlePrinterEvents(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	ch := s.printerManager.SubscribeSSE()
+	defer s.printerManager.UnsubscribeSSE(ch)
+
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case evt := <-ch:
+			data, _ := json.Marshal(evt)
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+	}
 }
 
 func isJSONBody(r *http.Request) bool {

@@ -14,10 +14,10 @@ import (
 )
 
 type Server struct {
-	store        *store.Store
-	printService *print.PrintService
-	templates    map[string]*template.Template
-	staticFS     fs.FS
+	store          *store.Store
+	printerManager *print.PrinterManager
+	templates      map[string]*template.Template
+	staticFS       fs.FS
 }
 
 type ContainerListData struct {
@@ -43,7 +43,7 @@ type EncoderData struct {
 	Models []encoder.ModelInfo
 }
 
-func NewServer(s *store.Store, ps *print.PrintService) *Server {
+func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
 	if err != nil {
 		panic(err)
@@ -93,7 +93,7 @@ func NewServer(s *store.Store, ps *print.PrintService) *Server {
 		panic(err)
 	}
 
-	return &Server{store: s, printService: ps, templates: templates, staticFS: staticFS}
+	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS}
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -191,7 +191,7 @@ func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
 func (s *Server) printersViewModel() PrintersData {
 	printers := s.store.AllPrinters()
 	var encoders []EncoderData
-	for name, enc := range s.printService.AvailableEncoders() {
+	for name, enc := range s.printerManager.AvailableEncoders() {
 		encoders = append(encoders, EncoderData{
 			Name:   name,
 			Models: enc.Models(),

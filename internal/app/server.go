@@ -14,9 +14,9 @@ type Server struct {
 	handler http.Handler
 }
 
-func NewServer(s *store.Store, ps *qlprint.PrintService) *Server {
-	uiServer := ui.NewServer(s, ps)
-	apiServer := api.NewServer(s, ps)
+func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
+	uiServer := ui.NewServer(s, pm)
+	apiServer := api.NewServer(s, pm)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(uiServer.StaticFS()))))

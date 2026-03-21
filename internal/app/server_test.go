@@ -12,7 +12,7 @@ import (
 
 func TestUIRoot_RenderModes(t *testing.T) {
 	mem := store.NewMemoryStore()
-	srv := NewServer(mem, qlprint.NewPrintService(mem))
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 
 	fullReq := httptest.NewRequest("GET", "/ui", nil)
 	fullRes := httptest.NewRecorder()
@@ -40,7 +40,7 @@ func TestUIRoot_RenderModes(t *testing.T) {
 
 func TestRootRedirectsToUI(t *testing.T) {
 	mem := store.NewMemoryStore()
-	srv := NewServer(mem, qlprint.NewPrintService(mem))
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 	req := httptest.NewRequest("GET", "/", nil)
 	res := httptest.NewRecorder()
 
@@ -57,7 +57,7 @@ func TestRootRedirectsToUI(t *testing.T) {
 func TestUIAddItemInContainer(t *testing.T) {
 	mem := store.NewMemoryStore()
 	container := mem.CreateContainer("", "Box", "")
-	srv := NewServer(mem, qlprint.NewPrintService(mem))
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 
 	form := url.Values{}
 	form.Set("container_id", container.ID)
