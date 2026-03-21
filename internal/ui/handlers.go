@@ -481,7 +481,8 @@ func (s *Server) HandlePrintImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) HandleAssetUpload(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(1 << 20); err != nil { // 1MB limit
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
@@ -522,7 +523,15 @@ func (s *Server) HandleAssetServe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "asset read error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", asset.MimeType)
+	// Only serve image MIME types to prevent XSS
+	ct := asset.MimeType
+	switch ct {
+	case "image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml":
+		// allowed
+	default:
+		ct = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", ct)
 	_, _ = w.Write(data)
 }
 
@@ -546,34 +555,10 @@ func (s *Server) HandleContainerItemsJSON(w http.ResponseWriter, r *http.Request
 	webutil.JSON(w, http.StatusOK, result)
 }
 
-func splitTags(s string) []string {
-	if s == "" {
-		return nil
-	}
-	parts := strings.Split(s, ",")
-	var tags []string
-	for _, p := range parts {
-		t := strings.TrimSpace(p)
-		if t != "" {
-			tags = append(tags, t)
-		}
-	}
-	return tags
-}
-
 func collectPrinterModels(s *Server) []encoder.ModelInfo {
 	var models []encoder.ModelInfo
 	for _, enc := range s.printerManager.AvailableEncoders() {
 		models = append(models, enc.Models()...)
 	}
 	return models
-}
-
-func containsTag(tags []string, tag string) bool {
-	for _, t := range tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
 }
