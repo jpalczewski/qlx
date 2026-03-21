@@ -1,0 +1,11 @@
+{
+  "action.delete": "Delete",
+  "action.cancel": "Cancel",
+  "action.move": "Move",
+  "action.save": "Save",
+  "action.move_to": "Move to...",
+  "action.print": "Print",
+  "action.print_all": "Print all",
+  "action.edit": "Edit",
+  "action.create": "Create"
+}

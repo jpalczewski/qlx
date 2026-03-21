@@ -43,6 +43,7 @@ internal/
   app/server.go              → Composition root (ui.Server + api.Server)
   ui/                        → HTMX UI handlers, templates, view models
   api/server.go              → JSON API (containers, items, printers, print, export)
+  service/                   → Service layer: store interfaces, orchestration, Save()
   store/                     → JSON file persistence with sync.RWMutex
   print/
     manager.go               → PrinterManager (session lifecycle, SSE events)
@@ -79,9 +80,10 @@ internal/
 
 ## Code Patterns
 
-### Store Mutations — Always SaveOrFail
+### Store Mutations
 
-Every store mutation must call `webutil.SaveOrFail(w, store.Save)`. Never ignore Save errors.
+Service layer methods call `store.Save()` internally. Handlers check the returned error.
+`webutil.SaveOrFail` is available for code not yet migrated to the service layer (templates, assets).
 
 ### Frontend Safety
 

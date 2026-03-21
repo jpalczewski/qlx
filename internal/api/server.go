@@ -11,6 +11,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/label"
+	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -18,10 +19,28 @@ import (
 type Server struct {
 	store          *store.Store
 	printerManager *print.PrinterManager
+	translations   *webutil.Translations
+	inventory      *service.InventoryService
+	bulk           *service.BulkService
+	tags           *service.TagService
+	search         *service.SearchService
+	printers       *service.PrinterService
 }
 
-func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
-	return &Server{store: s, printerManager: pm}
+func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations,
+	inventory *service.InventoryService, bulk *service.BulkService,
+	tags *service.TagService, search *service.SearchService,
+	printers *service.PrinterService) *Server {
+	return &Server{
+		store:          s,
+		printerManager: pm,
+		translations:   tr,
+		inventory:      inventory,
+		bulk:           bulk,
+		tags:           tags,
+		search:         search,
+		printers:       printers,
+	}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -61,6 +80,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Search
 	mux.HandleFunc("GET /api/search", s.HandleSearch)
 
+	mux.HandleFunc("GET /api/i18n/{lang}", s.HandleI18n)
+
 	mux.HandleFunc("GET /api/export/json", s.HandleExportJSON)
 	mux.HandleFunc("GET /api/export/csv", s.HandleExportCSV)
 
@@ -93,7 +114,7 @@ type upsertItemRequest struct {
 func (s *Server) HandleContainers(w http.ResponseWriter, r *http.Request) {
 	parentID := r.URL.Query().Get("parent_id")
 	if parentID != "" || r.URL.Query().Has("parent_id") {
-		webutil.JSON(w, http.StatusOK, s.store.ContainerChildren(parentID))
+		webutil.JSON(w, http.StatusOK, s.inventory.ContainerChildren(parentID))
 		return
 	}
 	webutil.JSON(w, http.StatusOK, s.store.AllContainers())
@@ -101,7 +122,7 @@ func (s *Server) HandleContainers(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleContainer(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	container := s.store.GetContainer(id)
+	container := s.inventory.GetContainer(id)
 	if container == nil {
 		http.NotFound(w, r)
 		return
@@ -109,14 +130,14 @@ func (s *Server) HandleContainer(w http.ResponseWriter, r *http.Request) {
 
 	webutil.JSON(w, http.StatusOK, map[string]any{
 		"container": container,
-		"children":  s.store.ContainerChildren(id),
-		"path":      s.store.ContainerPath(id),
+		"children":  s.inventory.ContainerChildren(id),
+		"path":      s.inventory.ContainerPath(id),
 	})
 }
 
 func (s *Server) HandleContainerItems(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	container := s.store.GetContainer(id)
+	container := s.inventory.GetContainer(id)
 	if container == nil {
 		http.NotFound(w, r)
 		return
@@ -124,8 +145,8 @@ func (s *Server) HandleContainerItems(w http.ResponseWriter, r *http.Request) {
 
 	webutil.JSON(w, http.StatusOK, map[string]any{
 		"container": container,
-		"items":     s.store.ContainerItems(id),
-		"path":      s.store.ContainerPath(id),
+		"items":     s.inventory.ContainerItems(id),
+		"path":      s.inventory.ContainerPath(id),
 	})
 }
 
@@ -144,8 +165,9 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container := s.store.CreateContainer(req.ParentID, req.Name, req.Description)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, container)
@@ -160,24 +182,17 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	container, err := s.store.UpdateContainer(r.PathValue("id"), req.Name, req.Description)
+	container, err := s.inventory.UpdateContainer(r.PathValue("id"), req.Name, req.Description)
 	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, container)
 }
 
 func (s *Server) HandleContainerDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.store.DeleteContainer(r.PathValue("id"))
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.inventory.DeleteContainer(r.PathValue("id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
@@ -185,7 +200,7 @@ func (s *Server) HandleContainerDelete(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleItem(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	item := s.store.GetItem(id)
+	item := s.inventory.GetItem(id)
 	if item == nil {
 		http.NotFound(w, r)
 		return
@@ -193,7 +208,7 @@ func (s *Server) HandleItem(w http.ResponseWriter, r *http.Request) {
 
 	webutil.JSON(w, http.StatusOK, map[string]any{
 		"item": item,
-		"path": s.store.ContainerPath(item.ContainerID),
+		"path": s.inventory.ContainerPath(item.ContainerID),
 	})
 }
 
@@ -221,8 +236,9 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := s.store.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, item)
@@ -237,24 +253,17 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	item, err := s.store.UpdateItem(r.PathValue("id"), req.Name, req.Description)
+	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description)
 	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, item)
 }
 
 func (s *Server) HandleItemDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.store.DeleteItem(r.PathValue("id"))
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.inventory.DeleteItem(r.PathValue("id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
@@ -274,11 +283,8 @@ func (s *Server) HandleContainerMove(w http.ResponseWriter, r *http.Request) {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
 		return
 	}
-	if err := s.store.MoveContainer(r.PathValue("id"), req.ParentID); err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.inventory.MoveContainer(r.PathValue("id"), req.ParentID); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -290,14 +296,18 @@ func (s *Server) HandleItemMove(w http.ResponseWriter, r *http.Request) {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
 		return
 	}
-	if err := s.store.MoveItem(r.PathValue("id"), req.ContainerID); err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.inventory.MoveItem(r.PathValue("id"), req.ContainerID); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// HandleI18n returns a merged translation map for the requested language.
+func (s *Server) HandleI18n(w http.ResponseWriter, r *http.Request) {
+	lang := r.PathValue("lang")
+	merged := s.translations.Merged(lang)
+	webutil.JSON(w, http.StatusOK, merged)
 }
 
 func (s *Server) HandleExportJSON(w http.ResponseWriter, r *http.Request) {
@@ -318,7 +328,7 @@ func (s *Server) HandleExportCSV(w http.ResponseWriter, r *http.Request) {
 
 	items := s.store.AllItems()
 	for _, item := range items {
-		path := s.store.ContainerPath(item.ContainerID)
+		path := s.inventory.ContainerPath(item.ContainerID)
 		var pathStrs []string
 		for _, c := range path {
 			pathStrs = append(pathStrs, c.Name)
@@ -349,7 +359,7 @@ type printRequest struct {
 }
 
 func (s *Server) HandlePrinters(w http.ResponseWriter, r *http.Request) {
-	webutil.JSON(w, http.StatusOK, s.store.AllPrinters())
+	webutil.JSON(w, http.StatusOK, s.printers.AllPrinters())
 }
 
 func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
@@ -364,20 +374,17 @@ func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
 		req.Address = r.FormValue("address")     //nolint:gosec // G120: internal tool, no untrusted input
 	}
 
-	printer := s.store.AddPrinter(req.Name, req.Encoder, req.Model, req.Transport, req.Address)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	printer, err := s.printers.AddPrinter(req.Name, req.Encoder, req.Model, req.Transport, req.Address)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, printer)
 }
 
 func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.store.DeletePrinter(r.PathValue("id"))
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.printers.DeletePrinter(r.PathValue("id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
@@ -410,13 +417,13 @@ func (s *Server) HandlePrint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := s.store.GetItem(r.PathValue("id"))
+	item := s.inventory.GetItem(r.PathValue("id"))
 	if item == nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	path := s.store.ContainerPath(item.ContainerID)
+	path := s.inventory.ContainerPath(item.ContainerID)
 	var pathStrs []string
 	for _, c := range path {
 		pathStrs = append(pathStrs, c.Name)
@@ -486,15 +493,4 @@ func (s *Server) HandlePrinterEvents(w http.ResponseWriter, r *http.Request) {
 
 func isJSONBody(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Content-Type"), "application/json")
-}
-
-func writeStoreError(w http.ResponseWriter, err error) {
-	switch err {
-	case store.ErrContainerNotFound, store.ErrItemNotFound, store.ErrPrinterNotFound:
-		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-	case store.ErrContainerHasChildren, store.ErrContainerHasItems:
-		webutil.JSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
-	default:
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
 }

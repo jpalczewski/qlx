@@ -1,0 +1,43 @@
+{{ define "templates" }}
+<div class="templates-view">
+    <h1>{{.T "labels.title"}}</h1>
+
+    {{ if .Data.Tags }}
+    <div class="tag-filter-bar">
+        {{ if .Data.ActiveTag }}
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content" class="tag">{{.T "labels.all"}}</a>
+        {{ end }}
+        {{ range .Data.Tags }}
+        <a href="/ui/templates?tag={{ . }}" hx-get="/ui/templates?tag={{ . }}" hx-target="#content"
+           class="tag{{ if eq . $.Data.ActiveTag }} active{{ end }}">{{ . }}</a>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    {{ if .Data.Templates }}
+    <ul class="container-list">
+        {{ range .Data.Templates }}
+        <li>
+            <div class="template-card">
+                <span class="name">{{ .Name }}</span>
+                <span class="badge">{{ .Target }}</span>
+                {{ range .Tags }}
+                <span class="tag">{{ . }}</span>
+                {{ end }}
+                <div class="template-actions">
+                    <a href="/ui/templates/{{ .ID }}/edit" hx-get="/ui/templates/{{ .ID }}/edit" hx-target="#content" class="button">{{$.T "inventory.edit"}}</a>
+                    <button hx-delete="/ui/actions/templates/{{ .ID }}" hx-target="#content" hx-confirm="{{$.T "labels.confirm_delete"}}" class="danger">{{$.T "action.delete"}}</button>
+                </div>
+            </div>
+        </li>
+        {{ end }}
+    </ul>
+    {{ else }}
+    <p class="empty">{{.T "labels.no_templates"}}</p>
+    {{ end }}
+
+    <section class="actions">
+        <a href="/ui/templates/new" hx-get="/ui/templates/new" hx-target="#content" class="button">+ {{.T "labels.new_template"}}</a>
+    </section>
+</div>
+{{ end }}

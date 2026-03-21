@@ -1,0 +1,180 @@
+{{ define "containers" }}
+<div class="container-view">
+    {{ if .Data.Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path "Home" (.T "inventory.home") }}
+    {{ else }}
+    <h1>{{.T "inventory.containers_title"}}</h1>
+    {{ end }}
+
+    {{ if .Data.Container }}
+    <h2>{{ .Data.Container.Name }}</h2>
+    {{ if .Data.Container.Description }}<p class="description">{{ .Data.Container.Description }}</p>{{ end }}
+    {{ end }}
+
+    <section class="containers">
+        <h3>{{.T "inventory.subcontainers"}}</h3>
+        <ul id="container-list" class="container-list">
+            {{ range .Data.Children }}
+            <li draggable="true" data-id="{{ .ID }}" data-type="container">
+                <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
+                <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
+                    <span class="name">{{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+            </li>
+            {{ else }}
+            <li class="empty-state">{{$.T "inventory.no_subcontainers"}}</li>
+            {{ end }}
+        </ul>
+        <form class="quick-entry"
+              hx-post="/ui/actions/containers"
+              hx-target="#container-list"
+              hx-swap="beforeend"
+              hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
+            <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
+            <span class="quick-entry-icon">+</span>
+            <input type="text" name="name" placeholder="{{.T "inventory.new_container_placeholder"}}" required>
+            <button type="submit" class="quick-entry-submit">↵</button>
+        </form>
+    </section>
+
+    <section class="items">
+        <h3>{{.T "inventory.items"}}</h3>
+        <ul id="item-list" class="item-list">
+            {{ range .Data.Items }}
+            <li draggable="true" data-id="{{ .ID }}" data-type="item">
+                <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
+                <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
+                    <span class="name">{{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+                {{ if .TagIDs }}
+                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
+                {{ end }}
+            </li>
+            {{ else }}
+            <li class="empty-state">{{$.T "inventory.no_items"}}</li>
+            {{ end }}
+        </ul>
+        {{ if .Data.Container }}
+        <form class="quick-entry"
+              hx-post="/ui/actions/items"
+              hx-target="#item-list"
+              hx-swap="beforeend"
+              hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
+            <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
+            <span class="quick-entry-icon">+</span>
+            <input type="text" name="name" placeholder="{{.T "inventory.new_item_placeholder"}}" required>
+            <input type="number" name="quantity" value="1" min="1">
+            <button type="submit" class="quick-entry-submit">↵</button>
+        </form>
+        {{ end }}
+    </section>
+
+    {{ if .Data.Container }}
+    <section class="print-section">
+        <h3>{{.T "inventory.print_labels"}}</h3>
+        {{ if .Data.Printers }}
+        <div class="form-group">
+            <label for="container-print-printer">{{.T "inventory.printer"}}</label>
+            <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
+                {{ range .Data.Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="container-print-template">{{.T "inventory.template"}}</label>
+            <select id="container-print-template">
+                {{ range .Data.Templates }}
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
+                {{ end }}
+                <optgroup label="Legacy">
+                    <option value="simple">{{.T "labels.template_simple"}}</option>
+                    <option value="standard">{{.T "labels.template_standard"}}</option>
+                    <option value="compact">{{.T "labels.template_compact"}}</option>
+                    <option value="detailed">{{.T "labels.template_detailed"}}</option>
+                </optgroup>
+            </select>
+        </div>
+        <button id="container-print-all-btn" onclick="(function(){
+            var printer = document.getElementById('container-print-printer').value;
+            var tmpl = document.getElementById('container-print-template').value;
+            var result = document.getElementById('container-print-result');
+            result.textContent = 'Pobieranie przedmiotów...';
+            fetch('/ui/actions/containers/{{ .Data.Container.ID }}/items-json')
+                .then(function(r){ return r.json(); })
+                .then(function(items){
+                    if (!items || items.length === 0) {
+                        result.textContent = 'Brak przedmiotów do wydruku.';
+                        return;
+                    }
+                    result.textContent = 'Drukowanie ' + items.length + ' etykiet...';
+                    var printed = 0;
+                    var errors = [];
+                    function printNext(i) {
+                        if (i >= items.length) {
+                            if (errors.length > 0) {
+                                result.textContent = 'Wydrukowano ' + printed + '/' + items.length + '. Błędy: ' + errors.join(', ');
+                            } else {
+                                result.textContent = 'Wydrukowano ' + printed + ' etykiet!';
+                            }
+                            return;
+                        }
+                        fetch('/ui/actions/items/' + items[i].id + '/print', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({printer_id: printer, template: tmpl})
+                        }).then(function(r){ return r.json(); }).then(function(d){
+                            if (d.ok) { printed++; } else { errors.push(items[i].name + ': ' + d.error); }
+                            printNext(i + 1);
+                        }).catch(function(e){ errors.push(items[i].name + ': ' + e); printNext(i + 1); });
+                    }
+                    printNext(0);
+                }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
+        })()">{{.T "inventory.print_all"}}</button>
+        {{ else }}
+        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+        {{ end }}
+        <div id="container-print-result"></div>
+    </section>
+    {{ end }}
+
+    <section class="actions">
+        <details>
+            <summary>+ {{.T "inventory.add_container"}}</summary>
+            <form hx-post="/ui/actions/containers" hx-target="#content">
+                <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+                <button type="submit">{{.T "inventory.create"}}</button>
+            </form>
+        </details>
+        {{ if .Data.Container }}
+        <details>
+            <summary>+ {{.T "inventory.add_item"}}</summary>
+            <form hx-post="/ui/actions/items" hx-target="#content">
+                <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+                <button type="submit">{{.T "inventory.create"}}</button>
+            </form>
+        </details>
+        {{ end }}
+    </section>
+
+    {{ if .Data.Container }}
+    {{ if and (not .Data.Children) (not .Data.Items) }}
+    <section class="container-actions">
+        <button hx-delete="/ui/actions/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
+    </section>
+    {{ end }}
+    {{ end }}
+</div>
+{{ if .Data.Templates }}
+<script src="/static/fabric.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/jsbarcode.all.min.js"></script>
+<script src="/static/qlx-format.js"></script>
+<script src="/static/label-dither.js"></script>
+<script src="/static/label-print.js"></script>
+{{ end }}
+{{ end }}

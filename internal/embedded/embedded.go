@@ -2,8 +2,8 @@ package embedded
 
 import "embed"
 
-//go:embed templates/*.html templates/partials/*.html templates/components/*.html
+//go:embed templates
 var Templates embed.FS
 
-//go:embed static/*
+//go:embed static
 var Static embed.FS

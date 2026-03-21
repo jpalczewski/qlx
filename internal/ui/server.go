@@ -5,19 +5,41 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/erxyi/qlx/internal/embedded"
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
+	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
+
+// PageData is the top-level template context for all page and partial renders.
+// It carries the active language, a translation accessor, and the page-specific data.
+type PageData struct {
+	Lang       string
+	translator *webutil.Translations
+	Data       any
+}
+
+// T returns the translation for key in the active language.
+func (p PageData) T(key string) string {
+	return p.translator.Get(p.Lang, key)
+}
 
 type Server struct {
 	store          *store.Store
 	printerManager *print.PrinterManager
 	templates      map[string]*template.Template
 	staticFS       fs.FS
+	translations   *webutil.Translations
+	inventory      *service.InventoryService
+	bulk           *service.BulkService
+	tags           *service.TagService
+	search         *service.SearchService
+	printers       *service.PrinterService
 }
 
 type ContainerListData struct {
@@ -84,12 +106,46 @@ type DesignerData struct {
 	PreviewDataJSON   string
 }
 
-func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
-	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
+func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations,
+	inventory *service.InventoryService, bulk *service.BulkService,
+	tagsSvc *service.TagService, search *service.SearchService,
+	printersSvc *service.PrinterService) *Server {
+
+	templates := loadTemplates(s)
+
+	staticFS, err := fs.Sub(embedded.Static, "static")
 	if err != nil {
 		panic(err)
 	}
-	layoutTmpl := template.Must(template.New("layout").Funcs(template.FuncMap{
+
+	return &Server{
+		store:          s,
+		printerManager: pm,
+		templates:      templates,
+		staticFS:       staticFS,
+		translations:   tr,
+		inventory:      inventory,
+		bulk:           bulk,
+		tags:           tagsSvc,
+		search:         search,
+		printers:       printersSvc,
+	}
+}
+
+// loadTemplates discovers and parses all HTML templates from the embedded FS.
+func loadTemplates(s *store.Store) map[string]*template.Template {
+	layoutTmpl := loadLayout(s)
+	mergeHTMLDir(layoutTmpl, "templates/partials")
+	mergeHTMLDir(layoutTmpl, "templates/components")
+	return discoverPages(layoutTmpl)
+}
+
+func loadLayout(s *store.Store) *template.Template {
+	content, err := embedded.Templates.ReadFile("templates/layouts/base.html")
+	if err != nil {
+		panic(err)
+	}
+	return template.Must(template.New("layout").Funcs(template.FuncMap{
 		"dict": dict,
 		"resolveTags": func(ids []string) []store.Tag {
 			var tags []store.Tag
@@ -100,60 +156,53 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 			}
 			return tags
 		},
-	}).Parse(string(layoutContent)))
+	}).Parse(string(content)))
+}
 
-	sharedFiles := []string{
-		"templates/partials/breadcrumb.html",
-		"templates/components/form_fields.html",
-		"templates/partials/container_list_item.html",
-		"templates/partials/item_list_item.html",
-		"templates/partials/tag_list_item.html",
-		"templates/partials/tag_chips.html",
-		"templates/partials/tree_children.html",
-		"templates/partials/tag_tree_children.html",
-	}
-	for _, path := range sharedFiles {
-		content, err := embedded.Templates.ReadFile(path)
-		if err != nil {
-			panic(err)
+// mergeHTMLDir walks a directory and parses all .html files into tmpl.
+func mergeHTMLDir(tmpl *template.Template, dir string) {
+	err := fs.WalkDir(embedded.Templates, dir, func(fpath string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || path.Ext(fpath) != ".html" {
+			return walkErr
 		}
-		layoutTmpl = template.Must(layoutTmpl.Parse(string(content)))
-	}
-
-	templateFiles := map[string]string{
-		"containers":        "templates/containers.html",
-		"item":              "templates/item.html",
-		"item-form":         "templates/item_form.html",
-		"container-form":    "templates/container_form.html",
-		"printers":          "templates/printers.html",
-		"templates":         "templates/templates.html",
-		"template-designer": "templates/template_designer.html",
-		"tags":              "templates/tags.html",
-		"search":            "templates/search.html",
-	}
-
-	templates := make(map[string]*template.Template)
-	for name, path := range templateFiles {
-		content, err := embedded.Templates.ReadFile(path)
+		content, err := embedded.Templates.ReadFile(fpath)
 		if err != nil {
-			panic(err)
+			return err
+		}
+		template.Must(tmpl.Parse(string(content)))
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// discoverPages walks templates/pages/ and registers each .html as a named template.
+func discoverPages(layoutTmpl *template.Template) map[string]*template.Template {
+	templates := make(map[string]*template.Template)
+	err := fs.WalkDir(embedded.Templates, "templates/pages", func(fpath string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || path.Ext(fpath) != ".html" {
+			return walkErr
+		}
+		name := strings.ReplaceAll(strings.TrimSuffix(path.Base(fpath), ".html"), "_", "-")
+		content, err := embedded.Templates.ReadFile(fpath)
+		if err != nil {
+			return err
 		}
 		tmpl, err := layoutTmpl.Clone()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		tmpl = template.Must(tmpl.Parse(string(content)))
 		wrapper := `{{ define "content" }}{{ template "` + name + `" . }}{{ end }}`
 		tmpl = template.Must(tmpl.Parse(wrapper))
 		templates[name] = tmpl
-	}
-
-	staticFS, err := fs.Sub(embedded.Static, "static")
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
-
-	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS}
+	return templates
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -233,6 +282,10 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Search
 	mux.HandleFunc("GET /ui/search", s.HandleSearch)
+
+	// Settings
+	mux.HandleFunc("GET /ui/settings", s.HandleSettings)
+	mux.HandleFunc("POST /ui/actions/set-lang", s.HandleSetLang)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
@@ -243,73 +296,121 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
+	lang := "pl"
+	if v := r.Context().Value(webutil.LangKey); v != nil {
+		lang = v.(string)
+	}
+
+	page := PageData{
+		Lang:       lang,
+		translator: s.translations,
+		Data:       data,
+	}
+
 	templateName := "layout"
 	if webutil.IsHTMX(r) {
 		templateName = name
 	}
 
-	if err := tmpl.ExecuteTemplate(w, templateName, data); err != nil {
+	if err := tmpl.ExecuteTemplate(w, templateName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // renderPartial executes a named template directly without the layout wrapper.
 // Use this for HTMX partial responses (fragments, not full pages).
-func (s *Server) renderPartial(w http.ResponseWriter, tmplName, defineName string, data any) {
+func (s *Server) renderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) {
 	tmpl, ok := s.templates[tmplName]
 	if !ok {
 		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, defineName, data); err != nil {
+
+	lang := "pl"
+	if v := r.Context().Value(webutil.LangKey); v != nil {
+		lang = v.(string)
+	}
+
+	page := PageData{
+		Lang:       lang,
+		translator: s.translations,
+		Data:       data,
+	}
+
+	if err := tmpl.ExecuteTemplate(w, defineName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
+// HandleSettings renders the settings page.
+func (s *Server) HandleSettings(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "settings", nil)
+}
+
+// HandleSetLang sets the lang cookie and redirects back to the referer.
+func (s *Server) HandleSetLang(w http.ResponseWriter, r *http.Request) {
+	lang := r.FormValue("lang") //nolint:gosec // G120: internal tool, no untrusted input
+	if lang == "" {
+		lang = "pl"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "lang",
+		Value:    lang,
+		Path:     "/",
+		MaxAge:   365 * 24 * 60 * 60,
+		SameSite: http.SameSiteLaxMode,
+	})
+	referer := r.Header.Get("Referer")
+	if referer == "" {
+		referer = "/ui"
+	}
+	http.Redirect(w, r, referer, http.StatusSeeOther)
+}
+
 func (s *Server) containerViewModel(containerID string) (ContainerListData, bool) {
-	printers := s.store.AllPrinters()
-	templates := s.store.AllTemplates()
+	printersList := s.printers.AllPrinters()
+	templatesList := s.store.AllTemplates()
 
 	if containerID == "" {
 		return ContainerListData{
-			Children:  s.store.ContainerChildren(""),
-			Printers:  printers,
-			Templates: templates,
+			Children:  s.inventory.ContainerChildren(""),
+			Printers:  printersList,
+			Templates: templatesList,
 		}, true
 	}
 
-	container := s.store.GetContainer(containerID)
+	container := s.inventory.GetContainer(containerID)
 	if container == nil {
 		return ContainerListData{}, false
 	}
 
 	return ContainerListData{
-		Children:  s.store.ContainerChildren(containerID),
-		Items:     s.store.ContainerItems(containerID),
+		Children:  s.inventory.ContainerChildren(containerID),
+		Items:     s.inventory.ContainerItems(containerID),
 		Container: container,
-		Path:      s.store.ContainerPath(containerID),
-		Printers:  printers,
-		Templates: templates,
+		Path:      s.inventory.ContainerPath(containerID),
+		Printers:  printersList,
+		Templates: templatesList,
 	}, true
 }
 
 func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
-	item := s.store.GetItem(itemID)
+	item := s.inventory.GetItem(itemID)
 	if item == nil {
 		return ItemDetailData{}, false
 	}
 
 	return ItemDetailData{
 		Item:      item,
-		Path:      s.store.ContainerPath(item.ContainerID),
-		Printers:  s.store.AllPrinters(),
+		Path:      s.inventory.ContainerPath(item.ContainerID),
+		Printers:  s.printers.AllPrinters(),
 		Templates: s.store.AllTemplates(),
 	}, true
 }
 
 func (s *Server) printersViewModel() PrintersData {
-	printers := s.store.AllPrinters()
+	printersList := s.printers.AllPrinters()
 	var encoders []EncoderData
 	for name, enc := range s.printerManager.AvailableEncoders() {
 		encoders = append(encoders, EncoderData{
@@ -318,7 +419,7 @@ func (s *Server) printersViewModel() PrintersData {
 		})
 	}
 	return PrintersData{
-		Printers: printers,
+		Printers: printersList,
 		Encoders: encoders,
 	}
 }

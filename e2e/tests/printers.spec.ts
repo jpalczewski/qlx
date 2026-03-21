@@ -6,12 +6,12 @@ test.describe('Printer management', () => {
   const printerName = `Test Printer ${Date.now()}`;
 
   test('printers page loads', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`);
+    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Drukarki');
   });
 
   test('add printer via form', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`);
+    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
 
     await page.click('summary:has-text("Dodaj drukarkę")');
     await page.fill('#name', printerName);
@@ -29,7 +29,7 @@ test.describe('Printer management', () => {
   });
 
   test('BLE scan button triggers request', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`);
+    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/api/bluetooth/scan')
@@ -46,7 +46,7 @@ test.describe('Printer management', () => {
   });
 
   test('BLE scan with mocked results populates form', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`);
+    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
 
     // Mock the BLE scan endpoint
     await page.route('**/api/bluetooth/scan', async route => {
@@ -71,7 +71,7 @@ test.describe('Printer management', () => {
   });
 
   test('delete printer', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`);
+    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
 
     page.on('dialog', dialog => dialog.accept());
     const responsePromise = page.waitForResponse(r =>

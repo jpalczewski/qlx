@@ -1,0 +1,5 @@
+{{ define "tag-list-item" }}
+<li draggable="true" data-id="{{ .Data.ID }}" data-type="tag" class="flash">
+    <a href="/ui/tags?parent={{ .Data.ID }}" hx-get="/ui/tags?parent={{ .Data.ID }}" hx-target="#content">{{ .Data.Name }}</a>
+</li>
+{{ end }}

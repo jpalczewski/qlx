@@ -1,0 +1,61 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.T "nav.title"}}</title>
+    <link rel="stylesheet" href="/static/css/shared/tokens.css">
+    <link rel="stylesheet" href="/static/css/shared/reset.css">
+    <link rel="stylesheet" href="/static/css/shared/base.css">
+    <link rel="stylesheet" href="/static/css/shared/forms.css">
+    <link rel="stylesheet" href="/static/css/shared/buttons.css">
+    <link rel="stylesheet" href="/static/css/shared/toast.css">
+    <link rel="stylesheet" href="/static/css/layout/nav.css">
+    <link rel="stylesheet" href="/static/css/layout/content.css">
+    <link rel="stylesheet" href="/static/css/inventory/lists.css">
+    <link rel="stylesheet" href="/static/css/inventory/cards.css">
+    <link rel="stylesheet" href="/static/css/inventory/dragdrop.css">
+    <link rel="stylesheet" href="/static/css/inventory/selection.css">
+    <link rel="stylesheet" href="/static/css/inventory/quick-entry.css">
+    <link rel="stylesheet" href="/static/css/tags/tags.css">
+    <link rel="stylesheet" href="/static/css/tags/tag-chips.css">
+    <link rel="stylesheet" href="/static/css/labels/designer.css">
+    <link rel="stylesheet" href="/static/css/labels/template-cards.css">
+    <link rel="stylesheet" href="/static/css/dialogs/dialog.css">
+    <link rel="stylesheet" href="/static/css/dialogs/tree-picker.css">
+    <link rel="stylesheet" href="/static/css/search/search.css">
+    <link rel="stylesheet" href="/static/css/settings/settings.css">
+    <link rel="stylesheet" href="/static/css/layout/responsive.css">
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/js/shared/namespace.js" defer></script>
+    <script src="/static/js/shared/i18n.js" defer></script>
+    <script src="/static/js/shared/toast.js" defer></script>
+    <script src="/static/js/shared/sse.js" defer></script>
+    <script src="/static/js/shared/htmx-hooks.js" defer></script>
+    <script src="/static/js/inventory/selection.js" defer></script>
+    <script src="/static/js/inventory/dragdrop.js" defer></script>
+    <script src="/static/js/inventory/move-picker.js" defer></script>
+    <script src="/static/js/inventory/delete-confirm.js" defer></script>
+    <script src="/static/js/tags/tag-picker.js" defer></script>
+    <script src="/static/js/labels/template-filter.js" defer></script>
+</head>
+<body>
+    <nav>
+        <a href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
+        <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "nav.printers"}}</a>
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">{{.T "nav.templates"}}</a>
+        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "nav.tags"}}</a>
+        <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
+               hx-get="/ui/search" hx-trigger="input changed delay:300ms"
+               hx-target="#content" name="q">
+        <a href="/ui/settings" hx-get="/ui/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
+        <span id="printer-status"></span>
+    </nav>
+    <main id="content">
+        {{ template "content" . }}
+    </main>
+    <div id="toast-container"></div>
+</body>
+</html>
+{{ end }}

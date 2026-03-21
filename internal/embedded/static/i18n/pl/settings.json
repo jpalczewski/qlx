@@ -1,0 +1,8 @@
+{
+  "nav.settings": "Ustawienia",
+  "settings.title": "Ustawienia",
+  "settings.language": "Język",
+  "settings.data": "Dane",
+  "settings.export_json": "Eksportuj JSON",
+  "settings.export_csv": "Eksportuj CSV"
+}

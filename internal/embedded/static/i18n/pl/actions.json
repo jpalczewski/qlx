@@ -1,0 +1,11 @@
+{
+  "action.delete": "Usuń",
+  "action.cancel": "Anuluj",
+  "action.move": "Przenieś",
+  "action.save": "Zapisz",
+  "action.move_to": "Przenieś do...",
+  "action.print": "Drukuj",
+  "action.print_all": "Drukuj wszystkie",
+  "action.edit": "Edytuj",
+  "action.create": "Utwórz"
+}

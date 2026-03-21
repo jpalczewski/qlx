@@ -1,0 +1,34 @@
+{{ define "tags" }}
+<h1>{{ if .Data.Parent }}{{ .Data.Parent.Name }}{{ else }}{{.T "tags.title"}}{{ end }}</h1>
+
+{{ if .Data.Path }}
+<nav class="breadcrumb">
+    <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "tags.title"}}</a>
+    {{ range .Data.Path }}
+    <span class="sep">/</span>
+    <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    {{ end }}
+</nav>
+{{ end }}
+
+<ul id="tag-list" class="tag-list">
+    {{ range .Data.Tags }}
+    <li>
+        <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    </li>
+    {{ else }}
+    <li class="empty-state">{{$.T "tags.no_tags"}}</li>
+    {{ end }}
+</ul>
+
+<form class="quick-entry"
+      hx-post="/ui/actions/tags"
+      hx-target="#tag-list"
+      hx-swap="beforeend"
+      hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
+    {{ if .Data.Parent }}<input type="hidden" name="parent_id" value="{{ .Data.Parent.ID }}">{{ end }}
+    <span class="quick-entry-icon">+</span>
+    <input type="text" name="name" placeholder="{{.T "tags.new_tag_placeholder"}}" required>
+    <button type="submit" class="quick-entry-submit">↵</button>
+</form>
+{{ end }}

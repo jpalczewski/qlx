@@ -1,0 +1,80 @@
+{{ define "template-designer" }}
+<div class="designer-view" id="designer-app"
+     data-template-id="{{ .Data.TemplateID }}"
+     data-template-json="{{ .Data.TemplateJSON }}"
+     data-printer-models="{{ .Data.PrinterModelsJSON }}"
+     data-preview-data="{{ .Data.PreviewDataJSON }}">
+
+    <header class="designer-header">
+        <div class="designer-meta">
+            <div class="form-group">
+                <label for="template-name">{{.T "labels.name"}}</label>
+                <input type="text" id="template-name" value="{{ .Data.TemplateName }}" placeholder="{{.T "labels.template_name_placeholder"}}">
+            </div>
+            <div class="form-group">
+                <label for="template-tags">{{.T "labels.tags"}}</label>
+                <input type="text" id="template-tags" value="{{ .Data.TemplateTags }}" placeholder="tag1, tag2">
+            </div>
+            <div class="form-group">
+                <label for="template-target">{{.T "labels.target"}}</label>
+                <select id="template-target">
+                    <option value="universal"{{ if eq .Data.Target "universal" }} selected{{ end }}>{{.T "labels.universal_mm"}}</option>
+                    {{ range .Data.PrinterModels }}
+                    <option value="printer:{{ .ID }}"{{ if eq (printf "printer:%s" .ID) $.Data.Target }} selected{{ end }}>{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="template-width">{{.T "labels.width"}}</label>
+                <input type="number" id="template-width" value="{{ .Data.Width }}" step="0.1" min="1">
+            </div>
+            <div class="form-group">
+                <label for="template-height">{{.T "labels.height"}}</label>
+                <input type="number" id="template-height" value="{{ .Data.Height }}" step="0.1" min="1">
+                <span id="size-unit">{{ if eq .Data.Target "universal" }}mm{{ else }}px{{ end }}</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="designer-body">
+        <div class="designer-toolbar" id="toolbar">
+            <button type="button" data-tool="text" title="{{.T "labels.tool_text"}}">T</button>
+            <button type="button" data-tool="qr" title="{{.T "labels.tool_qr"}}">QR</button>
+            <button type="button" data-tool="barcode" title="{{.T "labels.tool_barcode"}}">|||</button>
+            <button type="button" data-tool="line" title="{{.T "labels.tool_line"}}">—</button>
+            <button type="button" data-tool="img" title="{{.T "labels.tool_image"}}">🖼</button>
+            <button type="button" data-tool="delete" title="{{.T "labels.delete_selected"}}">✕</button>
+        </div>
+
+        <div class="designer-center">
+            <div class="designer-canvas-area">
+                <canvas id="label-canvas"></canvas>
+            </div>
+            <div class="designer-preview-area">
+                <h4>Preview</h4>
+                <canvas id="preview-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="designer-properties" id="properties-panel">
+            <div id="props-content">
+                <p class="empty">{{.T "labels.select_element"}}</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="designer-footer">
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
+        <button type="button" id="save-template" class="button">{{.T "action.save"}}</button>
+    </footer>
+</div>
+
+<script src="/static/fabric.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
+<script src="/static/jsbarcode.all.min.js"></script>
+<script src="/static/qlx-format.js"></script>
+<script src="/static/label-params.js"></script>
+<script src="/static/label-dither.js"></script>
+<script src="/static/label-print.js"></script>
+<script src="/static/label-designer.js"></script>
+{{ end }}

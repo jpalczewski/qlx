@@ -1,0 +1,11 @@
+{
+  "bulk.selected_count": "Selected",
+  "bulk.delete_selected": "Delete selected",
+  "bulk.deselect": "Deselect",
+  "bulk.confirm_delete": "Delete items? This cannot be undone.",
+  "bulk.moved": "Moved",
+  "bulk.tagged": "Tagged",
+  "bulk.deleted": "Deleted",
+  "bulk.delete_failed": "Failed to delete",
+  "bulk.items_count": "items"
+}

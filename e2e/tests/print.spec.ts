@@ -32,7 +32,7 @@ test.describe('Print flow', () => {
   });
 
   test('single item print — UI flow', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/items/${itemId}`);
+    await page.goto(`${app.baseURL}/ui/items/${itemId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Print Item 1');
 
     await expect(page.locator('#print-printer')).toBeVisible();
@@ -51,7 +51,7 @@ test.describe('Print flow', () => {
   });
 
   test('batch print from container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/containers/${containerId}`);
+    await page.goto(`${app.baseURL}/ui/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h2')).toContainText('Print Test Container');
 
     await expect(page.locator('#container-print-printer')).toBeVisible();

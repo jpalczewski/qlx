@@ -1,0 +1,37 @@
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background: var(--color-bg-alt);
+    color: var(--color-text-muted);
+    margin-left: 0.5rem;
+}
+
+.template-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    background: var(--color-bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+}
+
+.template-card:hover {
+    border-color: var(--color-accent);
+}
+
+.template-card .name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    flex: 1;
+}
+
+.template-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}

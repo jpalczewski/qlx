@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/api"
+	"github.com/erxyi/qlx/internal/embedded"
 	qlprint "github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 	"github.com/erxyi/qlx/internal/ui"
@@ -15,8 +17,19 @@ type Server struct {
 }
 
 func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
-	uiServer := ui.NewServer(s, pm)
-	apiServer := api.NewServer(s, pm)
+	translations := webutil.NewTranslations()
+	if err := translations.LoadFromFS(embedded.Static, "static/i18n"); err != nil {
+		panic(err)
+	}
+
+	inventory := service.NewInventoryService(s)
+	bulk := service.NewBulkService(s)
+	tags := service.NewTagService(s)
+	search := service.NewSearchService(s)
+	printers := service.NewPrinterService(s)
+
+	uiServer := ui.NewServer(s, pm, translations, inventory, bulk, tags, search, printers)
+	apiServer := api.NewServer(s, pm, translations, inventory, bulk, tags, search, printers)
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(uiServer.StaticFS()))))
@@ -26,7 +39,7 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 	uiServer.RegisterRoutes(mux)
 	apiServer.RegisterRoutes(mux)
 
-	return &Server{handler: webutil.LoggingMiddleware(mux)}
+	return &Server{handler: webutil.LangMiddleware("pl")(webutil.LoggingMiddleware(mux))}
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

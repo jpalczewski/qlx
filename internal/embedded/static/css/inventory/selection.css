@@ -1,0 +1,20 @@
+/* Flash highlight animation */
+@keyframes flash-highlight {
+    0% { background-color: var(--color-accent); }
+    100% { background-color: transparent; }
+}
+.flash { animation: flash-highlight 1s ease-out; }
+
+/* Checkboxes and selection mode */
+.bulk-select { display: none; margin-right: 0.5rem; }
+.selection-mode .bulk-select { display: inline-block; }
+.select-toggle { font-size: 0.85rem; }
+
+/* Action bar */
+.action-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--color-bg-card); border-top: 1px solid var(--color-border);
+    padding: 0.75rem 1rem; display: flex; align-items: center;
+    gap: 0.5rem; z-index: 100;
+}
+.action-bar .action-count { margin-right: auto; color: var(--color-text-muted); }

@@ -1,0 +1,22 @@
+{{ define "item-form" }}
+<div class="form-view">
+    {{ template "breadcrumb" dict "Path" .Data.Path "Home" (.T "inventory.home") }}
+
+    <h1>{{ if .Data.Item }}{{.T "inventory.edit_item"}}{{ else }}{{.T "inventory.new_item"}}{{ end }}</h1>
+
+    <form hx-{{ if .Data.Item }}put{{ else }}post{{ end }}="/ui/actions/items{{ if .Data.Item }}/{{ .Data.Item.ID }}{{ end }}" hx-target="#content">
+        <input type="hidden" name="container_id" value="{{ if .Data.ContainerID }}{{ .Data.ContainerID }}{{ else }}{{ .Data.Item.ContainerID }}{{ end }}">
+
+        {{ if .Data.Item }}
+        {{ template "fields/name-desc" dict "name" .Data.Item.Name "description" .Data.Item.Description "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+        {{ else }}
+        {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+        {{ end }}
+
+        <div class="actions">
+            <button type="submit">{{ if .Data.Item }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
+            <a href="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
+        </div>
+    </form>
+</div>
+{{ end }}

@@ -1,0 +1,12 @@
+{
+  "printers.title": "Printers",
+  "printers.no_printers": "No printers configured",
+  "printers.confirm_delete": "Delete this printer?",
+  "printers.scan_bluetooth": "Scan Bluetooth",
+  "printers.add_printer": "Add printer",
+  "printers.name": "Name",
+  "printers.name_placeholder": "e.g. Brother kitchen",
+  "printers.address": "Address",
+  "printers.add": "Add",
+  "printers.no_devices_found": "No printers found"
+}

@@ -1,10 +1,10 @@
 {{ define "fields/name-desc" }}
 <div class="form-group">
-    <label for="name">Nazwa *</label>
+    <label for="name">{{ or .nameLabel "Name *" }}</label>
     <input type="text" id="name" name="name" value="{{ .name }}" required>
 </div>
 <div class="form-group">
-    <label for="description">Opis</label>
+    <label for="description">{{ or .descLabel "Description" }}</label>
     <textarea id="description" name="description" rows="{{ or .rows 3 }}">{{ .description }}</textarea>
 </div>
 {{ end }}

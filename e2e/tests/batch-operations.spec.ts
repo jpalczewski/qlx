@@ -7,7 +7,7 @@ test.describe('Quick Entry', () => {
 
   test('add container via quick entry at root', async ({ page, app }) => {
     containerName = `QE Container ${Date.now()}`;
-    await page.goto(`${app.baseURL}/ui`);
+    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
     await page.fill('.containers .quick-entry input[name="name"]', containerName);
@@ -25,7 +25,7 @@ test.describe('Quick Entry', () => {
   });
 
   test('navigate into container and add item via quick entry', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`);
+    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -42,7 +42,7 @@ test.describe('Quick Entry', () => {
   });
 
   test('add another item and verify both visible', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`);
+    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -215,7 +215,7 @@ test.describe('Search', () => {
   });
 
   test('UI search shows results', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`);
+    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
 
     // Type in the global search input
     await page.fill('#global-search', 'Arduino');

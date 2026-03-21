@@ -1,9 +1,0 @@
-{{ define "container-list-item" }}
-<li draggable="true" data-id="{{ .ID }}" data-type="container" class="flash">
-    <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
-    <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
-        <span class="name">📦 {{ .Name }}</span>
-        {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
-    </a>
-</li>
-{{ end }}

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/shared/webutil"
-	"github.com/erxyi/qlx/internal/store"
 )
 
 type upsertTagRequest struct {
@@ -24,10 +23,10 @@ type addTagRequest struct {
 func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 	parentID := r.URL.Query().Get("parent_id")
 	if parentID != "" || r.URL.Query().Has("parent_id") {
-		webutil.JSON(w, http.StatusOK, s.store.TagChildren(parentID))
+		webutil.JSON(w, http.StatusOK, s.tags.TagChildren(parentID))
 		return
 	}
-	webutil.JSON(w, http.StatusOK, s.store.AllTags())
+	webutil.JSON(w, http.StatusOK, s.tags.AllTags())
 }
 
 func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
@@ -39,15 +38,16 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag := s.store.CreateTag(req.ParentID, req.Name)
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	tag, err := s.tags.CreateTag(req.ParentID, req.Name)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, tag)
 }
 
 func (s *Server) HandleTag(w http.ResponseWriter, r *http.Request) {
-	tag := s.store.GetTag(r.PathValue("id"))
+	tag := s.tags.GetTag(r.PathValue("id"))
 	if tag == nil {
 		http.NotFound(w, r)
 		return
@@ -63,24 +63,17 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag, err := s.store.UpdateTag(r.PathValue("id"), req.Name)
+	tag, err := s.tags.UpdateTag(r.PathValue("id"), req.Name)
 	if err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, tag)
 }
 
 func (s *Server) HandleTagDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.store.DeleteTag(r.PathValue("id"))
-	if err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.DeleteTag(r.PathValue("id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
@@ -92,18 +85,15 @@ func (s *Server) HandleTagMove(w http.ResponseWriter, r *http.Request) {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
 		return
 	}
-	if err := s.store.MoveTag(r.PathValue("id"), req.ParentID); err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.MoveTag(r.PathValue("id"), req.ParentID); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) HandleTagDescendants(w http.ResponseWriter, r *http.Request) {
-	webutil.JSON(w, http.StatusOK, s.store.TagDescendants(r.PathValue("id")))
+	webutil.JSON(w, http.StatusOK, s.tags.TagDescendants(r.PathValue("id")))
 }
 
 func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
@@ -114,22 +104,16 @@ func (s *Server) HandleItemTagAdd(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	if err := s.store.AddItemTag(r.PathValue("id"), req.TagID); err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.AddItemTag(r.PathValue("id"), req.TagID); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) HandleItemTagRemove(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.RemoveItemTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.RemoveItemTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -143,34 +127,17 @@ func (s *Server) HandleContainerTagAdd(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	if err := s.store.AddContainerTag(r.PathValue("id"), req.TagID); err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.AddContainerTag(r.PathValue("id"), req.TagID); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) HandleContainerTagRemove(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.RemoveContainerTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
-		writeTagError(w, err)
-		return
-	}
-	if !webutil.SaveOrFail(w, s.store.Save) {
+	if err := s.tags.RemoveContainerTag(r.PathValue("id"), r.PathValue("tag_id")); err != nil {
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-}
-
-func writeTagError(w http.ResponseWriter, err error) {
-	switch err {
-	case store.ErrTagNotFound, store.ErrItemNotFound, store.ErrContainerNotFound:
-		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
-	case store.ErrTagHasChildren:
-		webutil.JSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
-	default:
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
 }

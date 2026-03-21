@@ -1,0 +1,39 @@
+.container-list,
+.item-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.container-list a,
+.item-list a {
+    display: block;
+    background: var(--color-bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: all 0.2s;
+}
+
+.container-list a:hover,
+.item-list a:hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-alt);
+}
+
+.container-list .name,
+.item-list .name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.container-list .desc,
+.item-list .desc {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
