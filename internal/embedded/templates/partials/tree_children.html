@@ -1,0 +1,9 @@
+{{ define "tree-children" }}
+{{ range . }}
+<li class="tree-node">
+    <span class="tree-expand" data-id="{{ .ID }}" hx-get="/ui/partials/tree?parent_id={{ .ID }}" hx-target="next ul" hx-swap="innerHTML">&#9654;</span>
+    <span class="tree-label" data-id="{{ .ID }}">{{ .Name }}</span>
+    <ul class="tree-branch"></ul>
+</li>
+{{ end }}
+{{ end }}

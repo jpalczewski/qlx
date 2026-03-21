@@ -1,0 +1,32 @@
+{{ define "tags" }}
+<h1>{{ if .Parent }}{{ .Parent.Name }}{{ else }}Tagi{{ end }}</h1>
+
+{{ if .Path }}
+<nav class="breadcrumb">
+    <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">Tagi</a>
+    {{ range .Path }}
+    <span class="sep">/</span>
+    <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    {{ end }}
+</nav>
+{{ end }}
+
+<ul id="tag-list" class="tag-list">
+    {{ range .Tags }}
+    <li>
+        <a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    </li>
+    {{ else }}
+    <li class="empty-state">Brak tagów</li>
+    {{ end }}
+</ul>
+
+<form class="quick-entry"
+      hx-post="/ui/actions/tags"
+      hx-target="#tag-list"
+      hx-swap="beforeend"
+      hx-on::after-request="if(event.detail.successful) this.reset()">
+    {{ if .Parent }}<input type="hidden" name="parent_id" value="{{ .Parent.ID }}">{{ end }}
+    <input type="text" name="name" placeholder="Nowy tag..." required>
+</form>
+{{ end }}

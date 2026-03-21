@@ -1,0 +1,14 @@
+{{ define "tag-chips" }}
+<div class="tag-chips" id="tag-chips-{{ .ObjectID }}">
+    {{ range .Tags }}
+    <span class="tag-chip">
+        {{ .Name }}
+        <button class="tag-remove"
+                hx-delete="/ui/actions/{{ $.ObjectType }}s/{{ $.ObjectID }}/tags/{{ .ID }}"
+                hx-target="#tag-chips-{{ $.ObjectID }}"
+                hx-swap="outerHTML">&times;</button>
+    </span>
+    {{ end }}
+    <button class="tag-add" data-object-id="{{ .ObjectID }}" data-object-type="{{ .ObjectType }}">+</button>
+</div>
+{{ end }}

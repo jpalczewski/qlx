@@ -1,0 +1,7 @@
+{{ define "item-list-item" }}
+<li draggable="true" data-id="{{ .ID }}" data-type="item" class="flash">
+    <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
+    <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    {{ if gt .Quantity 1 }}<span class="badge">x{{ .Quantity }}</span>{{ end }}
+</li>
+{{ end }}
