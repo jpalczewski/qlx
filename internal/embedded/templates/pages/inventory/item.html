@@ -1,6 +1,6 @@
 {{ define "item" }}
 <div class="item-view">
-    {{ template "breadcrumb" dict "Path" .Data.Path "Current" .Data.Item.Name }}
+    {{ template "breadcrumb" dict "Path" .Data.Path "Current" .Data.Item.Name "Home" (.T "inventory.home") }}
 
     <article class="item-detail">
         <h1>{{ .Data.Item.Name }}</h1>
@@ -12,7 +12,7 @@
         {{ end }}
 
         <section class="location">
-            <h3>Lokalizacja</h3>
+            <h3>{{.T "inventory.location"}}</h3>
             <p>
                 {{ range $i, $c := .Data.Path }}
                 {{ if $i }} → {{ end }}
@@ -22,10 +22,10 @@
         </section>
 
         <section class="print-section">
-            <h3>Drukuj etykietę</h3>
+            <h3>{{.T "inventory.print_label"}}</h3>
             {{ if .Data.Printers }}
             <div class="form-group">
-                <label for="print-printer">Drukarka</label>
+                <label for="print-printer">{{.T "inventory.printer"}}</label>
                 <select id="print-printer" onchange="window.filterTemplates && window.filterTemplates('print-printer','print-template')">
                     {{ range .Data.Printers }}
                     <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
@@ -33,16 +33,16 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="print-template">Szablon</label>
+                <label for="print-template">{{.T "inventory.template"}}</label>
                 <select id="print-template">
                     {{ range .Data.Templates }}
                     <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                     {{ end }}
                     <optgroup label="Legacy">
-                        <option value="simple">Prosty</option>
-                        <option value="standard">Standardowy</option>
-                        <option value="compact">Kompaktowy</option>
-                        <option value="detailed">Szczegółowy</option>
+                        <option value="simple">{{.T "labels.template_simple"}}</option>
+                        <option value="standard">{{.T "labels.template_standard"}}</option>
+                        <option value="compact">{{.T "labels.template_compact"}}</option>
+                        <option value="detailed">{{.T "labels.template_detailed"}}</option>
                     </optgroup>
                 </select>
             </div>
@@ -91,20 +91,20 @@
                         if(tmpCanvas.parentNode) tmpCanvas.parentNode.removeChild(tmpCanvas);
                     });
                 }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
-            })()">🖨️ Drukuj</button>
+            })()">{{.T "action.print"}}</button>
             {{ else }}
-            <p class="empty">Brak skonfigurowanych drukarek. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Dodaj drukarkę</a>.</p>
+            <p class="empty">{{.T "inventory.no_printers"}}. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
             {{ end }}
             <div id="print-result"></div>
         </section>
 
         <section class="actions">
-            <a href="/ui/items/{{ .Data.Item.ID }}" class="button">✏️ Edytuj</a>
-            <button hx-delete="/ui/actions/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="Usunąć ten przedmiot?" class="danger">🗑️ Usuń</button>
+            <a href="/ui/items/{{ .Data.Item.ID }}" class="button">{{.T "inventory.edit"}}</a>
+            <button hx-delete="/ui/actions/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="danger">{{.T "action.delete"}}</button>
         </section>
 
         <section class="back">
-            <a href="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← Wróć do kontenera</a>
+            <a href="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
         </section>
     </article>
 </div>

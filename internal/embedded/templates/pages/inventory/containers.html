@@ -1,9 +1,9 @@
 {{ define "containers" }}
 <div class="container-view">
     {{ if .Data.Path }}
-    {{ template "breadcrumb" dict "Path" .Data.Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path "Home" (.T "inventory.home") }}
     {{ else }}
-    <h1>Kontenery</h1>
+    <h1>{{.T "inventory.containers_title"}}</h1>
     {{ end }}
 
     {{ if .Data.Container }}
@@ -12,18 +12,18 @@
     {{ end }}
 
     <section class="containers">
-        <h3>📦 Podkontenery</h3>
+        <h3>{{.T "inventory.subcontainers"}}</h3>
         <ul id="container-list" class="container-list">
             {{ range .Data.Children }}
             <li draggable="true" data-id="{{ .ID }}" data-type="container">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
                 <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
-                    <span class="name">📦 {{ .Name }}</span>
+                    <span class="name">{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
             </li>
             {{ else }}
-            <li class="empty-state">Brak podkontenerów</li>
+            <li class="empty-state">{{$.T "inventory.no_subcontainers"}}</li>
             {{ end }}
         </ul>
         <form class="quick-entry"
@@ -33,19 +33,19 @@
               hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
             <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
             <span class="quick-entry-icon">+</span>
-            <input type="text" name="name" placeholder="Nowy kontener..." required>
+            <input type="text" name="name" placeholder="{{.T "inventory.new_container_placeholder"}}" required>
             <button type="submit" class="quick-entry-submit">↵</button>
         </form>
     </section>
 
     <section class="items">
-        <h3>📋 Przedmioty</h3>
+        <h3>{{.T "inventory.items"}}</h3>
         <ul id="item-list" class="item-list">
             {{ range .Data.Items }}
             <li draggable="true" data-id="{{ .ID }}" data-type="item">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
                 <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
-                    <span class="name">📋 {{ .Name }}</span>
+                    <span class="name">{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
                 {{ if .TagIDs }}
@@ -53,7 +53,7 @@
                 {{ end }}
             </li>
             {{ else }}
-            <li class="empty-state">Brak przedmiotów</li>
+            <li class="empty-state">{{$.T "inventory.no_items"}}</li>
             {{ end }}
         </ul>
         {{ if .Data.Container }}
@@ -64,7 +64,7 @@
               hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
             <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
             <span class="quick-entry-icon">+</span>
-            <input type="text" name="name" placeholder="Nowy przedmiot..." required>
+            <input type="text" name="name" placeholder="{{.T "inventory.new_item_placeholder"}}" required>
             <input type="number" name="quantity" value="1" min="1">
             <button type="submit" class="quick-entry-submit">↵</button>
         </form>
@@ -73,10 +73,10 @@
 
     {{ if .Data.Container }}
     <section class="print-section">
-        <h3>Drukuj etykiety</h3>
+        <h3>{{.T "inventory.print_labels"}}</h3>
         {{ if .Data.Printers }}
         <div class="form-group">
-            <label for="container-print-printer">Drukarka</label>
+            <label for="container-print-printer">{{.T "inventory.printer"}}</label>
             <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
                 {{ range .Data.Printers }}
                 <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
@@ -84,16 +84,16 @@
             </select>
         </div>
         <div class="form-group">
-            <label for="container-print-template">Szablon</label>
+            <label for="container-print-template">{{.T "inventory.template"}}</label>
             <select id="container-print-template">
                 {{ range .Data.Templates }}
                 <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                 {{ end }}
                 <optgroup label="Legacy">
-                    <option value="simple">Prosty</option>
-                    <option value="standard">Standardowy</option>
-                    <option value="compact">Kompaktowy</option>
-                    <option value="detailed">Szczegółowy</option>
+                    <option value="simple">{{.T "labels.template_simple"}}</option>
+                    <option value="standard">{{.T "labels.template_standard"}}</option>
+                    <option value="compact">{{.T "labels.template_compact"}}</option>
+                    <option value="detailed">{{.T "labels.template_detailed"}}</option>
                 </optgroup>
             </select>
         </div>
@@ -132,9 +132,9 @@
                     }
                     printNext(0);
                 }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
-        })()">Drukuj wszystkie przedmioty</button>
+        })()">{{.T "inventory.print_all"}}</button>
         {{ else }}
-        <p class="empty">Brak skonfigurowanych drukarek. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Dodaj drukarkę</a>.</p>
+        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
         {{ end }}
         <div id="container-print-result"></div>
     </section>
@@ -142,20 +142,20 @@
 
     <section class="actions">
         <details>
-            <summary>+ Dodaj kontener</summary>
+            <summary>+ {{.T "inventory.add_container"}}</summary>
             <form hx-post="/ui/actions/containers" hx-target="#content">
                 <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
-                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
-                <button type="submit">Utwórz</button>
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+                <button type="submit">{{.T "inventory.create"}}</button>
             </form>
         </details>
         {{ if .Data.Container }}
         <details>
-            <summary>+ Dodaj przedmiot</summary>
+            <summary>+ {{.T "inventory.add_item"}}</summary>
             <form hx-post="/ui/actions/items" hx-target="#content">
                 <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
-                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
-                <button type="submit">Utwórz</button>
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
+                <button type="submit">{{.T "inventory.create"}}</button>
             </form>
         </details>
         {{ end }}
@@ -164,7 +164,7 @@
     {{ if .Data.Container }}
     {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
-        <button hx-delete="/ui/actions/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="Usunąć ten kontener?" class="danger">🗑️ Usuń kontener</button>
+        <button hx-delete="/ui/actions/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
     </section>
     {{ end }}
     {{ end }}

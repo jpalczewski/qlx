@@ -1,21 +1,21 @@
 {{ define "container-form" }}
 <div class="form-view">
-    {{ template "breadcrumb" dict "Path" .Data.Path }}
+    {{ template "breadcrumb" dict "Path" .Data.Path "Home" (.T "inventory.home") }}
 
-    <h1>{{ if .Data.Container }}Edytuj kontener{{ else }}Nowy kontener{{ end }}</h1>
+    <h1>{{ if .Data.Container }}{{.T "inventory.edit_container"}}{{ else }}{{.T "inventory.new_container"}}{{ end }}</h1>
 
     <form hx-{{ if .Data.Container }}put{{ else }}post{{ end }}="/ui/actions/containers{{ if .Data.Container }}/{{ .Data.Container.ID }}{{ end }}" hx-target="#content">
         <input type="hidden" name="parent_id" value="{{ if .Data.ParentID }}{{ .Data.ParentID }}{{ end }}">
 
         {{ if .Data.Container }}
-        {{ template "fields/name-desc" dict "name" .Data.Container.Name "description" .Data.Container.Description }}
+        {{ template "fields/name-desc" dict "name" .Data.Container.Name "description" .Data.Container.Description "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ else }}
-        {{ template "fields/name-desc" dict "name" "" "description" "" }}
+        {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ end }}
 
         <div class="actions">
-            <button type="submit">{{ if .Data.Container }}Zapisz{{ else }}Utwórz{{ end }}</button>
-            <a href="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-get="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
+            <button type="submit">{{ if .Data.Container }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
+            <a href="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-get="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
         </div>
     </form>
 </div>

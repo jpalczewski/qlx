@@ -1,6 +1,6 @@
 {{ define "printers" }}
 <div class="printers-view">
-    <h1>Drukarki</h1>
+    <h1>{{.T "printers.title"}}</h1>
 
     {{ if .Data.Printers }}
     <ul class="container-list">
@@ -14,27 +14,27 @@
                 </div>
                 <button onclick="connectPrinter('{{ .ID }}')" class="button" style="font-size:0.8rem;padding:0.4rem 0.8rem">Connect</button>
                 <button onclick="disconnectPrinter('{{ .ID }}')" class="button secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem">Disconnect</button>
-                <button hx-delete="/ui/actions/printers/{{ .ID }}" hx-target="#content" hx-confirm="Usunąć drukarkę?" class="danger">Usuń</button>
+                <button hx-delete="/ui/actions/printers/{{ .ID }}" hx-target="#content" hx-confirm="{{$.T "printers.confirm_delete"}}" class="danger">{{$.T "action.delete"}}</button>
             </div>
         </li>
         {{ end }}
     </ul>
     {{ else }}
-    <p class="empty">Brak skonfigurowanych drukarek</p>
+    <p class="empty">{{.T "printers.no_printers"}}</p>
     {{ end }}
 
     <section class="ble-scan">
-        <button onclick="scanBLE()" class="button">🔍 Skanuj Bluetooth</button>
+        <button onclick="scanBLE()" class="button">{{.T "printers.scan_bluetooth"}}</button>
         <div id="ble-results"></div>
     </section>
 
     <section class="actions">
         <details>
-            <summary>+ Dodaj drukarkę</summary>
+            <summary>+ {{.T "printers.add_printer"}}</summary>
             <form hx-post="/ui/actions/printers" hx-target="#content">
                 <div class="form-group">
-                    <label for="name">Nazwa</label>
-                    <input type="text" id="name" name="name" required placeholder="np. Brother kuchnia">
+                    <label for="name">{{.T "printers.name"}}</label>
+                    <input type="text" id="name" name="name" required placeholder="{{.T "printers.name_placeholder"}}">
                 </div>
                 <div class="form-group">
                     <label for="encoder">Encoder</label>
@@ -62,10 +62,10 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="address">Adres</label>
+                    <label for="address">{{.T "printers.address"}}</label>
                     <input type="text" id="address" name="address" required placeholder="/dev/usb/lp0">
                 </div>
-                <button type="submit">Dodaj</button>
+                <button type="submit">{{.T "printers.add"}}</button>
             </form>
         </details>
     </section>

@@ -1,13 +1,13 @@
 {{ define "search" }}
-<h1>Wyniki wyszukiwania: "{{ .Data.Query }}"</h1>
+<h1>{{.T "search.results_title"}} "{{ .Data.Query }}"</h1>
 
 {{ if and (not .Data.Containers) (not .Data.Items) (not .Data.Tags) }}
-<p class="empty-state">Brak wyników dla "{{ .Data.Query }}"</p>
+<p class="empty-state">{{.T "search.no_results"}} "{{ .Data.Query }}"</p>
 {{ end }}
 
 {{ if .Data.Containers }}
 <section>
-    <h2>Kontenery</h2>
+    <h2>{{.T "search.containers"}}</h2>
     <ul class="container-list">
     {{ range .Data.Containers }}
         <li><a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
@@ -18,7 +18,7 @@
 
 {{ if .Data.Items }}
 <section>
-    <h2>Przedmioty</h2>
+    <h2>{{.T "search.items"}}</h2>
     <ul class="item-list">
     {{ range .Data.Items }}
         <li><a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
@@ -29,7 +29,7 @@
 
 {{ if .Data.Tags }}
 <section>
-    <h2>Tagi</h2>
+    <h2>{{.T "search.tags"}}</h2>
     <ul class="tag-list">
     {{ range .Data.Tags }}
         <li><a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>

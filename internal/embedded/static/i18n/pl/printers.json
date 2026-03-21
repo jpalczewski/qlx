@@ -1,0 +1,12 @@
+{
+  "printers.title": "Drukarki",
+  "printers.no_printers": "Brak skonfigurowanych drukarek",
+  "printers.confirm_delete": "Usunąć drukarkę?",
+  "printers.scan_bluetooth": "Skanuj Bluetooth",
+  "printers.add_printer": "Dodaj drukarkę",
+  "printers.name": "Nazwa",
+  "printers.name_placeholder": "np. Brother kuchnia",
+  "printers.address": "Adres",
+  "printers.add": "Dodaj",
+  "printers.no_devices_found": "Nie znaleziono drukarek"
+}

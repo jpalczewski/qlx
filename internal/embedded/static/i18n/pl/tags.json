@@ -1,5 +1,8 @@
 {
   "tags.add_tag": "Dodaj tag",
   "tags.search_tags": "Szukaj tagów...",
-  "tags.tag_action": "Taguj"
+  "tags.tag_action": "Taguj",
+  "tags.title": "Tagi",
+  "tags.no_tags": "Brak tagów",
+  "tags.new_tag_placeholder": "Nowy tag..."
 }
