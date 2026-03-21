@@ -6,16 +6,16 @@ func TestSearch(t *testing.T) {
 	s := NewMemoryStore()
 
 	// Seed containers.
-	s.CreateContainer("", "Electronics Box", "")
-	s.CreateContainer("", "Hardware Tools", "")
+	s.CreateContainer("", "Electronics Box", "", "", "")
+	s.CreateContainer("", "Hardware Tools", "", "", "")
 
 	// Seed items.
-	s.CreateItem("", "Arduino Nano", "", 1)
-	s.CreateItem("", "Resistor Pack", "", 10)
+	s.CreateItem("", "Arduino Nano", "", 1, "", "")
+	s.CreateItem("", "Resistor Pack", "", 10, "", "")
 
 	// Seed tags.
-	s.CreateTag("", "electronic parts")
-	s.CreateTag("", "tools")
+	s.CreateTag("", "electronic parts", "", "")
+	s.CreateTag("", "tools", "", "")
 
 	t.Run("search containers", func(t *testing.T) {
 		got := s.SearchContainers("electro")

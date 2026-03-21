@@ -1,8 +1,9 @@
 {{ define "tag-chips" }}
 <div class="tag-chips" id="tag-chips-{{ .Data.ObjectID }}">
     {{ range .Data.Tags }}
-    <span class="tag-chip">
-        {{ .Name }}
+    <span class="tag-chip"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
+        {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
+        <span>{{ .Name }}</span>
         <button class="tag-remove"
                 hx-delete="/ui/actions/{{ $.Data.ObjectType }}s/{{ $.Data.ObjectID }}/tags/{{ .ID }}"
                 hx-target="#tag-chips-{{ $.Data.ObjectID }}"

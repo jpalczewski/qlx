@@ -10,6 +10,8 @@ import (
 type upsertTagRequest struct {
 	Name     string `json:"name"`
 	ParentID string `json:"parent_id"`
+	Color    string `json:"color"`
+	Icon     string `json:"icon"`
 }
 
 type moveTagRequest struct {
@@ -33,12 +35,14 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 	req := upsertTagRequest{
 		Name:     r.FormValue("name"),      //nolint:gosec // G120: internal tool, no untrusted input
 		ParentID: r.FormValue("parent_id"), //nolint:gosec // G120: internal tool, no untrusted input
+		Color:    r.FormValue("color"),     //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:     r.FormValue("icon"),      //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag, err := s.tags.CreateTag(req.ParentID, req.Name)
+	tag, err := s.tags.CreateTag(req.ParentID, req.Name, req.Color, req.Icon)
 	if err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -57,13 +61,15 @@ func (s *Server) HandleTag(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 	req := upsertTagRequest{
-		Name: r.FormValue("name"), //nolint:gosec // G120: internal tool, no untrusted input
+		Name:  r.FormValue("name"),  //nolint:gosec // G120: internal tool, no untrusted input
+		Color: r.FormValue("color"), //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:  r.FormValue("icon"),  //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	tag, err := s.tags.UpdateTag(r.PathValue("id"), req.Name)
+	tag, err := s.tags.UpdateTag(r.PathValue("id"), req.Name, req.Color, req.Icon)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return

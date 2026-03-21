@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/validate"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -49,14 +52,20 @@ func (s *InventoryService) ContainerPath(id string) []store.Container {
 // --- Container mutation methods ---
 
 // CreateContainer creates a new container and persists the change.
-func (s *InventoryService) CreateContainer(parentID, name, desc string) (*store.Container, error) {
+func (s *InventoryService) CreateContainer(parentID, name, desc, color, icon string) (*store.Container, error) {
 	if err := validate.Name(name, validate.MaxNameLength); err != nil {
 		return nil, err
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
-	c := s.store.CreateContainer(parentID, name, desc)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	c := s.store.CreateContainer(parentID, name, desc, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
 	}
@@ -64,14 +73,20 @@ func (s *InventoryService) CreateContainer(parentID, name, desc string) (*store.
 }
 
 // UpdateContainer updates a container's name and description, then persists.
-func (s *InventoryService) UpdateContainer(id, name, desc string) (*store.Container, error) {
+func (s *InventoryService) UpdateContainer(id, name, desc, color, icon string) (*store.Container, error) {
 	if err := validate.Name(name, validate.MaxNameLength); err != nil {
 		return nil, err
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
-	c, err := s.store.UpdateContainer(id, name, desc)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	c, err := s.store.UpdateContainer(id, name, desc, color, icon)
 	if err != nil {
 		return nil, err
 	}
@@ -107,14 +122,20 @@ func (s *InventoryService) GetItem(id string) *store.Item {
 // --- Item mutation methods ---
 
 // CreateItem creates a new item and persists the change.
-func (s *InventoryService) CreateItem(containerID, name, desc string, qty int) (*store.Item, error) {
+func (s *InventoryService) CreateItem(containerID, name, desc string, qty int, color, icon string) (*store.Item, error) {
 	if err := validate.Name(name, validate.MaxNameLength); err != nil {
 		return nil, err
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
-	item := s.store.CreateItem(containerID, name, desc, qty)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	item := s.store.CreateItem(containerID, name, desc, qty, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
 	}
@@ -123,14 +144,20 @@ func (s *InventoryService) CreateItem(containerID, name, desc string, qty int) (
 
 // UpdateItem updates an item's name, description, and quantity, then persists.
 // If qty is less than 1, the existing quantity is preserved.
-func (s *InventoryService) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
+func (s *InventoryService) UpdateItem(id, name, desc string, qty int, color, icon string) (*store.Item, error) {
 	if err := validate.Name(name, validate.MaxNameLength); err != nil {
 		return nil, err
 	}
 	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
 		return nil, err
 	}
-	item, err := s.store.UpdateItem(id, name, desc, qty)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	item, err := s.store.UpdateItem(id, name, desc, qty, color, icon)
 	if err != nil {
 		return nil, err
 	}

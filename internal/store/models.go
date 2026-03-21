@@ -8,6 +8,8 @@ type Tag struct {
 	ParentID  string    `json:"parent_id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
+	Color     string    `json:"color"`
+	Icon      string    `json:"icon"`
 }
 
 type Container struct {
@@ -17,6 +19,8 @@ type Container struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 	TagIDs      []string  `json:"tag_ids"`
+	Color       string    `json:"color"`
+	Icon        string    `json:"icon"`
 }
 
 type Item struct {
@@ -27,6 +31,8 @@ type Item struct {
 	CreatedAt   time.Time `json:"created_at"`
 	Quantity    int       `json:"quantity"`
 	TagIDs      []string  `json:"tag_ids"`
+	Color       string    `json:"color"`
+	Icon        string    `json:"icon"`
 }
 
 type PrinterConfig struct {

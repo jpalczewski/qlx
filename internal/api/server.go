@@ -102,6 +102,8 @@ type upsertContainerRequest struct {
 	ParentID    string `json:"parent_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Color       string `json:"color"`
+	Icon        string `json:"icon"`
 }
 
 type upsertItemRequest struct {
@@ -109,6 +111,8 @@ type upsertItemRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Quantity    int    `json:"quantity"`
+	Color       string `json:"color"`
+	Icon        string `json:"icon"`
 }
 
 func (s *Server) HandleContainers(w http.ResponseWriter, r *http.Request) {
@@ -155,12 +159,14 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		ParentID:    r.FormValue("parent_id"),   //nolint:gosec // G120: internal tool, no untrusted input
 		Name:        r.FormValue("name"),        //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"), //nolint:gosec // G120: internal tool, no untrusted input
+		Color:       r.FormValue("color"),       //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:        r.FormValue("icon"),        //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description)
+	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description, req.Color, req.Icon)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -172,12 +178,14 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 	req := upsertContainerRequest{
 		Name:        r.FormValue("name"),        //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"), //nolint:gosec // G120: internal tool, no untrusted input
+		Color:       r.FormValue("color"),       //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:        r.FormValue("icon"),        //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	container, err := s.inventory.UpdateContainer(r.PathValue("id"), req.Name, req.Description)
+	container, err := s.inventory.UpdateContainer(r.PathValue("id"), req.Name, req.Description, req.Color, req.Icon)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -212,6 +220,8 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		ContainerID: r.FormValue("container_id"), //nolint:gosec // G120: internal tool, no untrusted input
 		Name:        r.FormValue("name"),         //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"),  //nolint:gosec // G120: internal tool, no untrusted input
+		Color:       r.FormValue("color"),        //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:        r.FormValue("icon"),         //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
 		if q, err := strconv.Atoi(qStr); err == nil {
@@ -227,7 +237,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
+	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity, req.Color, req.Icon)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return
@@ -239,6 +249,8 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 	req := upsertItemRequest{
 		Name:        r.FormValue("name"),        //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"), //nolint:gosec // G120: internal tool, no untrusted input
+		Color:       r.FormValue("color"),       //nolint:gosec // G120: internal tool, no untrusted input
+		Icon:        r.FormValue("icon"),        //nolint:gosec // G120: internal tool, no untrusted input
 	}
 	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
 		if q, err := strconv.Atoi(qStr); err == nil {
@@ -249,7 +261,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description, req.Quantity)
+	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description, req.Quantity, req.Color, req.Icon)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return

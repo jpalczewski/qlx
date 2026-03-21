@@ -12,6 +12,7 @@ import (
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/service"
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -75,9 +76,11 @@ type TemplateListData struct {
 }
 
 type TagTreeData struct {
-	Tags   []store.Tag
-	Parent *store.Tag
-	Path   []store.Tag
+	Tags         []store.Tag
+	Parent       *store.Tag
+	Path         []store.Tag
+	DefaultColor string
+	DefaultIcon  string
 }
 
 // ContainerFormData is the view model for the container create/edit form.
@@ -171,6 +174,22 @@ func loadLayout(resolveTagsFn func([]string) []store.Tag) *template.Template {
 	return template.Must(template.New("layout").Funcs(template.FuncMap{
 		"dict":        dict,
 		"resolveTags": resolveTagsFn,
+		"icon": func(name string) template.HTML {
+			data, err := palette.SVG(name)
+			if err != nil {
+				return ""
+			}
+			return template.HTML(data) //nolint:gosec
+		},
+		"paletteHex": func(name string) string {
+			c, ok := palette.ColorByName(name)
+			if !ok {
+				return ""
+			}
+			return c.Hex
+		},
+		"allColors":      palette.AllColors,
+		"iconCategories": palette.IconCategories,
 	}).Parse(string(content)))
 }
 

@@ -39,4 +39,16 @@
     /* Z-index */
     --z-toast: 1000;
     --z-action-bar: 100;
+
+    /* Palette colors */
+    --palette-red: #e94560;
+    --palette-orange: #f4845f;
+    --palette-amber: #f5a623;
+    --palette-yellow: #ffc93c;
+    --palette-green: #4ecca3;
+    --palette-teal: #2ec4b6;
+    --palette-blue: #4d9de0;
+    --palette-indigo: #7b6cf6;
+    --palette-purple: #b07cd8;
+    --palette-pink: #e84393;
 }

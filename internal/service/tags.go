@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/validate"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -56,11 +59,17 @@ func (s *TagService) TagDescendants(id string) []string {
 // --- Mutation methods ---
 
 // CreateTag creates a new tag and persists.
-func (s *TagService) CreateTag(parentID, name string) (*store.Tag, error) {
+func (s *TagService) CreateTag(parentID, name, color, icon string) (*store.Tag, error) {
 	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
 		return nil, err
 	}
-	t := s.store.CreateTag(parentID, name)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	t := s.store.CreateTag(parentID, name, color, icon)
 	if err := s.store.Save(); err != nil {
 		return nil, err
 	}
@@ -68,11 +77,17 @@ func (s *TagService) CreateTag(parentID, name string) (*store.Tag, error) {
 }
 
 // UpdateTag updates a tag's name and persists.
-func (s *TagService) UpdateTag(id, name string) (*store.Tag, error) {
+func (s *TagService) UpdateTag(id, name, color, icon string) (*store.Tag, error) {
 	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
 		return nil, err
 	}
-	t, err := s.store.UpdateTag(id, name)
+	if color != "" && !palette.ValidColor(color) {
+		return nil, fmt.Errorf("invalid color: %s", color)
+	}
+	if icon != "" && !palette.ValidIcon(icon) {
+		return nil, fmt.Errorf("invalid icon: %s", icon)
+	}
+	t, err := s.store.UpdateTag(id, name, color, icon)
 	if err != nil {
 		return nil, err
 	}

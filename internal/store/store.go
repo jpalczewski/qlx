@@ -310,7 +310,7 @@ func (s *Store) writeAllPartitions() error {
 	return nil
 }
 
-func (s *Store) CreateContainer(parentID, name, description string) *Container {
+func (s *Store) CreateContainer(parentID, name, description, color, icon string) *Container {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -319,6 +319,8 @@ func (s *Store) CreateContainer(parentID, name, description string) *Container {
 		ParentID:    parentID,
 		Name:        name,
 		Description: description,
+		Color:       color,
+		Icon:        icon,
 		CreatedAt:   time.Now(),
 		TagIDs:      []string{},
 	}
@@ -333,7 +335,7 @@ func (s *Store) GetContainer(id string) *Container {
 	return s.containers[id]
 }
 
-func (s *Store) UpdateContainer(id, name, description string) (*Container, error) {
+func (s *Store) UpdateContainer(id, name, description, color, icon string) (*Container, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -344,6 +346,8 @@ func (s *Store) UpdateContainer(id, name, description string) (*Container, error
 
 	c.Name = name
 	c.Description = description
+	c.Color = color
+	c.Icon = icon
 	s.dirty |= dirtyContainers
 	return c, nil
 }
@@ -374,7 +378,7 @@ func (s *Store) DeleteContainer(id string) error {
 }
 
 // CreateItem creates a new item in the given container. If quantity is less than 1 it defaults to 1.
-func (s *Store) CreateItem(containerID, name, description string, quantity int) *Item {
+func (s *Store) CreateItem(containerID, name, description string, quantity int, color, icon string) *Item {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -387,6 +391,8 @@ func (s *Store) CreateItem(containerID, name, description string, quantity int) 
 		ContainerID: containerID,
 		Name:        name,
 		Description: description,
+		Color:       color,
+		Icon:        icon,
 		CreatedAt:   time.Now(),
 		Quantity:    quantity,
 		TagIDs:      []string{},
@@ -404,7 +410,7 @@ func (s *Store) GetItem(id string) *Item {
 
 // UpdateItem updates an item's name, description, and quantity. If quantity is less than 1
 // the existing quantity is preserved.
-func (s *Store) UpdateItem(id, name, description string, quantity int) (*Item, error) {
+func (s *Store) UpdateItem(id, name, description string, quantity int, color, icon string) (*Item, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -415,6 +421,8 @@ func (s *Store) UpdateItem(id, name, description string, quantity int) (*Item, e
 
 	item.Name = name
 	item.Description = description
+	item.Color = color
+	item.Icon = icon
 	if quantity >= 1 {
 		item.Quantity = quantity
 	}

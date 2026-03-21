@@ -2,7 +2,8 @@
 <div class="item-view">
     {{ template "breadcrumb" dict "Path" .Data.Path "Current" .Data.Item.Name "Home" (.T "inventory.home") }}
 
-    <article class="item-detail">
+    <article class="item-detail" {{ if .Data.Item.Color }}style="border-left: 3px solid {{ paletteHex .Data.Item.Color }}"{{ end }}>
+        <span class="entity-icon large">{{ if .Data.Item.Icon }}{{ icon .Data.Item.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>
         <h1>{{ .Data.Item.Name }}</h1>
 
         {{ if .Data.Item.Description }}
@@ -16,7 +17,7 @@
             <p>
                 {{ range $i, $c := .Data.Path }}
                 {{ if $i }} → {{ end }}
-                <a href="/ui/containers/{{ $c.ID }}" hx-get="/ui/containers/{{ $c.ID }}" hx-target="#content">{{ $c.Name }}</a>
+                <a href="/ui/containers/{{ $c.ID }}" hx-get="/ui/containers/{{ $c.ID }}" hx-target="#content"><span class="entity-icon" style="width:16px;height:16px">{{ if $c.Icon }}{{ icon $c.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ $c.Name }}</a>
                 {{ end }}
             </p>
         </section>

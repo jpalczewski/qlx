@@ -8,7 +8,7 @@ import (
 func TestTagCreate(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
+	tag := s.CreateTag("", "Electronics", "", "")
 	if tag.ID == "" {
 		t.Error("CreateTag should set ID")
 	}
@@ -22,7 +22,7 @@ func TestTagCreate(t *testing.T) {
 		t.Error("CreatedAt should be set")
 	}
 
-	child := s.CreateTag(tag.ID, "Cables")
+	child := s.CreateTag(tag.ID, "Cables", "", "")
 	if child.ParentID != tag.ID {
 		t.Errorf("child ParentID = %q, want %q", child.ParentID, tag.ID)
 	}
@@ -31,7 +31,7 @@ func TestTagCreate(t *testing.T) {
 func TestTagGet(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
+	tag := s.CreateTag("", "Electronics", "", "")
 	got := s.GetTag(tag.ID)
 
 	if got == nil {
@@ -56,8 +56,8 @@ func TestTagGet(t *testing.T) {
 func TestTagUpdate(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
-	updated, err := s.UpdateTag(tag.ID, "Gadgets")
+	tag := s.CreateTag("", "Electronics", "", "")
+	updated, err := s.UpdateTag(tag.ID, "Gadgets", "", "")
 	if err != nil {
 		t.Fatalf("UpdateTag error = %v", err)
 	}
@@ -70,7 +70,7 @@ func TestTagUpdate(t *testing.T) {
 		t.Errorf("stored Name = %q, want %q", got.Name, "Gadgets")
 	}
 
-	_, err = s.UpdateTag("nonexistent", "Name")
+	_, err = s.UpdateTag("nonexistent", "Name", "", "")
 	if !errors.Is(err, ErrTagNotFound) {
 		t.Errorf("UpdateTag error = %v, want ErrTagNotFound", err)
 	}
@@ -79,7 +79,7 @@ func TestTagUpdate(t *testing.T) {
 func TestTagDeleteLeaf(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
+	tag := s.CreateTag("", "Electronics", "", "")
 	if err := s.DeleteTag(tag.ID); err != nil {
 		t.Fatalf("DeleteTag error = %v", err)
 	}
@@ -96,8 +96,8 @@ func TestTagDeleteLeaf(t *testing.T) {
 func TestTagDeleteWithChildrenFails(t *testing.T) {
 	s := NewMemoryStore()
 
-	parent := s.CreateTag("", "Electronics")
-	_ = s.CreateTag(parent.ID, "Cables")
+	parent := s.CreateTag("", "Electronics", "", "")
+	_ = s.CreateTag(parent.ID, "Cables", "", "")
 
 	err := s.DeleteTag(parent.ID)
 	if !errors.Is(err, ErrTagHasChildren) {
@@ -108,9 +108,9 @@ func TestTagDeleteWithChildrenFails(t *testing.T) {
 func TestTagDeleteRemovesFromItems(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
-	container := s.CreateContainer("", "Box", "")
-	item := s.CreateItem(container.ID, "Cable", "", 1)
+	tag := s.CreateTag("", "Electronics", "", "")
+	container := s.CreateContainer("", "Box", "", "", "")
+	item := s.CreateItem(container.ID, "Cable", "", 1, "", "")
 
 	if err := s.AddItemTag(item.ID, tag.ID); err != nil {
 		t.Fatalf("AddItemTag error = %v", err)
@@ -151,11 +151,11 @@ func TestTagDescendants(t *testing.T) {
 	s := NewMemoryStore()
 
 	// Build hierarchy: root -> child1, child2; child1 -> grandchild1, grandchild2
-	root := s.CreateTag("", "Root")
-	child1 := s.CreateTag(root.ID, "Child1")
-	child2 := s.CreateTag(root.ID, "Child2")
-	grandchild1 := s.CreateTag(child1.ID, "Grandchild1")
-	grandchild2 := s.CreateTag(child1.ID, "Grandchild2")
+	root := s.CreateTag("", "Root", "", "")
+	child1 := s.CreateTag(root.ID, "Child1", "", "")
+	child2 := s.CreateTag(root.ID, "Child2", "", "")
+	grandchild1 := s.CreateTag(child1.ID, "Grandchild1", "", "")
+	grandchild2 := s.CreateTag(child1.ID, "Grandchild2", "", "")
 
 	descendants := s.TagDescendants(root.ID)
 	if len(descendants) != 4 {
@@ -191,13 +191,13 @@ func TestTagDescendants(t *testing.T) {
 func TestItemsByTag(t *testing.T) {
 	s := NewMemoryStore()
 
-	electronics := s.CreateTag("", "Electronics")
-	cables := s.CreateTag(electronics.ID, "Cables")
+	electronics := s.CreateTag("", "Electronics", "", "")
+	cables := s.CreateTag(electronics.ID, "Cables", "", "")
 
-	container := s.CreateContainer("", "Box", "")
-	hdmi := s.CreateItem(container.ID, "HDMI Cable", "", 1)
-	laptop := s.CreateItem(container.ID, "Laptop", "", 1)
-	book := s.CreateItem(container.ID, "Book", "", 1) // no tags
+	container := s.CreateContainer("", "Box", "", "", "")
+	hdmi := s.CreateItem(container.ID, "HDMI Cable", "", 1, "", "")
+	laptop := s.CreateItem(container.ID, "Laptop", "", 1, "", "")
+	book := s.CreateItem(container.ID, "Book", "", 1, "", "") // no tags
 	_ = book
 
 	if err := s.AddItemTag(hdmi.ID, cables.ID); err != nil {
@@ -241,9 +241,9 @@ func TestMoveTag(t *testing.T) {
 	t.Run("valid move", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		root1 := s.CreateTag("", "Root1")
-		root2 := s.CreateTag("", "Root2")
-		child := s.CreateTag(root1.ID, "Child")
+		root1 := s.CreateTag("", "Root1", "", "")
+		root2 := s.CreateTag("", "Root2", "", "")
+		child := s.CreateTag(root1.ID, "Child", "", "")
 
 		if err := s.MoveTag(child.ID, root2.ID); err != nil {
 			t.Fatalf("MoveTag error = %v", err)
@@ -258,8 +258,8 @@ func TestMoveTag(t *testing.T) {
 	t.Run("move to root (empty parent)", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		root := s.CreateTag("", "Root")
-		child := s.CreateTag(root.ID, "Child")
+		root := s.CreateTag("", "Root", "", "")
+		child := s.CreateTag(root.ID, "Child", "", "")
 
 		if err := s.MoveTag(child.ID, ""); err != nil {
 			t.Fatalf("MoveTag to root error = %v", err)
@@ -274,8 +274,8 @@ func TestMoveTag(t *testing.T) {
 	t.Run("cycle detection - direct", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		a := s.CreateTag("", "A")
-		b := s.CreateTag(a.ID, "B")
+		a := s.CreateTag("", "A", "", "")
+		b := s.CreateTag(a.ID, "B", "", "")
 
 		err := s.MoveTag(a.ID, b.ID)
 		if !errors.Is(err, ErrCycleDetected) {
@@ -286,9 +286,9 @@ func TestMoveTag(t *testing.T) {
 	t.Run("cycle detection - indirect", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		a := s.CreateTag("", "A")
-		b := s.CreateTag(a.ID, "B")
-		c := s.CreateTag(b.ID, "C")
+		a := s.CreateTag("", "A", "", "")
+		b := s.CreateTag(a.ID, "B", "", "")
+		c := s.CreateTag(b.ID, "C", "", "")
 
 		err := s.MoveTag(a.ID, c.ID)
 		if !errors.Is(err, ErrCycleDetected) {
@@ -299,7 +299,7 @@ func TestMoveTag(t *testing.T) {
 	t.Run("cycle detection - self", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		a := s.CreateTag("", "A")
+		a := s.CreateTag("", "A", "", "")
 
 		err := s.MoveTag(a.ID, a.ID)
 		if !errors.Is(err, ErrCycleDetected) {
@@ -319,7 +319,7 @@ func TestMoveTag(t *testing.T) {
 	t.Run("nonexistent new parent", func(t *testing.T) {
 		s := NewMemoryStore()
 
-		tag := s.CreateTag("", "Tag")
+		tag := s.CreateTag("", "Tag", "", "")
 		err := s.MoveTag(tag.ID, "nonexistent")
 		if !errors.Is(err, ErrTagNotFound) {
 			t.Errorf("MoveTag error = %v, want ErrTagNotFound", err)
@@ -330,9 +330,9 @@ func TestMoveTag(t *testing.T) {
 func TestTagAssignmentItems(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Electronics")
-	container := s.CreateContainer("", "Box", "")
-	item := s.CreateItem(container.ID, "Cable", "", 1)
+	tag := s.CreateTag("", "Electronics", "", "")
+	container := s.CreateContainer("", "Box", "", "", "")
+	item := s.CreateItem(container.ID, "Cable", "", 1, "", "")
 
 	if err := s.AddItemTag(item.ID, tag.ID); err != nil {
 		t.Fatalf("AddItemTag error = %v", err)
@@ -370,8 +370,8 @@ func TestTagAssignmentItems(t *testing.T) {
 func TestTagAssignmentContainers(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Storage")
-	container := s.CreateContainer("", "Box", "")
+	tag := s.CreateTag("", "Storage", "", "")
+	container := s.CreateContainer("", "Box", "", "", "")
 
 	if err := s.AddContainerTag(container.ID, tag.ID); err != nil {
 		t.Fatalf("AddContainerTag error = %v", err)
@@ -409,9 +409,9 @@ func TestTagAssignmentContainers(t *testing.T) {
 func TestTagAssignmentErrors(t *testing.T) {
 	s := NewMemoryStore()
 
-	tag := s.CreateTag("", "Tag")
-	container := s.CreateContainer("", "Box", "")
-	item := s.CreateItem(container.ID, "Item", "", 1)
+	tag := s.CreateTag("", "Tag", "", "")
+	container := s.CreateContainer("", "Box", "", "", "")
+	item := s.CreateItem(container.ID, "Item", "", 1, "", "")
 
 	err := s.AddItemTag("nonexistent", tag.ID)
 	if !errors.Is(err, ErrItemNotFound) {

@@ -37,8 +37,10 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 	parentID := r.FormValue("parent_id")      //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color")             //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")               //nolint:gosec // G120: internal tool, no untrusted input
 
-	container, err := s.inventory.CreateContainer(parentID, name, description)
+	container, err := s.inventory.CreateContainer(parentID, name, description, color, icon)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
@@ -58,8 +60,10 @@ func (s *Server) HandleContainerUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color")             //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")               //nolint:gosec // G120: internal tool, no untrusted input
 
-	_, err := s.inventory.UpdateContainer(id, name, description)
+	_, err := s.inventory.UpdateContainer(id, name, description, color, icon)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
@@ -132,6 +136,8 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	containerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")                //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description")  //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color")              //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")                //nolint:gosec // G120: internal tool, no untrusted input
 	quantity := 1
 	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
 		if q, err := strconv.Atoi(qStr); err == nil {
@@ -144,7 +150,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.inventory.CreateItem(containerID, name, description, quantity)
+	item, err := s.inventory.CreateItem(containerID, name, description, quantity, color, icon)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
@@ -168,6 +174,8 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color")             //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")               //nolint:gosec // G120: internal tool, no untrusted input
 	quantity := 0
 	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
 		if q, err := strconv.Atoi(qStr); err == nil {
@@ -175,7 +183,7 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	item, err := s.inventory.UpdateItem(id, name, description, quantity)
+	item, err := s.inventory.UpdateItem(id, name, description, quantity, color, icon)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return

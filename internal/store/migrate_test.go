@@ -79,10 +79,10 @@ func runV0ToV1Setup(t *testing.T) (path string, result map[string]any, newVersio
 }
 
 func TestMigrateV0ToV1(t *testing.T) {
-	t.Run("new version is 1", func(t *testing.T) {
+	t.Run("new version is current", func(t *testing.T) {
 		_, _, newVersion := runV0ToV1Setup(t)
-		if newVersion != 1 {
-			t.Errorf("newVersion = %d, want 1", newVersion)
+		if newVersion != currentVersion {
+			t.Errorf("newVersion = %d, want %d", newVersion, currentVersion)
 		}
 	})
 
@@ -94,10 +94,10 @@ func TestMigrateV0ToV1(t *testing.T) {
 		}
 	})
 
-	t.Run("version field set to 1", func(t *testing.T) {
+	t.Run("version field set to current", func(t *testing.T) {
 		_, result, _ := runV0ToV1Setup(t)
-		if v, ok := result["version"].(float64); !ok || int(v) != 1 {
-			t.Errorf("version in migrated = %v, want 1", result["version"])
+		if v, ok := result["version"].(float64); !ok || int(v) != currentVersion {
+			t.Errorf("version in migrated = %v, want %d", result["version"], currentVersion)
 		}
 	})
 

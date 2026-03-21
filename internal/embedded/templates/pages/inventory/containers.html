@@ -7,7 +7,8 @@
     {{ end }}
 
     {{ if .Data.Container }}
-    <div class="container-header">
+    <div class="container-header" {{ if .Data.Container.Color }}style="border-left: 3px solid {{ paletteHex .Data.Container.Color }}"{{ end }}>
+        <span class="entity-icon large">{{ if .Data.Container.Icon }}{{ icon .Data.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>
         <h2>{{ .Data.Container.Name }}</h2>
         <a href="/ui/containers/{{ .Data.Container.ID }}/edit" hx-get="/ui/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
     </div>
@@ -21,7 +22,7 @@
             <li draggable="true" data-id="{{ .ID }}" data-type="container">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
                 <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
-                    <span class="name">{{ .Name }}</span>
+                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
             </li>
@@ -48,7 +49,7 @@
             <li draggable="true" data-id="{{ .ID }}" data-type="item">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
                 <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
-                    <span class="name">{{ .Name }}</span>
+                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
                 {{ if .TagIDs }}

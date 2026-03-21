@@ -3,6 +3,7 @@ package ui
 import (
 	"net/http"
 
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -29,9 +30,11 @@ func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 	tagList := s.tags.TagChildren(parentID)
 
 	data := TagTreeData{
-		Tags:   tagList,
-		Parent: parent,
-		Path:   path,
+		Tags:         tagList,
+		Parent:       parent,
+		Path:         path,
+		DefaultColor: palette.RandomColor().Name,
+		DefaultIcon:  palette.RandomIcon().Name,
 	}
 	s.render(w, r, "tags", data)
 }
@@ -41,8 +44,10 @@ func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")          //nolint:gosec // G120: internal tool, no untrusted input
 	parentID := r.FormValue("parent_id") //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color")        //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")          //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag, err := s.tags.CreateTag(parentID, name)
+	tag, err := s.tags.CreateTag(parentID, name, color, icon)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -62,9 +67,11 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 // HandleTagUpdate handles PUT /ui/actions/tags/{id}. Updates a tag's name.
 func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	name := r.FormValue("name") //nolint:gosec // G120: internal tool, no untrusted input
+	name := r.FormValue("name")   //nolint:gosec // G120: internal tool, no untrusted input
+	color := r.FormValue("color") //nolint:gosec // G120: internal tool, no untrusted input
+	icon := r.FormValue("icon")   //nolint:gosec // G120: internal tool, no untrusted input
 
-	tag, err := s.tags.UpdateTag(id, name)
+	tag, err := s.tags.UpdateTag(id, name, color, icon)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return
