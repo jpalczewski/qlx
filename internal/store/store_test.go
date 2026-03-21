@@ -26,7 +26,7 @@ func TestNewStore(t *testing.T) {
 		path := filepath.Join(tmpDir, "data.json")
 
 		existing := `{"containers":{"c1":{"id":"c1","parent_id":"","name":"Root","description":"","created_at":"2025-01-01T00:00:00Z"}},"items":{"i1":{"id":"i1","container_id":"c1","name":"Item","description":"","created_at":"2025-01-01T00:00:00Z"}}}`
-		if err := os.WriteFile(path, []byte(existing), 0644); err != nil {
+		if err := os.WriteFile(path, []byte(existing), 0644); err != nil { //nolint:gosec // G306: test setup, intentional permissions
 			t.Fatalf("setup: %v", err)
 		}
 

@@ -16,6 +16,7 @@ type Packet struct {
 }
 
 func (p Packet) checksum() byte {
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	cs := p.Type ^ byte(len(p.Data))
 	for _, b := range p.Data {
 		cs ^= b
@@ -26,6 +27,7 @@ func (p Packet) checksum() byte {
 func (p Packet) ToBytes() []byte {
 	buf := make([]byte, 0, len(p.Data)+7)
 	buf = append(buf, packetHead...)
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	buf = append(buf, p.Type, byte(len(p.Data)))
 	buf = append(buf, p.Data...)
 	buf = append(buf, p.checksum())

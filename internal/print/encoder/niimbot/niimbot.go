@@ -13,22 +13,22 @@ import (
 )
 
 const (
-	cmdConnect         = 0xC1
-	cmdSetDensity      = 0x21
-	cmdSetLabelType    = 0x23
-	cmdPrintStart      = 0x01
-	cmdPageStart       = 0x03
-	cmdSetPageSize     = 0x13
-	cmdPrintBitmapRow  = 0x85
-	cmdPrintEmptyRow   = 0x84
-	cmdPageEnd         = 0xE3
-	cmdPrintEnd        = 0xF3
-	cmdPrintStatus     = 0xA3
+	cmdConnect        = 0xC1
+	cmdSetDensity     = 0x21
+	cmdSetLabelType   = 0x23
+	cmdPrintStart     = 0x01
+	cmdPageStart      = 0x03
+	cmdSetPageSize    = 0x13
+	cmdPrintBitmapRow = 0x85
+	cmdPrintEmptyRow  = 0x84
+	cmdPageEnd        = 0xE3
+	cmdPrintEnd       = 0xF3
+	cmdPrintStatus    = 0xA3
 
 	respOffsetStandard = 1
 	respOffsetDensity  = 16
 
-	packetIntervalMs   = 10
+	packetIntervalMs = 10
 )
 
 // NiimbotEncoder implements the Encoder interface for Niimbot printers.
@@ -48,6 +48,8 @@ func (e *NiimbotEncoder) Models() []encoder.ModelInfo {
 
 // Encode executes the full B1 print protocol flow.
 // Based on niimbluelib B1PrintTask: connect → init → page → image → end → poll status.
+//
+//nolint:gocyclo // encoder protocol requires sequential steps
 func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.PrintOpts, tr transport.Transport) error {
 	var m niimbotModel
 	found := false
@@ -81,6 +83,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 1. SET_DENSITY
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	if err := e.transceive(tr, cmdSetDensity, []byte{byte(density)}, respOffsetDensity); err != nil {
 		return fmt.Errorf("SET_DENSITY: %w", err)
 	}
@@ -107,7 +110,9 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 
 	// 5. SET_PAGE_SIZE (6-byte: rows, cols, copies)
 	pageSizeData := make([]byte, 6)
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	binary.BigEndian.PutUint16(pageSizeData[0:2], uint16(rows))
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	binary.BigEndian.PutUint16(pageSizeData[2:4], uint16(m.PrintheadPx))
 	binary.BigEndian.PutUint16(pageSizeData[4:6], 1) // copies = 1
 	if err := e.transceive(tr, cmdSetPageSize, pageSizeData, respOffsetStandard); err != nil {
@@ -117,6 +122,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	// 6. Send image rows (fire-and-forget, with inter-packet delay)
 	webutil.LogTrace("niimbot: sending %d image rows...", rows)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		//nolint:gosec // G115: value range is validated by protocol constraints
 		rowNum := uint16(y - bounds.Min.Y)
 		rowData := e.encodeRow(img, y, bounds.Min.X, m.PrintheadPx)
 

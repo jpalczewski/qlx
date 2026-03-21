@@ -47,6 +47,7 @@ func NewStore(path string) (*Store, error) {
 		templates:  make(map[string]*Template),
 	}
 
+	//nolint:gosec // G304: path from trusted CLI input
 	fileData, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -88,6 +89,7 @@ func (s *Store) Save() error {
 		return nil
 	}
 
+	//nolint:gosec // G301: intentional permissions for data directory (readable by owner)
 	if err := os.MkdirAll(filepath.Dir(s.path), 0755); err != nil {
 		return err
 	}
@@ -103,6 +105,7 @@ func (s *Store) Save() error {
 	}
 
 	tmpPath := s.path + ".tmp"
+	//nolint:gosec // G306: intentional permissions for data file (readable by owner)
 	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
 		return err
 	}

@@ -14,6 +14,7 @@ func (t *FileTransport) Name() string {
 }
 
 func (t *FileTransport) Open(address string) error {
+	//nolint:gosec // G304: path from trusted CLI input
 	file, err := os.OpenFile(address, os.O_RDWR, 0)
 	if err != nil {
 		return err

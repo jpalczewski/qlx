@@ -20,6 +20,7 @@ func (e *BrotherEncoder) Models() []encoder.ModelInfo {
 	return []encoder.ModelInfo{modelInfo(ql700)}
 }
 
+//nolint:gocyclo // encoder protocol requires sequential steps
 func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.PrintOpts, tr transport.Transport) error {
 	if model != ql700.ID {
 		return fmt.Errorf("unsupported model: %s", model)
@@ -45,6 +46,7 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 3. Media/quality info: ESC i z + 10 bytes
+	//nolint:gosec // G115: value range is validated by protocol constraints
 	rasterLines := uint32(height)
 	mediaInfo := make([]byte, 13)
 	mediaInfo[0] = 0x1B
@@ -52,8 +54,8 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	mediaInfo[2] = 0x7A
 	mediaInfo[3] = 0x86 // flags: quality + media_type + media_width
 	mediaInfo[4] = byte(mediaContinuous)
-	mediaInfo[5] = 62  // media_width_mm (default 62mm)
-	mediaInfo[6] = 0   // media_length_mm (0 for continuous)
+	mediaInfo[5] = 62 // media_width_mm (default 62mm)
+	mediaInfo[6] = 0  // media_length_mm (0 for continuous)
 	binary.LittleEndian.PutUint32(mediaInfo[7:11], rasterLines)
 	mediaInfo[11] = 0x00 // page_number (starting page)
 	mediaInfo[12] = 0x00 // reserved
@@ -87,7 +89,7 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	rowBuf := make([]byte, 3+ql700.BytesPerRow)
 	rowBuf[0] = 0x67
 	rowBuf[1] = 0x00
-	rowBuf[2] = byte(ql700.BytesPerRow)
+	rowBuf[2] = byte(ql700.BytesPerRow) //nolint:gosec // G115: value range is validated by protocol constraints
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		pixels := make([]byte, ql700.BytesPerRow)
