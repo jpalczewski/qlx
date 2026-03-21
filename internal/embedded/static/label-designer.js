@@ -543,6 +543,32 @@
     fabricCanvas.on("object:modified", function () { onCanvasModified(); });
     fabricCanvas.on("object:added", function () { onCanvasModified(); });
     fabricCanvas.on("object:removed", function () { onCanvasModified(); });
+
+    // Sync Fabric in-place text editing back to qlxTemplate and properties panel
+    fabricCanvas.on("text:changed", function (e) {
+      var obj = e.target;
+      if (obj && obj.qlxType === "text") {
+        obj.qlxTemplate = obj.text;
+        // Update properties panel if this object is selected
+        var active = fabricCanvas.getActiveObject();
+        if (active === obj) {
+          var textInput = document.getElementById("prop-text");
+          if (textInput) textInput.value = obj.text;
+        }
+      }
+      onCanvasModified();
+    });
+
+    // Refresh properties when object is moved/resized
+    fabricCanvas.on("object:modified", function () {
+      var active = fabricCanvas.getActiveObject();
+      if (active) {
+        var xInput = document.getElementById("prop-x");
+        var yInput = document.getElementById("prop-y");
+        if (xInput) xInput.value = Math.round(active.left);
+        if (yInput) yInput.value = Math.round(active.top);
+      }
+    });
   }
 
   function onCanvasModified() {
