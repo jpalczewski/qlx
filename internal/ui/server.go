@@ -186,6 +186,8 @@ func loadLayout(resolveTagsFn func([]string) []store.Tag) *template.Template {
 			}
 			return c.Hex
 		},
+		"allColors":      palette.AllColors,
+		"iconCategories": palette.IconCategories,
 	}).Parse(string(content)))
 }
 

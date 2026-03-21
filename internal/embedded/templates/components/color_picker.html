@@ -1,0 +1,15 @@
+{{ define "fields/color-picker" }}
+<div class="form-group">
+    <label>Color</label>
+    <div class="color-picker-grid" data-picker="color">
+        {{ range .allColors }}
+        <button type="button"
+            class="color-swatch{{ if eq .Name $.selected }} selected{{ end }}"
+            data-value="{{ .Name }}"
+            style="background-color: {{ .Hex }}"
+            title="{{ .Name }}"></button>
+        {{ end }}
+    </div>
+    <input type="hidden" name="color" value="{{ .selected }}">
+</div>
+{{ end }}
