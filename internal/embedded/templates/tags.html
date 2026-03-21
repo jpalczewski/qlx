@@ -25,9 +25,10 @@
       hx-post="/ui/actions/tags"
       hx-target="#tag-list"
       hx-swap="beforeend"
-      hx-on::after-request="if(event.detail.successful) this.reset()">
+      hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
     {{ if .Parent }}<input type="hidden" name="parent_id" value="{{ .Parent.ID }}">{{ end }}
     <span class="quick-entry-icon">+</span>
     <input type="text" name="name" placeholder="Nowy tag..." required>
+    <button type="submit" class="quick-entry-submit">↵</button>
 </form>
 {{ end }}

@@ -878,6 +878,19 @@ dialog::backdrop { background: rgba(0,0,0,0.5); }
     border-left: 1px solid var(--border);
     padding-left: 0.5rem;
 }
+.quick-entry-submit {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.quick-entry:focus-within .quick-entry-submit {
+    color: var(--accent);
+}
 
 /* Search in nav */
 #global-search {

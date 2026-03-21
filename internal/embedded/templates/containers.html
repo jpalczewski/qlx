@@ -30,10 +30,11 @@
               hx-post="/ui/actions/containers"
               hx-target="#container-list"
               hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) this.reset()">
+              hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
             <input type="hidden" name="parent_id" value="{{ if .Container }}{{ .Container.ID }}{{ end }}">
             <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy kontener..." required>
+            <button type="submit" class="quick-entry-submit">↵</button>
         </form>
     </section>
 
@@ -60,11 +61,12 @@
               hx-post="/ui/actions/items"
               hx-target="#item-list"
               hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) this.reset()">
+              hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
             <input type="hidden" name="container_id" value="{{ .Container.ID }}">
             <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="Nowy przedmiot..." required>
-            <input type="number" name="quantity" value="1" min="1" placeholder="Ilość">
+            <input type="number" name="quantity" value="1" min="1">
+            <button type="submit" class="quick-entry-submit">↵</button>
         </form>
         {{ end }}
     </section>
