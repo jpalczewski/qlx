@@ -113,8 +113,8 @@ func computeHeight(textElems []resolvedText, qrSize, barcodeH int, barcodeID str
 	textH += pad
 
 	totalH := textH
-	if qrSize > 0 && qrSize+pad*2 > totalH {
-		totalH = qrSize + pad*2
+	if qrSize > 0 {
+		totalH = max(totalH, qrSize+pad*2)
 	}
 	if barcodeH > 0 && barcodeID != "" {
 		totalH += barcodeH + pad
