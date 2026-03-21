@@ -1,0 +1,23 @@
+{{ define "layout" }}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QLX - Etykiety</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/ui-lite.js" defer></script>
+</head>
+<body>
+    <nav>
+        <a href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
+        <span id="printer-status">🖨️ Gotowy</span>
+    </nav>
+    <main id="content">
+        {{ template "content" . }}
+    </main>
+    <div id="toast-container"></div>
+</body>
+</html>
+{{ end }}

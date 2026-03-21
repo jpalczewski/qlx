@@ -1,0 +1,81 @@
+{{ define "containers" }}
+<div class="container-view">
+    {{ if .Path }}
+    {{ template "breadcrumb" dict "Path" .Path }}
+    {{ else }}
+    <h1>Kontenery</h1>
+    {{ end }}
+
+    {{ if .Container }}
+    <h2>{{ .Container.Name }}</h2>
+    {{ if .Container.Description }}<p class="description">{{ .Container.Description }}</p>{{ end }}
+    {{ end }}
+
+    <section class="containers">
+        <h3>📦 Podkontenery</h3>
+        {{ if .Children }}
+        <ul class="container-list">
+            {{ range .Children }}
+            <li draggable="true" data-id="{{ .ID }}" data-type="container">
+                <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
+                    <span class="name">📦 {{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        {{ else }}
+        <p class="empty">Brak podkontenerów</p>
+        {{ end }}
+    </section>
+
+    {{ if .Container }}
+    <section class="items">
+        <h3>📋 Przedmioty</h3>
+        {{ if .Items }}
+        <ul class="item-list">
+            {{ range .Items }}
+            <li draggable="true" data-id="{{ .ID }}" data-type="item">
+                <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
+                    <span class="name">📋 {{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+        {{ else }}
+        <p class="empty">Brak przedmiotów</p>
+        {{ end }}
+    </section>
+    {{ end }}
+
+    <section class="actions">
+        <details>
+            <summary>+ Dodaj kontener</summary>
+            <form hx-post="/ui/actions/containers" hx-target="#content">
+                <input type="hidden" name="parent_id" value="{{ if .Container }}{{ .Container.ID }}{{ end }}">
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
+                <button type="submit">Utwórz</button>
+            </form>
+        </details>
+        {{ if .Container }}
+        <details>
+            <summary>+ Dodaj przedmiot</summary>
+            <form hx-post="/ui/actions/items" hx-target="#content">
+                <input type="hidden" name="container_id" value="{{ .Container.ID }}">
+                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" }}
+                <button type="submit">Utwórz</button>
+            </form>
+        </details>
+        {{ end }}
+    </section>
+
+    {{ if .Container }}
+    {{ if and (not .Children) (not .Items) }}
+    <section class="container-actions">
+        <button hx-delete="/ui/actions/containers/{{ .Container.ID }}" hx-target="#content" hx-confirm="Usunąć ten kontener?" class="danger">🗑️ Usuń kontener</button>
+    </section>
+    {{ end }}
+    {{ end }}
+</div>
+{{ end }}

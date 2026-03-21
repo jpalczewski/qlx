@@ -1,0 +1,51 @@
+{{ define "item" }}
+<div class="item-view">
+    {{ template "breadcrumb" dict "Path" .Path "Current" .Item.Name }}
+
+    <article class="item-detail">
+        <h1>{{ .Item.Name }}</h1>
+
+        {{ if .Item.Description }}
+        <section class="description">
+            <p>{{ .Item.Description }}</p>
+        </section>
+        {{ end }}
+
+        <section class="location">
+            <h3>Lokalizacja</h3>
+            <p>
+                {{ range $i, $c := .Path }}
+                {{ if $i }} → {{ end }}
+                <a href="/ui/containers/{{ $c.ID }}" hx-get="/ui/containers/{{ $c.ID }}" hx-target="#content">{{ $c.Name }}</a>
+                {{ end }}
+            </p>
+        </section>
+
+        <section class="print-section">
+            <h3>Drukuj etykietę</h3>
+            <form hx-post="/item/{{ .Item.ID }}/print" hx-target="#print-result">
+                <div class="field">
+                    <label for="template">Szablon</label>
+                    <select id="template" name="template">
+                        <option value="simple">Prosty</option>
+                        <option value="standard">Standardowy</option>
+                        <option value="compact">Kompaktowy</option>
+                        <option value="detailed">Szczegółowy</option>
+                    </select>
+                </div>
+                <button type="submit">🖨️ Drukuj</button>
+            </form>
+            <div id="print-result"></div>
+        </section>
+
+        <section class="actions">
+            <a href="/ui/items/{{ .Item.ID }}" class="button">✏️ Edytuj</a>
+            <button hx-delete="/ui/actions/items/{{ .Item.ID }}" hx-target="#content" hx-confirm="Usunąć ten przedmiot?" class="danger">🗑️ Usuń</button>
+        </section>
+
+        <section class="back">
+            <a href="/ui/containers/{{ .Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Item.ContainerID }}/items" hx-target="#content">← Wróć do kontenera</a>
+        </section>
+    </article>
+</div>
+{{ end }}

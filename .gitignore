@@ -1,0 +1,9 @@
+qlx
+qlx-mips
+*.test
+data.json
+data/
+.gocache/
+.mcp.json
+*.tmp
+.serena/

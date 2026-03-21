@@ -1,0 +1,22 @@
+{{ define "item-form" }}
+<div class="form-view">
+    {{ template "breadcrumb" dict "Path" .Path }}
+
+    <h1>{{ if .Item }}Edytuj przedmiot{{ else }}Nowy przedmiot{{ end }}</h1>
+
+    <form hx-{{ if .Item }}put{{ else }}post{{ end }}="/ui/actions/items{{ if .Item }}/{{ .Item.ID }}{{ end }}" hx-target="#content">
+        <input type="hidden" name="container_id" value="{{ if .ContainerID }}{{ .ContainerID }}{{ else }}{{ .Item.ContainerID }}{{ end }}">
+
+        {{ if .Item }}
+        {{ template "fields/name-desc" dict "name" .Item.Name "description" .Item.Description }}
+        {{ else }}
+        {{ template "fields/name-desc" dict "name" "" "description" "" }}
+        {{ end }}
+
+        <div class="actions">
+            <button type="submit">{{ if .Item }}Zapisz{{ else }}Utwórz{{ end }}</button>
+            <a href="{{ if .Item }}/ui/items/{{ .Item.ID }}{{ else }}/ui/containers/{{ .ContainerID }}/items{{ end }}" hx-get="{{ if .Item }}/ui/items/{{ .Item.ID }}{{ else }}/ui/containers/{{ .ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">Anuluj</a>
+        </div>
+    </form>
+</div>
+{{ end }}

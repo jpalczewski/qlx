@@ -1,0 +1,462 @@
+:root {
+    --bg: #1a1a2e;
+    --bg-alt: #16213e;
+    --bg-card: #0f3460;
+    --text: #eee;
+    --text-muted: #888;
+    --accent: #e94560;
+    --accent-hover: #ff6b6b;
+    --border: #333;
+    --success: #4ecca3;
+    --warning: #ffc93c;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+nav {
+    background: var(--bg-alt);
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+}
+
+nav .brand {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+nav .brand:hover {
+    color: var(--accent-hover);
+}
+
+#printer-status {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+#content {
+    padding: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--text);
+}
+
+h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb span {
+    color: var(--text-muted);
+}
+
+.container-list,
+.item-list {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.container-list a,
+.item-list a {
+    display: block;
+    background: var(--bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.2s;
+}
+
+.container-list a:hover,
+.item-list a:hover {
+    border-color: var(--accent);
+    background: var(--bg-alt);
+}
+
+.container-list .name,
+.item-list .name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.container-list .desc,
+.item-list .desc {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+
+.item-detail {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.item-detail .name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.item-detail .description {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.item-detail .location {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+details {
+    margin-top: 1rem;
+}
+
+details summary {
+    cursor: pointer;
+    font-weight: 500;
+    padding: 0.5rem 0;
+    color: var(--accent);
+    list-style: none;
+}
+
+details summary:hover {
+    color: var(--accent-hover);
+}
+
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+form {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+}
+
+form button[type="submit"] {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    background: var(--accent);
+    color: white;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+form button[type="submit"]:hover {
+    background: var(--accent-hover);
+}
+
+button.danger {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    background: transparent;
+    color: var(--accent);
+    transition: all 0.2s;
+}
+
+button.danger:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+}
+
+.btn-danger:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+a.button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    background: var(--accent);
+    color: white;
+    transition: all 0.2s;
+}
+
+a.button:hover {
+    background: var(--accent-hover);
+}
+
+a.button.secondary {
+    background: var(--bg-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+a.button.secondary:hover {
+    border-color: var(--accent);
+}
+
+.empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.description {
+    color: var(--text-muted);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+.section {
+    margin-bottom: 2rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.status-ok {
+    color: var(--success);
+}
+
+.status-error {
+    color: var(--accent);
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background: rgba(78, 204, 163, 0.2);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.alert-error {
+    background: rgba(233, 69, 96, 0.2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+/* Drag & Drop */
+[draggable=true] {
+    cursor: grab;
+}
+
+[draggable=true]:active {
+    cursor: grabbing;
+}
+
+.dragging {
+    opacity: 0.4;
+}
+
+.drag-over {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px var(--accent);
+    background: rgba(233, 69, 96, 0.1) !important;
+}
+
+.breadcrumb a[data-drop-id].drag-over {
+    background: var(--accent);
+    color: white;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+}
+
+/* Toast */
+#toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toast {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: opacity 0.3s;
+}
+
+.toast-success {
+    background: rgba(78, 204, 163, 0.9);
+    color: white;
+}
+
+.toast-error {
+    background: rgba(233, 69, 96, 0.9);
+    color: white;
+}
+
+.toast-fade {
+    opacity: 0;
+}
+
+@media (max-width: 600px) {
+    nav {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #content {
+        padding: 0.5rem;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
