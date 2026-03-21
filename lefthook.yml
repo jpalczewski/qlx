@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: gofmt -l {staged_files} && test -z "$(gofmt -l {staged_files})"
+    govet:
+      glob: "*.go"
+      run: go vet ./...
+    golangci-lint:
+      glob: "*.go"
+      run: golangci-lint run --enable-only govet,staticcheck,errcheck ./...
+
+commit-msg:
+  commands:
+    conventional-commit:
+      run: 'grep -qE "^(feat|fix|refactor|docs|test|chore|build|ci|perf)(\(.+\))?: .+" {1}'
