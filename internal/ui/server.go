@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/erxyi/qlx/internal/embedded"
 	"github.com/erxyi/qlx/internal/print"
@@ -85,7 +87,7 @@ type DesignerData struct {
 }
 
 func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
-	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
+	layoutContent, err := embedded.Templates.ReadFile("templates/layouts/base.html")
 	if err != nil {
 		panic(err)
 	}
@@ -102,50 +104,53 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		},
 	}).Parse(string(layoutContent)))
 
-	sharedFiles := []string{
-		"templates/partials/breadcrumb.html",
-		"templates/components/form_fields.html",
-		"templates/partials/container_list_item.html",
-		"templates/partials/item_list_item.html",
-		"templates/partials/tag_list_item.html",
-		"templates/partials/tag_chips.html",
-		"templates/partials/tree_children.html",
-		"templates/partials/tag_tree_children.html",
-	}
-	for _, path := range sharedFiles {
-		content, err := embedded.Templates.ReadFile(path)
+	// Discover and parse all partials and components into the shared layout template.
+	for _, dir := range []string{"templates/partials", "templates/components"} {
+		err := fs.WalkDir(embedded.Templates, dir, func(fpath string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || path.Ext(fpath) != ".html" {
+				return nil
+			}
+			content, err := embedded.Templates.ReadFile(fpath)
+			if err != nil {
+				return err
+			}
+			layoutTmpl = template.Must(layoutTmpl.Parse(string(content)))
+			return nil
+		})
 		if err != nil {
 			panic(err)
 		}
-		layoutTmpl = template.Must(layoutTmpl.Parse(string(content)))
 	}
 
-	templateFiles := map[string]string{
-		"containers":        "templates/containers.html",
-		"item":              "templates/item.html",
-		"item-form":         "templates/item_form.html",
-		"container-form":    "templates/container_form.html",
-		"printers":          "templates/printers.html",
-		"templates":         "templates/templates.html",
-		"template-designer": "templates/template_designer.html",
-		"tags":              "templates/tags.html",
-		"search":            "templates/search.html",
-	}
-
+	// Discover page templates and build the templates map.
 	templates := make(map[string]*template.Template)
-	for name, path := range templateFiles {
-		content, err := embedded.Templates.ReadFile(path)
+	err = fs.WalkDir(embedded.Templates, "templates/pages", func(fpath string, d fs.DirEntry, err error) error {
 		if err != nil {
-			panic(err)
+			return err
+		}
+		if d.IsDir() || path.Ext(fpath) != ".html" {
+			return nil
+		}
+		name := strings.ReplaceAll(strings.TrimSuffix(path.Base(fpath), ".html"), "_", "-")
+		content, err := embedded.Templates.ReadFile(fpath)
+		if err != nil {
+			return err
 		}
 		tmpl, err := layoutTmpl.Clone()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		tmpl = template.Must(tmpl.Parse(string(content)))
 		wrapper := `{{ define "content" }}{{ template "` + name + `" . }}{{ end }}`
 		tmpl = template.Must(tmpl.Parse(wrapper))
 		templates[name] = tmpl
+		return nil
+	})
+	if err != nil {
+		panic(err)
 	}
 
 	staticFS, err := fs.Sub(embedded.Static, "static")
