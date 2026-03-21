@@ -102,6 +102,14 @@ UUID v4 via `github.com/google/uuid`. JSON field names use `snake_case`.
 - `MockTransport` for encoder tests
 - Standard library only — no external test frameworks
 
+### E2E Testing
+
+- Every new UI feature must have Playwright E2E test coverage in `e2e/tests/`
+- Tests use custom fixture (`e2e/fixtures/app.ts`) — fresh server + data dir per worker
+- Import `test, expect` from `../fixtures/app`, use `app.baseURL` for navigation
+- HTMX flows: use `page.waitForResponse()` + DOM assertions (no full page reloads)
+- Run with `make test-e2e` (headless) or `make test-e2e-ui` (interactive)
+
 ## MIPS Constraints
 
 Target has ~35MB usable RAM. Respect memory tuning in main.go: `SetMemoryLimit(16MB)`, `SetGCPercent(20)`. Process label images line-by-line where possible.
