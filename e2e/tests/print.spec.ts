@@ -43,7 +43,7 @@ test.describe('Print flow', () => {
       r.url().includes('/ui/actions/items/') && r.url().includes('/print')
     );
     await page.click('#print-btn');
-    const response = await responsePromise;
+    await responsePromise;
 
     // Print will likely fail (no real printer) — verify result is shown
     const resultText = await page.locator('#print-result').textContent();

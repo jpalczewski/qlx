@@ -1,4 +1,4 @@
-.PHONY: build build-mac build-mips test test-ble run clean deps lint lint-fix install-hooks
+.PHONY: build build-mac build-mips test test-ble test-e2e test-e2e-ui run clean deps lint lint-fix install-hooks
 
 build:
 	go build -o qlx ./cmd/qlx/
@@ -21,8 +21,14 @@ test-ble:
 run:
 	go run ./cmd/qlx/ --port 8080 --data ./data
 
+test-e2e:
+	cd e2e && npx playwright test
+
+test-e2e-ui:
+	cd e2e && npx playwright test --ui
+
 clean:
-	rm -f qlx qlx-darwin qlx-mips
+	rm -f qlx qlx-darwin qlx-mips qlx-e2e-test
 
 deps:
 	go mod download
