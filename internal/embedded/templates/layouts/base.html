@@ -33,6 +33,7 @@
     <script src="/static/js/shared/toast.js" defer></script>
     <script src="/static/js/shared/sse.js" defer></script>
     <script src="/static/js/shared/htmx-hooks.js" defer></script>
+    <script src="/static/js/shared/tree-picker.js" defer></script>
     <script src="/static/js/inventory/selection.js" defer></script>
     <script src="/static/js/inventory/dragdrop.js" defer></script>
     <script src="/static/js/inventory/move-picker.js" defer></script>
@@ -42,15 +43,15 @@
 </head>
 <body>
     <nav>
-        <a href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
+        <a class="brand" href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
         <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "nav.printers"}}</a>
         <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">{{.T "nav.templates"}}</a>
         <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "nav.tags"}}</a>
         <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
                hx-get="/ui/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
-        <a href="/ui/settings" hx-get="/ui/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
         <span id="printer-status"></span>
+        <a class="nav-settings" href="/ui/settings" hx-get="/ui/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
     </nav>
     <main id="content">
         {{ template "content" . }}

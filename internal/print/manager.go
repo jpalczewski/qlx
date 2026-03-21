@@ -25,9 +25,15 @@ type PrinterStatusEvent struct {
 	Status    PrinterStatus `json:"status"`
 }
 
+// PrinterConfigStore provides read-only access to printer configuration.
+type PrinterConfigStore interface {
+	GetPrinter(id string) *store.PrinterConfig
+	AllPrinters() []store.PrinterConfig
+}
+
 // PrinterManager manages persistent printer sessions with heartbeat.
 type PrinterManager struct {
-	store       *store.Store
+	store       PrinterConfigStore
 	encoders    map[string]encoder.Encoder
 	sessions    map[string]*PrinterSession
 	mu          sync.RWMutex
@@ -36,7 +42,7 @@ type PrinterManager struct {
 	transportFn TransportFactory
 }
 
-func NewPrinterManager(s *store.Store) *PrinterManager {
+func NewPrinterManager(s PrinterConfigStore) *PrinterManager {
 	m := &PrinterManager{
 		store:      s,
 		encoders:   make(map[string]encoder.Encoder),
@@ -45,6 +51,17 @@ func NewPrinterManager(s *store.Store) *PrinterManager {
 	}
 	m.transportFn = m.defaultTransportFactory
 	return m
+}
+
+// findModel returns the ModelInfo matching modelID, or nil if not found.
+func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
+	for _, mi := range enc.Models() {
+		if mi.ID == modelID {
+			info := mi
+			return &info
+		}
+	}
+	return nil
 }
 
 func (m *PrinterManager) RegisterEncoder(enc encoder.Encoder) {
@@ -105,15 +122,7 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 		tr = &transport.TraceTransport{Inner: tr}
 	}
 
-	// Find model info for DPI/width
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 
 	// Stop existing session if any
 	m.DisconnectPrinter(printerID)
@@ -184,14 +193,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
 
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 	if modelInfo == nil {
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
@@ -241,14 +243,7 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
 
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 	if modelInfo == nil {
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
