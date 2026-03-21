@@ -10,11 +10,17 @@ Extend QLX inventory UI with batch operations (quick entry, multi-select, bulk m
 Adding fields (quantity, tags) to existing models requires a migration strategy. Ad-hoc fixups don't scale.
 
 ### Design
-- Top-level `"version": int` field in the JSON store file
+- Top-level `"version": int` field in the JSON store file (absent = version 0)
 - On startup, the store checks version and runs sequential migration functions (`v0→v1`, `v1→v2`, ...)
 - Each migration is a Go function: `func(data map[string]any) error` operating on raw parsed JSON
-- Before each migration, backup the store file to `data/backup-v{N}.json`
+- Before each migration, backup the store file atomically to `data/backup-v{N}.json`
 - First migration (v0→v1): adds `quantity` to items (default 1), adds `tags` collection, adds `tag_ids` to items and containers
+
+### Atomicity & Startup Order
+- Migration must: (1) write backup atomically (temp + rename), (2) run migration function on in-memory data, (3) write migrated data atomically (temp + rename, same pattern as existing `Save()`), (4) only then update in-memory version
+- If the process is killed mid-migration, the backup file exists and the store file is either the old version (migration not persisted) or the new version (migration completed). No ambiguous state.
+- The server must NOT accept HTTP requests until all migrations complete. `NewStore()` runs migrations before returning.
+- On first startup after adding migration support, `Load()` must detect missing `version` field (treat as v0) and persist migrated data before returning
 
 ### Store File Format (after v1)
 ```json
@@ -47,11 +53,12 @@ type Tag struct {
 - `ParentID` empty = root-level tag
 - Hierarchical: arbitrary nesting depth
 - Delete constraint: tag with children cannot be deleted (same pattern as containers)
+- On delete of a leaf tag: remove that tag ID from all items' and containers' `TagIDs` slices (cascade cleanup, single `Save()` call)
 
 ### Store — New Collections & Methods
 - `tags map[string]*Tag` in `storeData`
 - CRUD: `CreateTag`, `GetTag`, `UpdateTag`, `DeleteTag`
-- Query: `TagChildren(id)`, `TagPath(id)`, `TagDescendants(id)` (recursive — returns all descendant IDs for filtering)
+- Query: `TagChildren(id)`, `TagPath(id)`, `TagDescendants(id)` (single-pass: collect all tags, walk from root down building a flat set — O(N) regardless of depth, safe for MIPS. Expected scale: hundreds of tags, not thousands)
 - Assignment: `AddTag(objectType, objectID, tagID)`, `RemoveTag(objectType, objectID, tagID)`
 - Filter: `ItemsByTag(tagID)` — returns items with this tag OR any descendant tag (inheritance upward)
 - Bulk: `MoveItems(ids []string, targetContainerID string)`, `MoveContainers(ids []string, targetParentID string)`
@@ -65,6 +72,8 @@ Inline form at the bottom of each list. On submit: HTMX `POST` appends a new `<l
 
 ### Container Quick Entry
 ```html
+<!-- Note: <ul id="container-list"> must ALWAYS be rendered (even when empty) -->
+<!-- The empty-state message goes inside the <ul> and is removed on first insert -->
 <form hx-post="/ui/actions/containers"
       hx-target="#container-list"
       hx-swap="beforeend"
@@ -76,6 +85,7 @@ Inline form at the bottom of each list. On submit: HTMX `POST` appends a new `<l
 
 ### Item Quick Entry
 ```html
+<!-- Note: <ul id="item-list"> must ALWAYS be rendered (even when empty) -->
 <form hx-post="/ui/actions/items"
       hx-target="#item-list"
       hx-swap="beforeend"
@@ -85,6 +95,10 @@ Inline form at the bottom of each list. On submit: HTMX `POST` appends a new `<l
     <input type="number" name="quantity" value="1" min="1">
 </form>
 ```
+
+### Template Prerequisites
+- The existing `<ul class="container-list">` and `<ul class="item-list">` in `containers.html` must get `id` attributes: `id="container-list"` and `id="item-list"`
+- Both `<ul>` elements must ALWAYS be rendered (even when the list is empty) so HTMX `beforeend` has a target. The current conditional `<p class="empty">` should move inside the `<ul>` as a `<li class="empty-state">` that the server's quick-entry response removes via OOB swap when the first item is added
 
 ### Tag Quick Entry
 Same pattern as containers, on the `/ui/tags` page.
@@ -113,18 +127,23 @@ Same pattern as containers, on the `/ui/tags` page.
 - Tree loaded lazily via HTMX: `GET /ui/partials/tree?parent_id=` returns children of a container as `<ul>` — click arrow to expand a branch
 - Search: `GET /ui/partials/tree/search?q=` returns flat list of matching containers with full breadcrumb path
 - Click a container → "Move here" button activates → submit
-- Endpoint: `POST /ui/actions/bulk/move` with body `{ids: [{id, type}, ...], target_container_id: "..."}`
+- Endpoint: `POST /ui/actions/bulk/move` — JS sends JSON body (intentional exception to form-encoded convention, same as existing `HandleItemPrint` and `HandleTemplateSave` which already use JSON)
+- Body: `{"ids": [{"id": "...", "type": "container|item"}, ...], "target_container_id": "..."}`
 - After success: HTMX reloads current container list, selection cleared
 
 ### Bulk Delete
 - Click "Delete selected" → confirmation `<dialog>`: "Delete N elements? This cannot be undone."
-- `POST /ui/actions/bulk/delete` with body `{ids: [{id, type}, ...]}`
-- Server: deletes items directly; containers only if empty (same constraint as single delete) — on partial failure, returns which ones failed and why
-- After success: deleted elements removed from DOM via OOB swap, action bar hides
+- `POST /ui/actions/bulk/delete` — JSON body: `{"ids": [{"id": "...", "type": "container|item"}, ...]}`
+- Server: deletes items directly; containers only if empty (same constraint as single delete)
+- Partial failure: response is HTTP 200 with JSON body `{"deleted": ["id1", ...], "failed": [{"id": "...", "reason": "..."}]}`. JS reads the response, removes successfully deleted elements from DOM, shows toast for failures. This avoids the HTMX OOB-on-non-2xx problem (HTMX ignores OOB swaps on non-2xx responses).
+- Full success: all elements removed from DOM, action bar hides
 
 ### Bulk Tagging
 - Click "Tag..." opens tag picker dialog (same component pattern as move picker, but for tags)
-- `POST /ui/actions/bulk/tags` with body `{ids: [{id, type}, ...], tag_id: "..."}`
+- `POST /ui/actions/bulk/tags` — JSON body: `{"ids": [{"id": "...", "type": "container|item"}, ...], "tag_id": "..."}`
+
+### Note on JSON in UI Handlers
+Bulk UI endpoints use `json.NewDecoder(r.Body)` instead of `r.FormValue` because array-of-objects payloads have no clean form-encoded representation. This is an intentional exception, consistent with existing handlers that already use JSON (`HandleItemPrint`, `HandleTemplateSave`).
 
 ### Multi Drag-and-Drop
 - Extension of existing code in `ui-lite.js`
@@ -227,12 +246,18 @@ Same pattern as containers, on the `/ui/tags` page.
 
 ## 9. New Templates
 
-- `container_list_item.html` — single container `<li>` (for quick entry response)
-- `item_list_item.html` — single item `<li>` (for quick entry response)
-- `tag_list_item.html` — single tag `<li>` (for quick entry response)
-- `tags.html` — tag tree page (analogous to `containers.html`)
+### Full-page templates (register in `templateFiles` map in `ui.NewServer`)
+- `tags.html` — tag tree page (analogous to `containers.html`), wrapper: `tags`
+- `search_results.html` — global search results page, wrapper: `search`
+
+### Partial templates (register in `sharedFiles` in `ui.NewServer` for cross-template use)
+- `partials/container_list_item.html` — single container `<li>` (for quick entry response)
+- `partials/item_list_item.html` — single item `<li>` (for quick entry response)
+- `partials/tag_list_item.html` — single tag `<li>` (for quick entry response)
 - `partials/tree_picker.html` — reusable tree picker dialog (used for move and tag assignment)
-- `partials/search_results.html` — global search results page
+
+### Template registration
+Each new full-page template must be added to the `templateFiles` map in `ui.NewServer` with its wrapper block name. Partials must be added to `sharedFiles` so they are parsed into every template's clone (same pattern as `partials/breadcrumb.html`). Missing registration causes a `template.Must` panic at startup.
 
 ## 10. JS Changes (`ui-lite.js`)
 
@@ -244,7 +269,15 @@ Same pattern as containers, on the `/ui/tags` page.
 - **Search**: debounced input in header, HTMX trigger
 - **Flash animation**: CSS class added to newly inserted elements
 
-## 11. Out of Scope
+## 11. Naming Disambiguation
+
+The existing `Template` model has a `Tags []string` field — these are **free-text labels** for the label template designer (e.g., "60x40", "barcode"). The new `Tag` model is a **separate entity** with UUIDs and hierarchy, used for inventory categorization. These two tag systems are unrelated:
+- `Template.Tags` — plain strings, template filtering in the designer
+- `store.Tag` / `Item.TagIDs` / `Container.TagIDs` — UUID-based inventory tags
+
+Store methods for inventory tags (`CreateTag`, `DeleteTag`, etc.) do not conflict with template-related code since templates have no tag CRUD — they just store a flat string slice.
+
+## 12. Out of Scope
 
 - SQL migration — staying with JSON store + migration system
 - Tag colors/icons — possible future enhancement
