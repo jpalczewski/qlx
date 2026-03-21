@@ -47,6 +47,17 @@ func NewPrinterManager(s *store.Store) *PrinterManager {
 	return m
 }
 
+// findModel returns the ModelInfo matching modelID, or nil if not found.
+func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
+	for _, mi := range enc.Models() {
+		if mi.ID == modelID {
+			info := mi
+			return &info
+		}
+	}
+	return nil
+}
+
 func (m *PrinterManager) RegisterEncoder(enc encoder.Encoder) {
 	m.encoders[enc.Name()] = enc
 }
@@ -105,15 +116,7 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 		tr = &transport.TraceTransport{Inner: tr}
 	}
 
-	// Find model info for DPI/width
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 
 	// Stop existing session if any
 	m.DisconnectPrinter(printerID)
@@ -184,14 +187,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
 
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 	if modelInfo == nil {
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
@@ -241,14 +237,7 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
 
-	var modelInfo *encoder.ModelInfo
-	for _, mi := range enc.Models() {
-		if mi.ID == cfg.Model {
-			info := mi
-			modelInfo = &info
-			break
-		}
-	}
+	modelInfo := findModel(enc, cfg.Model)
 	if modelInfo == nil {
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
