@@ -18,10 +18,11 @@ import (
 type Server struct {
 	store          *store.Store
 	printerManager *print.PrinterManager
+	translations   *webutil.Translations
 }
 
-func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
-	return &Server{store: s, printerManager: pm}
+func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations) *Server {
+	return &Server{store: s, printerManager: pm, translations: tr}
 }
 
 func (s *Server) RegisterRoutes(mux *http.ServeMux) {
@@ -60,6 +61,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Search
 	mux.HandleFunc("GET /api/search", s.HandleSearch)
+
+	mux.HandleFunc("GET /api/i18n/{lang}", s.HandleI18n)
 
 	mux.HandleFunc("GET /api/export/json", s.HandleExportJSON)
 	mux.HandleFunc("GET /api/export/csv", s.HandleExportCSV)
@@ -298,6 +301,13 @@ func (s *Server) HandleItemMove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// HandleI18n returns a merged translation map for the requested language.
+func (s *Server) HandleI18n(w http.ResponseWriter, r *http.Request) {
+	lang := r.PathValue("lang")
+	merged := s.translations.Merged(lang)
+	webutil.JSON(w, http.StatusOK, merged)
 }
 
 func (s *Server) HandleExportJSON(w http.ResponseWriter, r *http.Request) {

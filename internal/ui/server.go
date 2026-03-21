@@ -15,39 +15,11 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-type contextKey string
-
-const langKey contextKey = "lang"
-
-// Translations is a stub i18n registry. Keys and values will be populated in a future task.
-type Translations struct {
-	langs map[string]map[string]string
-}
-
-// NewTranslations returns an empty Translations with language buckets pre-initialized.
-func NewTranslations() *Translations {
-	return &Translations{langs: map[string]map[string]string{
-		"pl": {},
-		"en": {},
-	}}
-}
-
-// Get returns the translation for key in lang, falling back to "en", then the key itself.
-func (t *Translations) Get(lang, key string) string {
-	if val, ok := t.langs[lang][key]; ok {
-		return val
-	}
-	if val, ok := t.langs["en"][key]; ok {
-		return val
-	}
-	return key
-}
-
 // PageData is the top-level template context for all page and partial renders.
 // It carries the active language, a translation accessor, and the page-specific data.
 type PageData struct {
 	Lang       string
-	translator *Translations
+	translator *webutil.Translations
 	Data       any
 }
 
@@ -61,7 +33,7 @@ type Server struct {
 	printerManager *print.PrinterManager
 	templates      map[string]*template.Template
 	staticFS       fs.FS
-	translations   *Translations
+	translations   *webutil.Translations
 }
 
 type ContainerListData struct {
@@ -128,7 +100,7 @@ type DesignerData struct {
 	PreviewDataJSON   string
 }
 
-func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
+func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translations) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layouts/base.html")
 	if err != nil {
 		panic(err)
@@ -200,7 +172,7 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		panic(err)
 	}
 
-	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS, translations: NewTranslations()}
+	return &Server{store: s, printerManager: pm, templates: templates, staticFS: staticFS, translations: tr}
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -280,6 +252,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Search
 	mux.HandleFunc("GET /ui/search", s.HandleSearch)
+
+	// Language
+	mux.HandleFunc("POST /ui/actions/set-lang", s.HandleSetLang)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
@@ -291,7 +266,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	lang := "pl"
-	if v := r.Context().Value(langKey); v != nil {
+	if v := r.Context().Value(webutil.LangKey); v != nil {
 		lang = v.(string)
 	}
 
@@ -322,7 +297,7 @@ func (s *Server) renderPartial(w http.ResponseWriter, r *http.Request, tmplName,
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	lang := "pl"
-	if v := r.Context().Value(langKey); v != nil {
+	if v := r.Context().Value(webutil.LangKey); v != nil {
 		lang = v.(string)
 	}
 
@@ -335,6 +310,26 @@ func (s *Server) renderPartial(w http.ResponseWriter, r *http.Request, tmplName,
 	if err := tmpl.ExecuteTemplate(w, defineName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// HandleSetLang sets the lang cookie and redirects back to the referer.
+func (s *Server) HandleSetLang(w http.ResponseWriter, r *http.Request) {
+	lang := r.FormValue("lang") //nolint:gosec // G120: internal tool, no untrusted input
+	if lang == "" {
+		lang = "pl"
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "lang",
+		Value:    lang,
+		Path:     "/",
+		MaxAge:   365 * 24 * 60 * 60,
+		SameSite: http.SameSiteLaxMode,
+	})
+	referer := r.Header.Get("Referer")
+	if referer == "" {
+		referer = "/ui"
+	}
+	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
 
 func (s *Server) containerViewModel(containerID string) (ContainerListData, bool) {

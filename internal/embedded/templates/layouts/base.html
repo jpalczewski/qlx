@@ -1,10 +1,10 @@
 {{ define "layout" }}
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="{{.Lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QLX - Etykiety</title>
+    <title>{{.T "nav.title"}}</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="/static/htmx.min.js"></script>
     <script src="/static/ui-lite.js" defer></script>
@@ -12,10 +12,10 @@
 <body>
     <nav>
         <a href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
-        <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Drukarki</a>
-        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">Szablony</a>
-        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">Tagi</a>
-        <input type="search" id="global-search" placeholder="Szukaj..."
+        <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "nav.printers"}}</a>
+        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">{{.T "nav.templates"}}</a>
+        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "nav.tags"}}</a>
+        <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
                hx-get="/ui/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
         <span id="printer-status"></span>
