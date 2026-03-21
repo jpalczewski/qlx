@@ -1,3 +1,5 @@
+//go:build !minimal
+
 package transport
 
 import "go.bug.st/serial"
