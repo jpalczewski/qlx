@@ -40,6 +40,27 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /api/containers/{id}/move", s.HandleContainerMove)
 	mux.HandleFunc("PATCH /api/items/{id}/move", s.HandleItemMove)
 
+	// Tags
+	mux.HandleFunc("GET /api/tags", s.HandleTags)
+	mux.HandleFunc("POST /api/tags", s.HandleTagCreate)
+	mux.HandleFunc("GET /api/tags/{id}", s.HandleTag)
+	mux.HandleFunc("PUT /api/tags/{id}", s.HandleTagUpdate)
+	mux.HandleFunc("DELETE /api/tags/{id}", s.HandleTagDelete)
+	mux.HandleFunc("PATCH /api/tags/{id}/move", s.HandleTagMove)
+	mux.HandleFunc("GET /api/tags/{id}/descendants", s.HandleTagDescendants)
+	mux.HandleFunc("POST /api/items/{id}/tags", s.HandleItemTagAdd)
+	mux.HandleFunc("DELETE /api/items/{id}/tags/{tag_id}", s.HandleItemTagRemove)
+	mux.HandleFunc("POST /api/containers/{id}/tags", s.HandleContainerTagAdd)
+	mux.HandleFunc("DELETE /api/containers/{id}/tags/{tag_id}", s.HandleContainerTagRemove)
+
+	// Bulk
+	mux.HandleFunc("POST /api/bulk/move", s.HandleBulkMove)
+	mux.HandleFunc("POST /api/bulk/delete", s.HandleBulkDelete)
+	mux.HandleFunc("POST /api/bulk/tags", s.HandleBulkTags)
+
+	// Search
+	mux.HandleFunc("GET /api/search", s.HandleSearch)
+
 	mux.HandleFunc("GET /api/export/json", s.HandleExportJSON)
 	mux.HandleFunc("GET /api/export/csv", s.HandleExportCSV)
 
