@@ -25,9 +25,15 @@ type PrinterStatusEvent struct {
 	Status    PrinterStatus `json:"status"`
 }
 
+// PrinterConfigStore provides read-only access to printer configuration.
+type PrinterConfigStore interface {
+	GetPrinter(id string) *store.PrinterConfig
+	AllPrinters() []store.PrinterConfig
+}
+
 // PrinterManager manages persistent printer sessions with heartbeat.
 type PrinterManager struct {
-	store       *store.Store
+	store       PrinterConfigStore
 	encoders    map[string]encoder.Encoder
 	sessions    map[string]*PrinterSession
 	mu          sync.RWMutex
@@ -36,7 +42,7 @@ type PrinterManager struct {
 	transportFn TransportFactory
 }
 
-func NewPrinterManager(s *store.Store) *PrinterManager {
+func NewPrinterManager(s PrinterConfigStore) *PrinterManager {
 	m := &PrinterManager{
 		store:      s,
 		encoders:   make(map[string]encoder.Encoder),

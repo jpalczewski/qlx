@@ -33,7 +33,7 @@ func (m *mockEncoder) Encode(img image.Image, model string, opts encoder.PrintOp
 	return err
 }
 
-func newManagerWithMock(t *testing.T) (*PrinterManager, *transport.MockTransport) {
+func newManagerWithMock(t *testing.T) (*PrinterManager, *store.Store, *transport.MockTransport) {
 	t.Helper()
 	s := store.NewMemoryStore()
 	mgr := NewPrinterManager(s)
@@ -46,13 +46,13 @@ func newManagerWithMock(t *testing.T) (*PrinterManager, *transport.MockTransport
 		}
 		return nil
 	}
-	return mgr, mockTr
+	return mgr, s, mockTr
 }
 
 func TestPrinterManager_Print(t *testing.T) {
-	mgr, mockTr := newManagerWithMock(t)
+	mgr, s, mockTr := newManagerWithMock(t)
 
-	printer := mgr.store.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
 
 	data := label.LabelData{
 		Name:        "Test Item",
@@ -79,9 +79,9 @@ func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
 }
 
 func TestPrinterManager_ConnectDisconnect(t *testing.T) {
-	mgr, _ := newManagerWithMock(t)
+	mgr, s, _ := newManagerWithMock(t)
 
-	printer := mgr.store.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
 
 	if err := mgr.ConnectPrinter(printer.ID); err != nil {
 		t.Fatalf("ConnectPrinter() returned unexpected error: %v", err)
@@ -101,9 +101,9 @@ func TestPrinterManager_ConnectDisconnect(t *testing.T) {
 }
 
 func TestPrinterManager_PrintImage(t *testing.T) {
-	mgr, mockTr := newManagerWithMock(t)
+	mgr, s, mockTr := newManagerWithMock(t)
 
-	printer := mgr.store.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 
