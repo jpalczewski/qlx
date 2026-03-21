@@ -13,8 +13,8 @@ func TestGetSchema(t *testing.T) {
 	if schema.Elements[0].Slot != "title" {
 		t.Errorf("simple first slot = %q, want title", schema.Elements[0].Slot)
 	}
-	if schema.Elements[0].FontSize != 20 {
-		t.Errorf("simple title font_size = %v, want 20", schema.Elements[0].FontSize)
+	if schema.Elements[0].FontSize != 40 {
+		t.Errorf("simple title font_size = %v, want 40", schema.Elements[0].FontSize)
 	}
 
 	_, ok = GetSchema("nonexistent")
