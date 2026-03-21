@@ -14,6 +14,7 @@ type Migration func(data map[string]any) error
 // migrations[i] upgrades from version i to version i+1.
 var migrations = []Migration{
 	migrateV0ToV1,
+	migrateV1ToV2,
 }
 
 // currentVersion is the schema version produced by the latest migration.
@@ -130,6 +131,29 @@ func migrateV0ToV1(data map[string]any) error {
 		data["tags"] = map[string]any{}
 	}
 
+	return nil
+}
+
+// migrateV1ToV2 adds color and icon fields to items, containers, and tags.
+func migrateV1ToV2(data map[string]any) error {
+	for _, collection := range []string{"items", "containers", "tags"} {
+		entries, ok := data[collection].(map[string]any)
+		if !ok {
+			continue
+		}
+		for _, v := range entries {
+			entry, ok := v.(map[string]any)
+			if !ok {
+				continue
+			}
+			if _, exists := entry["color"]; !exists {
+				entry["color"] = ""
+			}
+			if _, exists := entry["icon"]; !exists {
+				entry["icon"] = ""
+			}
+		}
+	}
 	return nil
 }
 
