@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
@@ -303,4 +305,159 @@ func (s *Server) HandleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.HandleTemplates(w, r)
+}
+
+func (s *Server) HandleTemplateNew(w http.ResponseWriter, r *http.Request) {
+	models := collectPrinterModels(s)
+	modelsJSON, _ := json.Marshal(models)
+	previewJSON, _ := json.Marshal(map[string]string{
+		"name":        "Sample Item",
+		"description": "A sample item for preview",
+		"location":    "Warehouse > Shelf A",
+		"qr_content":  "/ui/items/preview",
+		"barcode_id":  "PREVIEW001",
+	})
+
+	s.render(w, r, "template-designer", DesignerData{
+		Target:            "universal",
+		Width:             62,
+		Height:            29,
+		TemplateJSON:      "[]",
+		PrinterModels:     models,
+		PrinterModelsJSON: string(modelsJSON),
+		PreviewDataJSON:   string(previewJSON),
+	})
+}
+
+func (s *Server) HandleTemplateEdit(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	tmpl := s.store.GetTemplate(id)
+	if tmpl == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	models := collectPrinterModels(s)
+	modelsJSON, _ := json.Marshal(models)
+	previewJSON, _ := json.Marshal(map[string]string{
+		"name":        "Sample Item",
+		"description": "A sample item for preview",
+		"location":    "Warehouse > Shelf A",
+		"qr_content":  "/ui/items/preview",
+		"barcode_id":  "PREVIEW001",
+	})
+
+	width := tmpl.WidthMM
+	height := tmpl.HeightMM
+	if strings.HasPrefix(tmpl.Target, "printer:") {
+		width = float64(tmpl.WidthPx)
+		height = float64(tmpl.HeightPx)
+	}
+
+	s.render(w, r, "template-designer", DesignerData{
+		TemplateID:        tmpl.ID,
+		TemplateName:      tmpl.Name,
+		TemplateTags:      strings.Join(tmpl.Tags, ", "),
+		Target:            tmpl.Target,
+		Width:             width,
+		Height:            height,
+		TemplateJSON:      tmpl.Elements,
+		PrinterModels:     models,
+		PrinterModelsJSON: string(modelsJSON),
+		PreviewDataJSON:   string(previewJSON),
+	})
+}
+
+func (s *Server) HandleTemplateSave(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name     string  `json:"name"`
+		Tags     string  `json:"tags"`
+		Target   string  `json:"target"`
+		Width    float64 `json:"width"`
+		Height   float64 `json:"height"`
+		Elements string  `json:"elements"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
+		return
+	}
+
+	tags := splitTags(req.Tags)
+	id := r.PathValue("id")
+
+	if id != "" {
+		// Update existing
+		tmpl := s.store.GetTemplate(id)
+		if tmpl == nil {
+			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
+			return
+		}
+		tmpl.Name = req.Name
+		tmpl.Tags = tags
+		tmpl.Target = req.Target
+		if strings.HasPrefix(req.Target, "printer:") {
+			tmpl.WidthPx = int(req.Width)
+			tmpl.HeightPx = int(req.Height)
+			tmpl.WidthMM = 0
+			tmpl.HeightMM = 0
+		} else {
+			tmpl.WidthMM = req.Width
+			tmpl.HeightMM = req.Height
+			tmpl.WidthPx = 0
+			tmpl.HeightPx = 0
+		}
+		tmpl.Elements = req.Elements
+		tmpl.UpdatedAt = time.Now()
+		s.store.SaveTemplate(*tmpl)
+	} else {
+		// Create new
+		var widthMM, heightMM float64
+		var widthPx, heightPx int
+		if strings.HasPrefix(req.Target, "printer:") {
+			widthPx = int(req.Width)
+			heightPx = int(req.Height)
+		} else {
+			widthMM = req.Width
+			heightMM = req.Height
+		}
+		s.store.CreateTemplate(req.Name, tags, req.Target, widthMM, heightMM, widthPx, heightPx, req.Elements)
+	}
+
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func splitTags(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	var tags []string
+	for _, p := range parts {
+		t := strings.TrimSpace(p)
+		if t != "" {
+			tags = append(tags, t)
+		}
+	}
+	return tags
+}
+
+func collectPrinterModels(s *Server) []encoder.ModelInfo {
+	var models []encoder.ModelInfo
+	for _, enc := range s.printerManager.AvailableEncoders() {
+		models = append(models, enc.Models()...)
+	}
+	return models
+}
+
+func containsTag(tags []string, tag string) bool {
+	for _, t := range tags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
 }

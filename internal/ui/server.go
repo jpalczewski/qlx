@@ -49,6 +49,19 @@ type TemplateListData struct {
 	ActiveTag string
 }
 
+type DesignerData struct {
+	TemplateID        string
+	TemplateName      string
+	TemplateTags      string
+	Target            string
+	Width             float64
+	Height            float64
+	TemplateJSON      string
+	PrinterModels     []encoder.ModelInfo
+	PrinterModelsJSON string
+	PreviewDataJSON   string
+}
+
 func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
 	if err != nil {
@@ -76,7 +89,8 @@ func NewServer(s *store.Store, pm *print.PrinterManager) *Server {
 		"item-form":      "templates/item_form.html",
 		"container-form": "templates/container_form.html",
 		"printers":       "templates/printers.html",
-		"templates":       "templates/templates.html",
+		"templates":          "templates/templates.html",
+		"template-designer": "templates/template_designer.html",
 	}
 
 	templates := make(map[string]*template.Template)
@@ -144,7 +158,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /ui/actions/items/{id}/print", s.HandleItemPrint)
 
 	mux.HandleFunc("GET /ui/templates", s.HandleTemplates)
+	mux.HandleFunc("GET /ui/templates/new", s.HandleTemplateNew)
+	mux.HandleFunc("GET /ui/templates/{id}/edit", s.HandleTemplateEdit)
 	mux.HandleFunc("DELETE /ui/actions/templates/{id}", s.HandleTemplateDelete)
+	mux.HandleFunc("POST /ui/actions/templates", s.HandleTemplateSave)
+	mux.HandleFunc("PUT /ui/actions/templates/{id}", s.HandleTemplateSave)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
