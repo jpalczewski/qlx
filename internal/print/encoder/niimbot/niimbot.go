@@ -244,6 +244,16 @@ func (e *NiimbotEncoder) readOnePacket(tr transport.Transport, cmdType byte) (Pa
 	return resp, nil
 }
 
+// transceiveAnyResponse sends a packet and returns the first response packet regardless of type.
+// Used for commands like Heartbeat where multiple response types are valid (0xDD, 0xDE, 0xD9).
+func (e *NiimbotEncoder) transceiveAnyResponse(tr transport.Transport, cmdType byte, data []byte) (Packet, error) {
+	pkt := Packet{Type: cmdType, Data: data}
+	if _, err := tr.Write(pkt.ToBytes()); err != nil {
+		return Packet{}, fmt.Errorf("write cmd 0x%02x: %w", cmdType, err)
+	}
+	return e.readOnePacket(tr, cmdType)
+}
+
 // sendOnly sends a fire-and-forget packet (no response expected).
 func (e *NiimbotEncoder) sendOnly(tr transport.Transport, cmdType byte, data []byte) error {
 	pkt := Packet{Type: cmdType, Data: data}
