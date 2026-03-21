@@ -25,6 +25,7 @@ func (s *Store) CreateTag(parentID, name string) *Tag {
 		CreatedAt: time.Now(),
 	}
 	s.tags[t.ID] = t
+	s.dirty |= dirtyTags
 	return t
 }
 
@@ -52,6 +53,7 @@ func (s *Store) UpdateTag(id, name string) (*Tag, error) {
 	}
 
 	t.Name = name
+	s.dirty |= dirtyTags
 	copy := *t
 	return &copy, nil
 }
@@ -73,14 +75,17 @@ func (s *Store) DeleteTag(id string) error {
 	}
 
 	delete(s.tags, id)
+	s.dirty |= dirtyTags
 
 	for _, item := range s.items {
 		item.TagIDs = removeFromSlice(item.TagIDs, id)
 	}
+	s.dirty |= dirtyItems
 
 	for _, c := range s.containers {
 		c.TagIDs = removeFromSlice(c.TagIDs, id)
 	}
+	s.dirty |= dirtyContainers
 
 	return nil
 }
@@ -186,6 +191,7 @@ func (s *Store) MoveTag(tagID, newParentID string) error {
 	}
 
 	tag.ParentID = newParentID
+	s.dirty |= dirtyTags
 	return nil
 }
 
@@ -208,6 +214,7 @@ func (s *Store) AddItemTag(itemID, tagID string) error {
 	}
 
 	item.TagIDs = append(item.TagIDs, tagID)
+	s.dirty |= dirtyItems
 	return nil
 }
 
@@ -222,6 +229,7 @@ func (s *Store) RemoveItemTag(itemID, tagID string) error {
 	}
 
 	item.TagIDs = removeFromSlice(item.TagIDs, tagID)
+	s.dirty |= dirtyItems
 	return nil
 }
 
@@ -244,6 +252,7 @@ func (s *Store) AddContainerTag(containerID, tagID string) error {
 	}
 
 	c.TagIDs = append(c.TagIDs, tagID)
+	s.dirty |= dirtyContainers
 	return nil
 }
 
@@ -258,6 +267,7 @@ func (s *Store) RemoveContainerTag(containerID, tagID string) error {
 	}
 
 	c.TagIDs = removeFromSlice(c.TagIDs, tagID)
+	s.dirty |= dirtyContainers
 	return nil
 }
 

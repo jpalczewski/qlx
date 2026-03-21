@@ -19,7 +19,7 @@ type mockInventoryStore struct {
 	containerPath     func(id string) []store.Container
 	getItem           func(id string) *store.Item
 	createItem        func(containerID, name, desc string, qty int) *store.Item
-	updateItem        func(id, name, desc string) (*store.Item, error)
+	updateItem        func(id, name, desc string, qty int) (*store.Item, error)
 	deleteItem        func(id string) error
 	moveItem          func(id, containerID string) error
 	save              func() error
@@ -85,11 +85,11 @@ func (m *mockInventoryStore) CreateItem(containerID, name, desc string, qty int)
 	}
 	return &store.Item{ID: "i1", Name: name}
 }
-func (m *mockInventoryStore) UpdateItem(id, name, desc string) (*store.Item, error) {
+func (m *mockInventoryStore) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
 	if m.updateItem != nil {
-		return m.updateItem(id, name, desc)
+		return m.updateItem(id, name, desc, qty)
 	}
-	return &store.Item{ID: id, Name: name}, nil
+	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
 func (m *mockInventoryStore) DeleteItem(id string) error {
 	if m.deleteItem != nil {

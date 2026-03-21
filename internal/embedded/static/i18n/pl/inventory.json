@@ -29,5 +29,6 @@
   "inventory.edit_item": "Edytuj przedmiot",
   "inventory.new_item": "Nowy przedmiot",
   "inventory.edit_container": "Edytuj kontener",
-  "inventory.new_container": "Nowy kontener"
+  "inventory.new_container": "Nowy kontener",
+  "inventory.quantity": "Ilość"
 }

@@ -26,6 +26,12 @@
     font-style: italic;
 }
 
+.container-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 .description {
     color: var(--color-text-muted);
 }

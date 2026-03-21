@@ -160,14 +160,9 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	if strings.TrimSpace(req.Name) == "" {
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
-		return
-	}
-
 	container, err := s.inventory.CreateContainer(req.ParentID, req.Name, req.Description)
 	if err != nil {
-		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, container)
@@ -227,10 +222,6 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	if strings.TrimSpace(req.Name) == "" {
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
-		return
-	}
 	if req.ContainerID == "" {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "container_id is required"})
 		return
@@ -238,7 +229,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 
 	item, err := s.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
 	if err != nil {
-		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 	webutil.JSON(w, http.StatusCreated, item)
@@ -249,11 +240,16 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 		Name:        r.FormValue("name"),        //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"), //nolint:gosec // G120: internal tool, no untrusted input
 	}
+	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
+		if q, err := strconv.Atoi(qStr); err == nil {
+			req.Quantity = q
+		}
+	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description)
+	item, err := s.inventory.UpdateItem(r.PathValue("id"), req.Name, req.Description, req.Quantity)
 	if err != nil {
 		webutil.WriteStoreErrorJSON(w, err)
 		return

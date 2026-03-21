@@ -38,14 +38,9 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
 
-	if strings.TrimSpace(name) == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
-		return
-	}
-
 	container, err := s.inventory.CreateContainer(parentID, name, description)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 
@@ -101,6 +96,38 @@ func (s *Server) HandleItem(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "item", data)
 }
 
+// HandleContainerEdit serves the container edit form.
+func (s *Server) HandleContainerEdit(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	container := s.inventory.GetContainer(id)
+	if container == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	data := ContainerFormData{
+		Container: container,
+		Path:      s.inventory.ContainerPath(id),
+	}
+	s.render(w, r, "container-form", data)
+}
+
+// HandleItemEdit serves the item edit form.
+func (s *Server) HandleItemEdit(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	item := s.inventory.GetItem(id)
+	if item == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	data := ItemFormData{
+		Item: item,
+		Path: s.inventory.ContainerPath(item.ContainerID),
+	}
+	s.render(w, r, "item-form", data)
+}
+
 func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	containerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")                //nolint:gosec // G120: internal tool, no untrusted input
@@ -112,10 +139,6 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if strings.TrimSpace(name) == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
-		return
-	}
 	if containerID == "" {
 		http.Error(w, "container_id is required", http.StatusBadRequest)
 		return
@@ -123,7 +146,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 
 	item, err := s.inventory.CreateItem(containerID, name, description, quantity)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		webutil.WriteStoreErrorText(w, err)
 		return
 	}
 
@@ -145,8 +168,14 @@ func (s *Server) HandleItemUpdate(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
+	quantity := 0
+	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
+		if q, err := strconv.Atoi(qStr); err == nil {
+			quantity = q
+		}
+	}
 
-	item, err := s.inventory.UpdateItem(id, name, description)
+	item, err := s.inventory.UpdateItem(id, name, description, quantity)
 	if err != nil {
 		webutil.WriteStoreErrorText(w, err)
 		return

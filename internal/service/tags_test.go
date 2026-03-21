@@ -25,7 +25,7 @@ type mockTagStore struct {
 	// ItemStore + ContainerStore (needed by TagService's store interface)
 	getItem           func(id string) *store.Item
 	createItem        func(containerID, name, desc string, qty int) *store.Item
-	updateItem        func(id, name, desc string) (*store.Item, error)
+	updateItem        func(id, name, desc string, qty int) (*store.Item, error)
 	deleteItem        func(id string) error
 	moveItem          func(id, containerID string) error
 	getContainer      func(id string) *store.Container
@@ -130,11 +130,11 @@ func (m *mockTagStore) CreateItem(containerID, name, desc string, qty int) *stor
 	}
 	return &store.Item{ID: "i1", Name: name}
 }
-func (m *mockTagStore) UpdateItem(id, name, desc string) (*store.Item, error) {
+func (m *mockTagStore) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
 	if m.updateItem != nil {
-		return m.updateItem(id, name, desc)
+		return m.updateItem(id, name, desc, qty)
 	}
-	return &store.Item{ID: id, Name: name}, nil
+	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
 func (m *mockTagStore) DeleteItem(id string) error {
 	if m.deleteItem != nil {

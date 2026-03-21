@@ -13,6 +13,11 @@
         {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ end }}
 
+        <div class="form-group">
+            <label for="quantity">{{.T "inventory.quantity"}}</label>
+            <input type="number" id="quantity" name="quantity" value="{{ if .Data.Item }}{{ .Data.Item.Quantity }}{{ else }}1{{ end }}" min="1">
+        </div>
+
         <div class="actions">
             <button type="submit">{{ if .Data.Item }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
             <a href="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>

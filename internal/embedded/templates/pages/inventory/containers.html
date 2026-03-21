@@ -7,7 +7,10 @@
     {{ end }}
 
     {{ if .Data.Container }}
-    <h2>{{ .Data.Container.Name }}</h2>
+    <div class="container-header">
+        <h2>{{ .Data.Container.Name }}</h2>
+        <a href="/ui/containers/{{ .Data.Container.ID }}/edit" hx-get="/ui/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
+    </div>
     {{ if .Data.Container.Description }}<p class="description">{{ .Data.Container.Description }}</p>{{ end }}
     {{ end }}
 

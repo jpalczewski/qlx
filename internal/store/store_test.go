@@ -117,12 +117,24 @@ func TestItemCRUD(t *testing.T) {
 		t.Errorf("GetItem Name = %q, want %q", got.Name, "Cable")
 	}
 
-	updated, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable")
+	updated, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 5)
 	if err != nil {
 		t.Fatalf("UpdateItem error = %v", err)
 	}
 	if updated.Name != "HDMI Cable" {
 		t.Errorf("UpdateItem Name = %q, want %q", updated.Name, "HDMI Cable")
+	}
+	if updated.Quantity != 5 {
+		t.Errorf("UpdateItem Quantity = %d, want 5", updated.Quantity)
+	}
+
+	// Quantity 0 should preserve existing value.
+	preserved, err := s.UpdateItem(item.ID, "HDMI Cable", "2m HDMI cable", 0)
+	if err != nil {
+		t.Fatalf("UpdateItem preserve qty error = %v", err)
+	}
+	if preserved.Quantity != 5 {
+		t.Errorf("UpdateItem preserved Quantity = %d, want 5", preserved.Quantity)
 	}
 
 	if err := s.DeleteItem(item.ID); err != nil {
@@ -132,7 +144,7 @@ func TestItemCRUD(t *testing.T) {
 		t.Error("DeleteItem should remove item")
 	}
 
-	_, err = s.UpdateItem("nonexistent", "Name", "")
+	_, err = s.UpdateItem("nonexistent", "Name", "", 1)
 	if !errors.Is(err, ErrItemNotFound) {
 		t.Errorf("UpdateItem error = %v, want ErrItemNotFound", err)
 	}

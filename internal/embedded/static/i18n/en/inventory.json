@@ -29,5 +29,6 @@
   "inventory.edit_item": "Edit item",
   "inventory.new_item": "New item",
   "inventory.edit_container": "Edit container",
-  "inventory.new_container": "New container"
+  "inventory.new_container": "New container",
+  "inventory.quantity": "Quantity"
 }

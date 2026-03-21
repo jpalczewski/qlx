@@ -1,6 +1,9 @@
 package service
 
-import "github.com/erxyi/qlx/internal/store"
+import (
+	"github.com/erxyi/qlx/internal/shared/validate"
+	"github.com/erxyi/qlx/internal/store"
+)
 
 // TagService handles tag CRUD and tag assignment operations,
 // calling Save() after each mutation.
@@ -54,6 +57,9 @@ func (s *TagService) TagDescendants(id string) []string {
 
 // CreateTag creates a new tag and persists.
 func (s *TagService) CreateTag(parentID, name string) (*store.Tag, error) {
+	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
+		return nil, err
+	}
 	t := s.store.CreateTag(parentID, name)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -63,6 +69,9 @@ func (s *TagService) CreateTag(parentID, name string) (*store.Tag, error) {
 
 // UpdateTag updates a tag's name and persists.
 func (s *TagService) UpdateTag(id, name string) (*store.Tag, error) {
+	if err := validate.Name(name, validate.MaxTagNameLength); err != nil {
+		return nil, err
+	}
 	t, err := s.store.UpdateTag(id, name)
 	if err != nil {
 		return nil, err

@@ -99,7 +99,7 @@
         </section>
 
         <section class="actions">
-            <a href="/ui/items/{{ .Data.Item.ID }}" class="button">{{.T "inventory.edit"}}</a>
+            <a href="/ui/items/{{ .Data.Item.ID }}/edit" hx-get="/ui/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="button">{{.T "inventory.edit"}}</a>
             <button hx-delete="/ui/actions/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="danger">{{.T "action.delete"}}</button>
         </section>
 

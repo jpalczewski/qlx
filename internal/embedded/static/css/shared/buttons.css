@@ -80,6 +80,11 @@ a.button.secondary:hover {
     border-color: var(--color-accent);
 }
 
+a.button.small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
 .button.primary {
     background: var(--color-success);
     color: white;
