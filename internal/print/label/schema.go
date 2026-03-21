@@ -1,10 +1,13 @@
 package label
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"sort"
 	"strconv"
+	"sync"
 )
 
 // Schema defines a label template layout declaratively.
@@ -46,6 +49,58 @@ func parseSchema(data []byte) (Schema, error) {
 		}
 	}
 	return s, nil
+}
+
+//go:embed schemas/*.json
+var schemasFS embed.FS
+
+var (
+	builtinSchemas map[string]Schema
+	schemasOnce    sync.Once
+	schemasInitErr error
+)
+
+func initSchemas() {
+	builtinSchemas = make(map[string]Schema)
+	entries, err := schemasFS.ReadDir("schemas")
+	if err != nil {
+		schemasInitErr = fmt.Errorf("read schemas dir: %w", err)
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		data, err := schemasFS.ReadFile("schemas/" + entry.Name())
+		if err != nil {
+			schemasInitErr = fmt.Errorf("read schema %s: %w", entry.Name(), err)
+			return
+		}
+		schema, err := parseSchema(data)
+		if err != nil {
+			schemasInitErr = fmt.Errorf("parse schema %s: %w", entry.Name(), err)
+			return
+		}
+		builtinSchemas[schema.Name] = schema
+	}
+}
+
+// GetSchema returns a built-in schema by name.
+func GetSchema(name string) (Schema, bool) {
+	schemasOnce.Do(initSchemas)
+	s, ok := builtinSchemas[name]
+	return s, ok
+}
+
+// SchemaNames returns sorted names of all built-in schemas.
+func SchemaNames() []string {
+	schemasOnce.Do(initSchemas)
+	names := make([]string, 0, len(builtinSchemas))
+	for n := range builtinSchemas {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // parseHexColor converts a hex color string to color.RGBA.
