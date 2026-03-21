@@ -78,12 +78,17 @@ window.QlxFormat = (function () {
     }
 
     if (t === "line") {
+      // Use calcTransformMatrix to get absolute line endpoints,
+      // handling rotation, scaling, and position correctly.
+      var m = obj.calcTransformMatrix();
+      var p1 = fabric.util.transformPoint({ x: obj.x1, y: obj.y1 }, m);
+      var p2 = fabric.util.transformPoint({ x: obj.x2, y: obj.y2 }, m);
       return {
         type: "line",
-        x1: Math.round(obj.left + obj.x1),
-        y1: Math.round(obj.top + obj.y1),
-        x2: Math.round(obj.left + obj.x2),
-        y2: Math.round(obj.top + obj.y2),
+        x1: Math.round(p1.x),
+        y1: Math.round(p1.y),
+        x2: Math.round(p2.x),
+        y2: Math.round(p2.y),
         thickness: obj.strokeWidth || 1
       };
     }
