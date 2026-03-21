@@ -116,6 +116,11 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
+	if strings.TrimSpace(req.Name) == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return
+	}
+
 	container := s.store.CreateContainer(req.ParentID, req.Name, req.Description)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
@@ -177,6 +182,15 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "name is required"})
+		return
+	}
+	if req.ContainerID == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "container_id is required"})
+		return
 	}
 
 	item := s.store.CreateItem(req.ContainerID, req.Name, req.Description)

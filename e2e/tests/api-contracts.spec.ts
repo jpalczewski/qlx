@@ -170,16 +170,17 @@ test.describe('API contracts and error handling', () => {
     });
   });
 
-  test.describe('Missing validation (known gaps)', () => {
-    test('BUG: container can be created with empty name', async ({ request, app }) => {
+  test.describe('Input validation', () => {
+    test('container with empty name returns 400', async ({ request, app }) => {
       const res = await request.post(`${app.baseURL}/api/containers`, {
         data: { name: '', description: 'no name' },
       });
-      // This SHOULD return 400, but currently returns 201 — documenting the bug
-      expect(res.status()).toBe(201); // BUG: should be 400
+      expect(res.status()).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('name is required');
     });
 
-    test('BUG: item can be created with empty name', async ({ request, app }) => {
+    test('item with empty name returns 400', async ({ request, app }) => {
       const containerRes = await request.post(`${app.baseURL}/api/containers`, {
         data: { name: 'For Empty Item' },
       });
@@ -188,16 +189,18 @@ test.describe('API contracts and error handling', () => {
       const res = await request.post(`${app.baseURL}/api/items`, {
         data: { name: '', container_id: container.id },
       });
-      // This SHOULD return 400, but currently returns 201 — documenting the bug
-      expect(res.status()).toBe(201); // BUG: should be 400
+      expect(res.status()).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('name is required');
     });
 
-    test('BUG: item can be created without container_id', async ({ request, app }) => {
+    test('item without container_id returns 400', async ({ request, app }) => {
       const res = await request.post(`${app.baseURL}/api/items`, {
         data: { name: 'Orphan Item' },
       });
-      // Orphan items (no container) might be unintended
-      expect(res.status()).toBe(201); // BUG: should probably require container_id
+      expect(res.status()).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('container_id is required');
     });
   });
 });

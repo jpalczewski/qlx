@@ -37,6 +37,11 @@ func (s *Server) HandleContainerCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")               //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description") //nolint:gosec // G120: internal tool, no untrusted input
 
+	if strings.TrimSpace(name) == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
 	container := s.store.CreateContainer(parentID, name, description)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
@@ -102,6 +107,15 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	containerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")                //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description")  //nolint:gosec // G120: internal tool, no untrusted input
+
+	if strings.TrimSpace(name) == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	if containerID == "" {
+		http.Error(w, "container_id is required", http.StatusBadRequest)
+		return
+	}
 
 	s.store.CreateItem(containerID, name, description)
 	if !webutil.SaveOrFail(w, s.store.Save) {
