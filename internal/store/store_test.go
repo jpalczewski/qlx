@@ -402,7 +402,9 @@ func TestPrinterPersistence(t *testing.T) {
 
 	s1, _ := NewStore(path)
 	p := s1.AddPrinter("Test", "niimbot", "B1", "serial", "/dev/tty.BT")
-	s1.Save()
+	if err := s1.Save(); err != nil {
+		t.Fatalf("save failed: %v", err)
+	}
 
 	s2, _ := NewStore(path)
 	got := s2.GetPrinter(p.ID)

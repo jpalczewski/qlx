@@ -26,3 +26,8 @@ type PrinterConfig struct {
 	Transport string `json:"transport"`
 	Address   string `json:"address"`
 }
+
+type Template struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}

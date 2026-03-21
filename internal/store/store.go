@@ -23,9 +23,10 @@ var (
 )
 
 type storeData struct {
-	Containers map[string]*Container       `json:"containers"`
-	Items      map[string]*Item            `json:"items"`
-	Printers   map[string]*PrinterConfig   `json:"printers"`
+	Containers map[string]*Container     `json:"containers"`
+	Items      map[string]*Item          `json:"items"`
+	Printers   map[string]*PrinterConfig `json:"printers"`
+	Templates  map[string]*Template      `json:"templates"`
 }
 
 type Store struct {
@@ -34,6 +35,7 @@ type Store struct {
 	containers map[string]*Container
 	items      map[string]*Item
 	printers   map[string]*PrinterConfig
+	templates  map[string]*Template
 }
 
 func NewStore(path string) (*Store, error) {
@@ -42,6 +44,7 @@ func NewStore(path string) (*Store, error) {
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
 		printers:   make(map[string]*PrinterConfig),
+		templates:  make(map[string]*Template),
 	}
 
 	fileData, err := os.ReadFile(path)
@@ -70,6 +73,9 @@ func NewStore(path string) (*Store, error) {
 	if d.Printers != nil {
 		s.printers = d.Printers
 	}
+	if d.Templates != nil {
+		s.templates = d.Templates
+	}
 
 	return s, nil
 }
@@ -90,6 +96,7 @@ func (s *Store) Save() error {
 		Containers: s.containers,
 		Items:      s.items,
 		Printers:   s.printers,
+		Templates:  s.templates,
 	})
 	if err != nil {
 		return err
@@ -306,6 +313,7 @@ func NewMemoryStore() *Store {
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
 		printers:   make(map[string]*PrinterConfig),
+		templates:  make(map[string]*Template),
 	}
 }
 
@@ -352,6 +360,17 @@ func (s *Store) AllPrinters() []PrinterConfig {
 		printers = append(printers, *p)
 	}
 	return printers
+}
+
+func (s *Store) AllTemplates() []Template {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var templates []Template
+	for _, t := range s.templates {
+		templates = append(templates, *t)
+	}
+	return templates
 }
 
 func (s *Store) AllItems() []Item {

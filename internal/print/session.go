@@ -103,7 +103,7 @@ func (s *PrinterSession) Stop() {
 		close(s.stop)
 	}
 	<-s.stopped
-	s.tr.Close()
+	_ = s.tr.Close()
 	s.updateStatus(func(st *PrinterStatus) {
 		st.Connected = false
 	})

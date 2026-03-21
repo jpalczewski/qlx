@@ -93,7 +93,7 @@ func LogTrace(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	fmt.Fprintf(os.Stderr, "%s[TRACE]%s %s\n", colorGray, colorReset, msg)
 	if traceFile != nil {
-		fmt.Fprintf(traceFile, "%s [TRACE] %s\n", time.Now().Format("15:04:05.000"), msg)
+		_, _ = fmt.Fprintf(traceFile, "%s [TRACE] %s\n", time.Now().Format("15:04:05.000"), msg)
 	}
 }
 

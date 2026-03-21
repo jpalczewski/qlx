@@ -40,7 +40,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "failed to open trace log: %v\n", err)
 			os.Exit(1)
 		}
-		defer traceFile.Close()
+		defer func() { _ = traceFile.Close() }()
 		webutil.SetTraceFile(traceFile)
 	}
 

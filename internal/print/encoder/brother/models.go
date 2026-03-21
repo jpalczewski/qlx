@@ -19,7 +19,7 @@ var ql700 = qlModel{
 	Compression: false, ModeSwitching: false, Cutting: true,
 }
 
-var allModels = []qlModel{ql700}
+var allModels = []qlModel{ql700} //nolint:unused // model registry, reserved for future multi-model support
 
 func modelInfo(m qlModel) encoder.ModelInfo {
 	return encoder.ModelInfo{
