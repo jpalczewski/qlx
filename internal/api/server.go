@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -65,6 +66,7 @@ type upsertItemRequest struct {
 	ContainerID string `json:"container_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Quantity    int    `json:"quantity"`
 }
 
 func (s *Server) HandleContainers(w http.ResponseWriter, r *http.Request) {
@@ -180,6 +182,11 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		Name:        r.FormValue("name"),         //nolint:gosec // G120: internal tool, no untrusted input
 		Description: r.FormValue("description"),  //nolint:gosec // G120: internal tool, no untrusted input
 	}
+	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
+		if q, err := strconv.Atoi(qStr); err == nil {
+			req.Quantity = q
+		}
+	}
 	if isJSONBody(r) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
@@ -193,7 +200,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := s.store.CreateItem(req.ContainerID, req.Name, req.Description)
+	item := s.store.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}

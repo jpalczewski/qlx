@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -107,6 +108,12 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 	containerID := r.FormValue("container_id") //nolint:gosec // G120: internal tool, no untrusted input
 	name := r.FormValue("name")                //nolint:gosec // G120: internal tool, no untrusted input
 	description := r.FormValue("description")  //nolint:gosec // G120: internal tool, no untrusted input
+	quantity := 1
+	if qStr := r.FormValue("quantity"); qStr != "" { //nolint:gosec // G120: internal tool, no untrusted input
+		if q, err := strconv.Atoi(qStr); err == nil {
+			quantity = q
+		}
+	}
 
 	if strings.TrimSpace(name) == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
@@ -117,7 +124,7 @@ func (s *Server) HandleItemCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.store.CreateItem(containerID, name, description)
+	s.store.CreateItem(containerID, name, description, quantity)
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}

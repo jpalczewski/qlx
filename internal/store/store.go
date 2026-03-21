@@ -175,6 +175,7 @@ func (s *Store) CreateContainer(parentID, name, description string) *Container {
 		Name:        name,
 		Description: description,
 		CreatedAt:   time.Now(),
+		TagIDs:      []string{},
 	}
 	s.containers[c.ID] = c
 	return c
@@ -224,9 +225,14 @@ func (s *Store) DeleteContainer(id string) error {
 	return nil
 }
 
-func (s *Store) CreateItem(containerID, name, description string) *Item {
+// CreateItem creates a new item in the given container. If quantity is less than 1 it defaults to 1.
+func (s *Store) CreateItem(containerID, name, description string, quantity int) *Item {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if quantity < 1 {
+		quantity = 1
+	}
 
 	item := &Item{
 		ID:          uuid.New().String(),
@@ -234,6 +240,8 @@ func (s *Store) CreateItem(containerID, name, description string) *Item {
 		Name:        name,
 		Description: description,
 		CreatedAt:   time.Now(),
+		Quantity:    quantity,
+		TagIDs:      []string{},
 	}
 	s.items[item.ID] = item
 	return item
