@@ -412,3 +412,57 @@ func (s *Store) ExportData() (map[string]*Container, map[string]*Item) {
 
 	return containersCopy, itemsCopy
 }
+
+func (s *Store) CreateTemplate(name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements string) *Template {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	t := &Template{
+		ID:        uuid.New().String(),
+		Name:      name,
+		Tags:      tags,
+		Target:    target,
+		WidthMM:   widthMM,
+		HeightMM:  heightMM,
+		WidthPx:   widthPx,
+		HeightPx:  heightPx,
+		Elements:  elements,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	s.templates[t.ID] = t
+	return t
+}
+
+func (s *Store) GetTemplate(id string) *Template {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.templates[id]
+}
+
+func (s *Store) AllTemplates() []Template {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var templates []Template
+	for _, t := range s.templates {
+		templates = append(templates, *t)
+	}
+	return templates
+}
+
+func (s *Store) SaveTemplate(t Template) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	t.UpdatedAt = time.Now()
+	s.templates[t.ID] = &t
+}
+
+func (s *Store) DeleteTemplate(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	delete(s.templates, id)
+}

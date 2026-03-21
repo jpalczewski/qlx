@@ -440,3 +440,68 @@ func TestDeleteContainer_Constraints(t *testing.T) {
 		t.Fatalf("DeleteContainer parent error = %v", err)
 	}
 }
+
+func TestTemplateCRUD(t *testing.T) {
+	s := NewMemoryStore()
+
+	// Create
+	tmpl := s.CreateTemplate("Address Label", []string{"shipping"}, "universal", 62, 29, 0, 0, `[{"type":"text","value":"Hello"}]`)
+	if tmpl.ID == "" {
+		t.Error("CreateTemplate should set ID")
+	}
+	if tmpl.Name != "Address Label" {
+		t.Errorf("Name = %q, want %q", tmpl.Name, "Address Label")
+	}
+	if tmpl.Target != "universal" {
+		t.Errorf("Target = %q, want %q", tmpl.Target, "universal")
+	}
+	if tmpl.CreatedAt.IsZero() {
+		t.Error("CreatedAt should be set")
+	}
+
+	// Get
+	got := s.GetTemplate(tmpl.ID)
+	if got == nil {
+		t.Fatal("GetTemplate returned nil")
+	}
+	if got.Name != "Address Label" {
+		t.Errorf("GetTemplate Name = %q, want %q", got.Name, "Address Label")
+	}
+
+	// Get nonexistent
+	if s.GetTemplate("nonexistent") != nil {
+		t.Error("GetTemplate should return nil for nonexistent ID")
+	}
+
+	// List
+	s.CreateTemplate("QR Label", []string{"inventory"}, "printer:B1", 0, 0, 384, 240, `[]`)
+	all := s.AllTemplates()
+	if len(all) != 2 {
+		t.Errorf("AllTemplates count = %d, want 2", len(all))
+	}
+
+	// Update (SaveTemplate)
+	tmpl.Name = "Updated Label"
+	tmpl.Elements = `[{"type":"text","value":"Updated"}]`
+	s.SaveTemplate(*tmpl)
+
+	updated := s.GetTemplate(tmpl.ID)
+	if updated.Name != "Updated Label" {
+		t.Errorf("SaveTemplate Name = %q, want %q", updated.Name, "Updated Label")
+	}
+	if updated.UpdatedAt.Before(tmpl.CreatedAt) {
+		t.Error("UpdatedAt should be after CreatedAt")
+	}
+
+	// Delete
+	s.DeleteTemplate(tmpl.ID)
+	if s.GetTemplate(tmpl.ID) != nil {
+		t.Error("DeleteTemplate should remove template")
+	}
+	if len(s.AllTemplates()) != 1 {
+		t.Errorf("AllTemplates after delete = %d, want 1", len(s.AllTemplates()))
+	}
+
+	// Delete nonexistent (should not panic)
+	s.DeleteTemplate("nonexistent")
+}
