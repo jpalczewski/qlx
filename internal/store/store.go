@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -22,6 +23,7 @@ var (
 	ErrPrinterNotFound      = errors.New("printer not found")
 )
 
+// storeData is the legacy monolithic serialization format (V1).
 type storeData struct {
 	Version    int                       `json:"version"`
 	Containers map[string]*Container     `json:"containers"`
@@ -32,10 +34,24 @@ type storeData struct {
 	Tags       map[string]*Tag           `json:"tags"`
 }
 
+// collectionFlag is a bitmask identifying which collections have been modified.
+type collectionFlag uint8
+
+const (
+	dirtyContainers collectionFlag = 1 << iota
+	dirtyItems
+	dirtyPrinters
+	dirtyTemplates
+	dirtyAssets
+	dirtyTags
+)
+
+// Store is the in-memory data store with disk persistence.
 type Store struct {
 	mu         sync.RWMutex
-	path       string
+	dataDir    string // directory for partitioned files (empty for MemoryStore)
 	assetsDir  string
+	dirty      collectionFlag
 	containers map[string]*Container
 	items      map[string]*Item
 	printers   map[string]*PrinterConfig
@@ -44,9 +60,22 @@ type Store struct {
 	tags       map[string]*Tag
 }
 
-// loadStoreData reads path, runs pending migrations, and returns a storeData.
+// collectionFiles maps dirty flags to their partition filenames.
+var collectionFiles = []struct {
+	flag collectionFlag
+	name string
+}{
+	{dirtyContainers, "containers.json"},
+	{dirtyItems, "items.json"},
+	{dirtyPrinters, "printers.json"},
+	{dirtyTemplates, "templates.json"},
+	{dirtyAssets, "assets.json"},
+	{dirtyTags, "tags.json"},
+}
+
+// loadLegacyData reads a monolithic data.json, runs pending migrations, and returns a storeData.
 // Returns nil, nil when the file does not exist or is empty.
-func loadStoreData(path string) (*storeData, error) {
+func loadLegacyData(path string) (*storeData, error) {
 	raw, fileVersion, err := loadRaw(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -88,10 +117,51 @@ func migrateIfNeeded(path string, raw map[string]any, fileVersion int) ([]byte, 
 	return json.Marshal(raw)
 }
 
+// loadPartitionedData loads collections from individual JSON files in dataDir.
+func loadPartitionedData(dataDir string) (*storeData, error) {
+	d := &storeData{}
+
+	type target struct {
+		name string
+		dest any
+	}
+	targets := []target{
+		{"containers.json", &d.Containers},
+		{"items.json", &d.Items},
+		{"printers.json", &d.Printers},
+		{"templates.json", &d.Templates},
+		{"assets.json", &d.Assets},
+		{"tags.json", &d.Tags},
+	}
+
+	for _, t := range targets {
+		path := filepath.Join(dataDir, t.name)
+		//nolint:gosec // G304: path from trusted CLI input
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		if len(raw) == 0 {
+			continue
+		}
+		if err := json.Unmarshal(raw, t.dest); err != nil {
+			return nil, fmt.Errorf("loading %s: %w", t.name, err)
+		}
+	}
+
+	return d, nil
+}
+
+// NewStore creates a new disk-backed store. The path argument is the legacy data.json path;
+// the directory containing it becomes the data directory for partitioned files.
 func NewStore(path string) (*Store, error) {
-	assetsDir := filepath.Join(filepath.Dir(path), "assets")
+	dataDir := filepath.Dir(path)
+	assetsDir := filepath.Join(dataDir, "assets")
 	s := &Store{
-		path:       path,
+		dataDir:    dataDir,
 		assetsDir:  assetsDir,
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
@@ -101,68 +171,143 @@ func NewStore(path string) (*Store, error) {
 		tags:       make(map[string]*Tag),
 	}
 
-	d, err := loadStoreData(path)
-	if err != nil {
-		return nil, err
+	metaPath := filepath.Join(dataDir, "meta.json")
+	if _, err := os.Stat(metaPath); err == nil {
+		// Partitioned format: load individual collection files.
+		d, err := loadPartitionedData(dataDir)
+		if err != nil {
+			return nil, err
+		}
+		s.applyStoreData(d)
+		return s, nil
 	}
 
-	if d != nil {
-		if d.Containers != nil {
-			s.containers = d.Containers
+	// Check if legacy monolithic file exists.
+	if _, err := os.Stat(path); err == nil {
+		// Legacy monolithic format: load, migrate, then write partitioned.
+		d, err := loadLegacyData(path)
+		if err != nil {
+			return nil, err
 		}
-		if d.Items != nil {
-			s.items = d.Items
+
+		if d != nil {
+			s.applyStoreData(d)
+
+			// Migrate to partitioned format.
+			if err := s.writeAllPartitions(); err != nil {
+				return nil, fmt.Errorf("migrating to partitioned format: %w", err)
+			}
+			if err := writeAtomic(metaPath, []byte(`{"format":"partitioned","schema_version":1}`)); err != nil {
+				return nil, err
+			}
+			// Back up the legacy file.
+			backupPath := path + ".migrated"
+			_ = os.Rename(path, backupPath)
 		}
-		if d.Printers != nil {
-			s.printers = d.Printers
-		}
-		if d.Templates != nil {
-			s.templates = d.Templates
-		}
-		if d.Assets != nil {
-			s.assets = d.Assets
-		}
-		if d.Tags != nil {
-			s.tags = d.Tags
-		}
+	}
+
+	// Ensure meta.json exists for new stores so subsequent loads use partitioned format.
+	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
+		//nolint:gosec // G301: intentional permissions for data directory
+		_ = os.MkdirAll(dataDir, 0755)
+		_ = writeAtomic(metaPath, []byte(`{"format":"partitioned","schema_version":1}`))
 	}
 
 	return s, nil
 }
 
-func (s *Store) Save() error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// applyStoreData populates the store from loaded data.
+func (s *Store) applyStoreData(d *storeData) {
+	if d.Containers != nil {
+		s.containers = d.Containers
+	}
+	if d.Items != nil {
+		s.items = d.Items
+	}
+	if d.Printers != nil {
+		s.printers = d.Printers
+	}
+	if d.Templates != nil {
+		s.templates = d.Templates
+	}
+	if d.Assets != nil {
+		s.assets = d.Assets
+	}
+	if d.Tags != nil {
+		s.tags = d.Tags
+	}
+}
 
-	if s.path == "" {
+// Save writes only the modified collections to their individual JSON files.
+func (s *Store) Save() error {
+	if s.dataDir == "" {
+		return nil
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.dirty == 0 {
 		return nil
 	}
 
 	//nolint:gosec // G301: intentional permissions for data directory
-	if err := os.MkdirAll(filepath.Dir(s.path), 0755); err != nil {
+	if err := os.MkdirAll(s.dataDir, 0755); err != nil {
 		return err
 	}
 
-	data, err := json.Marshal(&storeData{
-		Version:    currentVersion,
-		Containers: s.containers,
-		Items:      s.items,
-		Printers:   s.printers,
-		Templates:  s.templates,
-		Assets:     s.assets,
-		Tags:       s.tags,
-	})
-	if err != nil {
+	collectionData := map[collectionFlag]any{
+		dirtyContainers: s.containers,
+		dirtyItems:      s.items,
+		dirtyPrinters:   s.printers,
+		dirtyTemplates:  s.templates,
+		dirtyAssets:     s.assets,
+		dirtyTags:       s.tags,
+	}
+
+	for _, cf := range collectionFiles {
+		if s.dirty&cf.flag == 0 {
+			continue
+		}
+		data, err := json.Marshal(collectionData[cf.flag])
+		if err != nil {
+			return err
+		}
+		if err := writeAtomic(filepath.Join(s.dataDir, cf.name), data); err != nil {
+			return err
+		}
+	}
+
+	s.dirty = 0
+	return nil
+}
+
+// writeAllPartitions writes all collections to partitioned files (used during migration).
+func (s *Store) writeAllPartitions() error {
+	//nolint:gosec // G301: intentional permissions for data directory
+	if err := os.MkdirAll(s.dataDir, 0755); err != nil {
 		return err
 	}
 
-	tmpPath := s.path + ".tmp"
-	//nolint:gosec // G306: intentional permissions for data file
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return err
+	collectionData := map[collectionFlag]any{
+		dirtyContainers: s.containers,
+		dirtyItems:      s.items,
+		dirtyPrinters:   s.printers,
+		dirtyTemplates:  s.templates,
+		dirtyAssets:     s.assets,
+		dirtyTags:       s.tags,
 	}
 
-	return os.Rename(tmpPath, s.path)
+	for _, cf := range collectionFiles {
+		data, err := json.Marshal(collectionData[cf.flag])
+		if err != nil {
+			return err
+		}
+		if err := writeAtomic(filepath.Join(s.dataDir, cf.name), data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Store) CreateContainer(parentID, name, description string) *Container {
@@ -178,6 +323,7 @@ func (s *Store) CreateContainer(parentID, name, description string) *Container {
 		TagIDs:      []string{},
 	}
 	s.containers[c.ID] = c
+	s.dirty |= dirtyContainers
 	return c
 }
 
@@ -198,6 +344,7 @@ func (s *Store) UpdateContainer(id, name, description string) (*Container, error
 
 	c.Name = name
 	c.Description = description
+	s.dirty |= dirtyContainers
 	return c, nil
 }
 
@@ -222,6 +369,7 @@ func (s *Store) DeleteContainer(id string) error {
 	}
 
 	delete(s.containers, id)
+	s.dirty |= dirtyContainers
 	return nil
 }
 
@@ -244,6 +392,7 @@ func (s *Store) CreateItem(containerID, name, description string, quantity int) 
 		TagIDs:      []string{},
 	}
 	s.items[item.ID] = item
+	s.dirty |= dirtyItems
 	return item
 }
 
@@ -253,7 +402,9 @@ func (s *Store) GetItem(id string) *Item {
 	return s.items[id]
 }
 
-func (s *Store) UpdateItem(id, name, description string) (*Item, error) {
+// UpdateItem updates an item's name, description, and quantity. If quantity is less than 1
+// the existing quantity is preserved.
+func (s *Store) UpdateItem(id, name, description string, quantity int) (*Item, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -264,6 +415,10 @@ func (s *Store) UpdateItem(id, name, description string) (*Item, error) {
 
 	item.Name = name
 	item.Description = description
+	if quantity >= 1 {
+		item.Quantity = quantity
+	}
+	s.dirty |= dirtyItems
 	return item, nil
 }
 
@@ -276,6 +431,7 @@ func (s *Store) DeleteItem(id string) error {
 	}
 
 	delete(s.items, id)
+	s.dirty |= dirtyItems
 	return nil
 }
 
@@ -337,6 +493,7 @@ func (s *Store) MoveItem(itemID, newContainerID string) error {
 	}
 
 	item.ContainerID = newContainerID
+	s.dirty |= dirtyItems
 	return nil
 }
 
@@ -368,6 +525,7 @@ func (s *Store) MoveContainer(containerID, newParentID string) error {
 	}
 
 	container.ParentID = newParentID
+	s.dirty |= dirtyContainers
 	return nil
 }
 
@@ -395,6 +553,7 @@ func (s *Store) AddPrinter(name, encoder, model, transport, address string) *Pri
 		Address:   address,
 	}
 	s.printers[p.ID] = p
+	s.dirty |= dirtyPrinters
 	return p
 }
 
@@ -413,6 +572,7 @@ func (s *Store) DeletePrinter(id string) error {
 	}
 
 	delete(s.printers, id)
+	s.dirty |= dirtyPrinters
 	return nil
 }
 
@@ -487,6 +647,7 @@ func (s *Store) CreateTemplate(name string, tags []string, target string, widthM
 		UpdatedAt: now,
 	}
 	s.templates[t.ID] = t
+	s.dirty |= dirtyTemplates
 	return t
 }
 
@@ -513,6 +674,7 @@ func (s *Store) SaveTemplate(t Template) {
 
 	t.UpdatedAt = time.Now()
 	s.templates[t.ID] = &t
+	s.dirty |= dirtyTemplates
 }
 
 func (s *Store) DeleteTemplate(id string) {
@@ -520,6 +682,7 @@ func (s *Store) DeleteTemplate(id string) {
 	defer s.mu.Unlock()
 
 	delete(s.templates, id)
+	s.dirty |= dirtyTemplates
 }
 
 func (s *Store) SaveAsset(name, mimeType string, data []byte) (*Asset, error) {
@@ -545,6 +708,7 @@ func (s *Store) SaveAsset(name, mimeType string, data []byte) (*Asset, error) {
 	}
 
 	s.assets[a.ID] = a
+	s.dirty |= dirtyAssets
 	return a, nil
 }
 
@@ -576,6 +740,7 @@ func (s *Store) DeleteAsset(id string) {
 
 	_ = os.Remove(filepath.Join(s.assetsDir, id+".bin"))
 	delete(s.assets, id)
+	s.dirty |= dirtyAssets
 }
 
 func (s *Store) AllAssets() []Asset {

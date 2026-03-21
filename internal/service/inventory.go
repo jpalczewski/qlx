@@ -1,6 +1,9 @@
 package service
 
-import "github.com/erxyi/qlx/internal/store"
+import (
+	"github.com/erxyi/qlx/internal/shared/validate"
+	"github.com/erxyi/qlx/internal/store"
+)
 
 // InventoryService handles container and item CRUD operations,
 // calling Save() after each mutation.
@@ -47,6 +50,12 @@ func (s *InventoryService) ContainerPath(id string) []store.Container {
 
 // CreateContainer creates a new container and persists the change.
 func (s *InventoryService) CreateContainer(parentID, name, desc string) (*store.Container, error) {
+	if err := validate.Name(name, validate.MaxNameLength); err != nil {
+		return nil, err
+	}
+	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
+		return nil, err
+	}
 	c := s.store.CreateContainer(parentID, name, desc)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -56,6 +65,12 @@ func (s *InventoryService) CreateContainer(parentID, name, desc string) (*store.
 
 // UpdateContainer updates a container's name and description, then persists.
 func (s *InventoryService) UpdateContainer(id, name, desc string) (*store.Container, error) {
+	if err := validate.Name(name, validate.MaxNameLength); err != nil {
+		return nil, err
+	}
+	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
+		return nil, err
+	}
 	c, err := s.store.UpdateContainer(id, name, desc)
 	if err != nil {
 		return nil, err
@@ -93,6 +108,12 @@ func (s *InventoryService) GetItem(id string) *store.Item {
 
 // CreateItem creates a new item and persists the change.
 func (s *InventoryService) CreateItem(containerID, name, desc string, qty int) (*store.Item, error) {
+	if err := validate.Name(name, validate.MaxNameLength); err != nil {
+		return nil, err
+	}
+	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
+		return nil, err
+	}
 	item := s.store.CreateItem(containerID, name, desc, qty)
 	if err := s.store.Save(); err != nil {
 		return nil, err
@@ -100,9 +121,16 @@ func (s *InventoryService) CreateItem(containerID, name, desc string, qty int) (
 	return item, nil
 }
 
-// UpdateItem updates an item's name and description, then persists.
-func (s *InventoryService) UpdateItem(id, name, desc string) (*store.Item, error) {
-	item, err := s.store.UpdateItem(id, name, desc)
+// UpdateItem updates an item's name, description, and quantity, then persists.
+// If qty is less than 1, the existing quantity is preserved.
+func (s *InventoryService) UpdateItem(id, name, desc string, qty int) (*store.Item, error) {
+	if err := validate.Name(name, validate.MaxNameLength); err != nil {
+		return nil, err
+	}
+	if err := validate.OptionalText(desc, validate.MaxDescriptionLength); err != nil {
+		return nil, err
+	}
+	item, err := s.store.UpdateItem(id, name, desc, qty)
 	if err != nil {
 		return nil, err
 	}

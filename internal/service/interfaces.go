@@ -11,7 +11,7 @@ type Saveable interface {
 type ItemStore interface {
 	GetItem(id string) *store.Item
 	CreateItem(containerID, name, desc string, qty int) *store.Item
-	UpdateItem(id, name, desc string) (*store.Item, error)
+	UpdateItem(id, name, desc string, qty int) (*store.Item, error)
 	DeleteItem(id string) error
 	MoveItem(id, containerID string) error
 }

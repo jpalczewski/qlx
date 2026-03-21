@@ -35,6 +35,7 @@ func (s *Store) moveItemsLocked(ids []string, targetContainerID string) []BulkEr
 		}
 		item.ContainerID = targetContainerID
 	}
+	s.dirty |= dirtyItems
 	return errs
 }
 
@@ -99,6 +100,7 @@ func (s *Store) moveContainersLocked(ids []string, targetParentID string) []Bulk
 	for _, id := range ids {
 		s.containers[id].ParentID = targetParentID
 	}
+	s.dirty |= dirtyContainers
 	return nil
 }
 
@@ -159,6 +161,9 @@ func (s *Store) deleteItemsLocked(ids []string) ([]string, []BulkError) {
 		delete(s.items, id)
 		deleted = append(deleted, id)
 	}
+	if len(deleted) > 0 {
+		s.dirty |= dirtyItems
+	}
 	return deleted, errs
 }
 
@@ -211,6 +216,9 @@ func (s *Store) deleteContainersLocked(ids []string) ([]string, []BulkError) {
 
 		delete(s.containers, id)
 		deleted = append(deleted, id)
+	}
+	if len(deleted) > 0 {
+		s.dirty |= dirtyContainers
 	}
 	return deleted, errs
 }
@@ -270,6 +278,7 @@ func (s *Store) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
 		}
 		if !containsString(item.TagIDs, tagID) {
 			item.TagIDs = append(item.TagIDs, tagID)
+			s.dirty |= dirtyItems
 		}
 	}
 
@@ -280,6 +289,7 @@ func (s *Store) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
 		}
 		if !containsString(c.TagIDs, tagID) {
 			c.TagIDs = append(c.TagIDs, tagID)
+			s.dirty |= dirtyContainers
 		}
 	}
 

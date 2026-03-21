@@ -80,6 +80,20 @@ type TagTreeData struct {
 	Path   []store.Tag
 }
 
+// ContainerFormData is the view model for the container create/edit form.
+type ContainerFormData struct {
+	Container *store.Container
+	Path      []store.Container
+	ParentID  string
+}
+
+// ItemFormData is the view model for the item create/edit form.
+type ItemFormData struct {
+	Item        *store.Item
+	Path        []store.Container
+	ContainerID string
+}
+
 type SearchResultsData struct {
 	Query      string
 	Containers []store.Container
@@ -231,6 +245,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /ui", s.HandleRoot)
 	mux.HandleFunc("GET /ui/containers/{id}", s.HandleContainer)
 	mux.HandleFunc("GET /ui/items/{id}", s.HandleItem)
+	mux.HandleFunc("GET /ui/containers/{id}/edit", s.HandleContainerEdit)
+	mux.HandleFunc("GET /ui/items/{id}/edit", s.HandleItemEdit)
 
 	mux.HandleFunc("POST /ui/actions/containers", s.HandleContainerCreate)
 	mux.HandleFunc("PUT /ui/actions/containers/{id}", s.HandleContainerUpdate)
