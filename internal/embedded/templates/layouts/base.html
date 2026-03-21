@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="/static/css/dialogs/dialog.css">
     <link rel="stylesheet" href="/static/css/dialogs/tree-picker.css">
     <link rel="stylesheet" href="/static/css/search/search.css">
+    <link rel="stylesheet" href="/static/css/settings/settings.css">
     <link rel="stylesheet" href="/static/css/layout/responsive.css">
     <script src="/static/htmx.min.js"></script>
     <script src="/static/js/shared/namespace.js" defer></script>
@@ -48,6 +49,7 @@
         <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
                hx-get="/ui/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
+        <a href="/ui/settings" hx-get="/ui/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
         <span id="printer-status"></span>
     </nav>
     <main id="content">

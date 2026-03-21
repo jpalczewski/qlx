@@ -283,7 +283,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// Search
 	mux.HandleFunc("GET /ui/search", s.HandleSearch)
 
-	// Language
+	// Settings
+	mux.HandleFunc("GET /ui/settings", s.HandleSettings)
 	mux.HandleFunc("POST /ui/actions/set-lang", s.HandleSetLang)
 }
 
@@ -340,6 +341,11 @@ func (s *Server) renderPartial(w http.ResponseWriter, r *http.Request, tmplName,
 	if err := tmpl.ExecuteTemplate(w, defineName, page); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// HandleSettings renders the settings page.
+func (s *Server) HandleSettings(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "settings", nil)
 }
 
 // HandleSetLang sets the lang cookie and redirects back to the referer.
