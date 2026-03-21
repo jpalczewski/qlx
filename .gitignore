@@ -1,4 +1,5 @@
 qlx
+qlx-darwin
 qlx-mips
 *.test
 data.json
