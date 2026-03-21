@@ -67,17 +67,24 @@ func RandomIcon() Icon
 - Home & Storage (house, box, archive, shelf...)
 - Transport (truck, package, barcode...)
 
-### Icon Embedding (`icons_embed.go`)
+### Testability
+
+`RandomColor()` and `RandomIcon()` use `math/rand` internally. For deterministic tests, the service layer receives `color` and `icon` as parameters (see Section 2), so tests pass explicit values and never depend on random selection. The random assignment is done by UI/API handlers before calling the service.
+
+### Icon Embedding
+
+SVG files stored in `internal/shared/palette/phosphor/` (co-located with the palette package so `go:embed` works with relative paths).
 
 ```go
+// in internal/shared/palette/icons_embed.go
 //go:embed phosphor/*.svg
 var IconFS embed.FS
 
 func SVG(name string) ([]byte, error)
 ```
 
-SVG files stored in `internal/embedded/icons/phosphor/`. Served two ways:
-1. **HTTP handler** — `GET /static/icons/{name}.svg` — for direct linking, label rendering
+Served two ways:
+1. **HTTP handler** — `GET /static/icons/{name}.svg` — registered in `app/server.go`, reads from `palette.IconFS`. Used for direct linking and label rendering.
 2. **Template function** — `{{icon "wrench"}}` — inline `<svg>` in HTML (preferred for lists, inherits `currentColor`)
 
 ---
@@ -106,17 +113,62 @@ type Tag struct {
 }
 ```
 
-### Data Migration Strategy: Lazy Fill
+### Data Migration: V1 → V2
 
-- Existing entities with empty `color`/`icon` render with defaults (gray dot + type-specific fallback icon)
-- No eager migration — zero unexpected writes on startup
+Add `migrateV1ToV2` to `store/migrate.go`. The migration adds empty `color` and `icon` fields to all existing items, containers, and tags. This is consistent with the V0→V1 pattern (which added `quantity`, `tag_ids`). A backup is created before migration as per existing behavior.
+
+```go
+func migrateV1ToV2(data map[string]any) error {
+    // Add color="" and icon="" to all items, containers, tags where missing
+}
+```
+
+### Lazy Fill (rendering)
+
+Empty `color`/`icon` after migration render with defaults in UI:
+- Gray dot (`--color-text-muted`) + type-specific fallback icon (`box` for containers, `clipboard` for items, `tag` for tags)
 - Clean distinction between "not set" (empty string) and "user chose X"
+
+### Store Interface Changes
+
+Extend signatures to accept `color` and `icon` parameters:
+
+```go
+// ItemStore
+CreateItem(containerID, name, desc string, qty int, color, icon string) *store.Item
+UpdateItem(id, name, desc string, qty int, color, icon string) (*store.Item, error)
+
+// ContainerStore
+CreateContainer(parentID, name, desc string, color, icon string) *store.Container
+UpdateContainer(id, name, desc string, color, icon string) (*store.Container, error)
+
+// TagStore
+CreateTag(parentID, name, color, icon string) *store.Tag
+UpdateTag(id, name, color, icon string) (*store.Tag, error)
+```
 
 ### Service Layer
 
-- **Create** methods: assign `palette.RandomColor()` + `palette.RandomIcon()`
-- **Update** methods: validate via `palette.ValidColor()` + `palette.ValidIcon()`
-- Empty string allowed on update (means "clear to default")
+All three entity types follow the same pattern:
+
+- **Create**: service validates `palette.ValidColor()` + `palette.ValidIcon()`, passes to store
+- **Update**: same validation, empty string allowed (means "clear to default")
+- **Tag service**: extend existing `TagService` in `internal/service/tags.go` with color/icon validation (same pattern as `InventoryService`)
+
+### Callers to Update
+
+All callers of the changed interfaces must be updated to pass `color` and `icon`:
+- `internal/ui/handlers.go` — UI create/edit handlers (extract `r.FormValue("color")`, `r.FormValue("icon")`)
+- `internal/api/handlers_*.go` — API create/edit handlers (extract from JSON body)
+- `internal/ui/handlers_bulk.go` — bulk operations (pass through existing values)
+- `internal/service/inventory.go` — service methods
+- `internal/service/tags.go` — tag service methods
+- `internal/store/store.go` — store implementation
+- `internal/store/store_test.go` — all test callsites
+- `internal/service/inventory_test.go` — inventory service tests
+- `internal/service/tags_test.go` — tag service tests
+
+UI/API handlers call `palette.RandomColor().Name` and `palette.RandomIcon().Name` for create forms (passed as defaults in the form / generated on submit).
 
 ---
 
@@ -158,8 +210,8 @@ Reusable template partials + vanilla JS. Embedded in create/edit forms for items
 
 ### Files
 
-- `templates/components/color_picker.html` — partial
-- `templates/components/icon_picker.html` — partial
+- `templates/components/color_picker.html` — defines `{{define "fields/color-picker"}}` (matches existing `fields/*` naming from `form_fields.html`)
+- `templates/components/icon_picker.html` — defines `{{define "fields/icon-picker"}}`
 - `static/js/pickers.js` — vanilla JS (click → select → hidden input)
 
 ### Behavior
