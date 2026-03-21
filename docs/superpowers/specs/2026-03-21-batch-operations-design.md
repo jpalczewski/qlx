@@ -248,7 +248,7 @@ Bulk UI endpoints use `json.NewDecoder(r.Body)` instead of `r.FormValue` because
 
 ### Full-page templates (register in `templateFiles` map in `ui.NewServer`)
 - `tags.html` — tag tree page (analogous to `containers.html`), wrapper: `tags`
-- `search_results.html` — global search results page, wrapper: `search`
+- `search.html` — global search results page, wrapper: `search`
 
 ### Partial templates (register in `sharedFiles` in `ui.NewServer` for cross-template use)
 - `partials/container_list_item.html` — single container `<li>` (for quick entry response)
