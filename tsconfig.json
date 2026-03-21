@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "checkJs": false,
+        "noEmit": true,
+        "target": "ES5"
+    },
+    "include": [
+        "internal/embedded/static/js/**/*.js",
+        "internal/embedded/static/js/global.d.ts"
+    ]
+}

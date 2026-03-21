@@ -1,0 +1,11 @@
+{
+  "bulk.selected_count": "Zaznaczono",
+  "bulk.delete_selected": "Usuń zaznaczone",
+  "bulk.deselect": "Odznacz",
+  "bulk.confirm_delete": "Usunąć elementy? Tej operacji nie można cofnąć.",
+  "bulk.moved": "Przeniesiono",
+  "bulk.tagged": "Otagowano",
+  "bulk.deleted": "Usunięto",
+  "bulk.delete_failed": "Nie udało się usunąć",
+  "bulk.items_count": "elementów"
+}
