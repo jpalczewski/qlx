@@ -374,19 +374,21 @@ func (s *Server) HandleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleTemplateSave(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name     string  `json:"name"`
-		Tags     string  `json:"tags"`
-		Target   string  `json:"target"`
-		Width    float64 `json:"width"`
-		Height   float64 `json:"height"`
-		Elements string  `json:"elements"`
+		Name     string   `json:"name"`
+		Tags     []string `json:"tags"`
+		Target   string   `json:"target"`
+		WidthMM  float64  `json:"width_mm"`
+		HeightMM float64  `json:"height_mm"`
+		WidthPx  int      `json:"width_px"`
+		HeightPx int      `json:"height_px"`
+		Elements string   `json:"elements"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return
 	}
 
-	tags := splitTags(req.Tags)
+	tags := req.Tags
 	id := r.PathValue("id")
 
 	if id != "" {
@@ -400,13 +402,13 @@ func (s *Server) HandleTemplateSave(w http.ResponseWriter, r *http.Request) {
 		tmpl.Tags = tags
 		tmpl.Target = req.Target
 		if strings.HasPrefix(req.Target, "printer:") {
-			tmpl.WidthPx = int(req.Width)
-			tmpl.HeightPx = int(req.Height)
+			tmpl.WidthPx = req.WidthPx
+			tmpl.HeightPx = req.HeightPx
 			tmpl.WidthMM = 0
 			tmpl.HeightMM = 0
 		} else {
-			tmpl.WidthMM = req.Width
-			tmpl.HeightMM = req.Height
+			tmpl.WidthMM = req.WidthMM
+			tmpl.HeightMM = req.HeightMM
 			tmpl.WidthPx = 0
 			tmpl.HeightPx = 0
 		}
@@ -415,16 +417,7 @@ func (s *Server) HandleTemplateSave(w http.ResponseWriter, r *http.Request) {
 		s.store.SaveTemplate(*tmpl)
 	} else {
 		// Create new
-		var widthMM, heightMM float64
-		var widthPx, heightPx int
-		if strings.HasPrefix(req.Target, "printer:") {
-			widthPx = int(req.Width)
-			heightPx = int(req.Height)
-		} else {
-			widthMM = req.Width
-			heightMM = req.Height
-		}
-		s.store.CreateTemplate(req.Name, tags, req.Target, widthMM, heightMM, widthPx, heightPx, req.Elements)
+		s.store.CreateTemplate(req.Name, tags, req.Target, req.WidthMM, req.HeightMM, req.WidthPx, req.HeightPx, req.Elements)
 	}
 
 	if !webutil.SaveOrFail(w, s.store.Save) {
