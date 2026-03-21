@@ -8,8 +8,12 @@
         <input type="hidden" name="parent_id" value="{{ if .Data.ParentID }}{{ .Data.ParentID }}{{ end }}">
 
         {{ if .Data.Container }}
+        {{ template "fields/color-picker" dict "allColors" (allColors) "selected" .Data.Container.Color }}
+        {{ template "fields/icon-picker" dict "allCategories" (iconCategories) "selected" .Data.Container.Icon "firstCategory" "tools" }}
         {{ template "fields/name-desc" dict "name" .Data.Container.Name "description" .Data.Container.Description "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ else }}
+        {{ template "fields/color-picker" dict "allColors" (allColors) "selected" "" }}
+        {{ template "fields/icon-picker" dict "allCategories" (iconCategories) "selected" "" "firstCategory" "tools" }}
         {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ end }}
 

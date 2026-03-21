@@ -3,6 +3,7 @@ package ui
 import (
 	"net/http"
 
+	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -29,9 +30,11 @@ func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 	tagList := s.tags.TagChildren(parentID)
 
 	data := TagTreeData{
-		Tags:   tagList,
-		Parent: parent,
-		Path:   path,
+		Tags:         tagList,
+		Parent:       parent,
+		Path:         path,
+		DefaultColor: palette.RandomColor().Name,
+		DefaultIcon:  palette.RandomIcon().Name,
 	}
 	s.render(w, r, "tags", data)
 }

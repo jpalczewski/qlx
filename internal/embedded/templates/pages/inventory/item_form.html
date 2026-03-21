@@ -8,8 +8,12 @@
         <input type="hidden" name="container_id" value="{{ if .Data.ContainerID }}{{ .Data.ContainerID }}{{ else }}{{ .Data.Item.ContainerID }}{{ end }}">
 
         {{ if .Data.Item }}
+        {{ template "fields/color-picker" dict "allColors" (allColors) "selected" .Data.Item.Color }}
+        {{ template "fields/icon-picker" dict "allCategories" (iconCategories) "selected" .Data.Item.Icon "firstCategory" "tools" }}
         {{ template "fields/name-desc" dict "name" .Data.Item.Name "description" .Data.Item.Description "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ else }}
+        {{ template "fields/color-picker" dict "allColors" (allColors) "selected" "" }}
+        {{ template "fields/icon-picker" dict "allCategories" (iconCategories) "selected" "" "firstCategory" "tools" }}
         {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ end }}
 

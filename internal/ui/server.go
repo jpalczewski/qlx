@@ -76,9 +76,11 @@ type TemplateListData struct {
 }
 
 type TagTreeData struct {
-	Tags   []store.Tag
-	Parent *store.Tag
-	Path   []store.Tag
+	Tags         []store.Tag
+	Parent       *store.Tag
+	Path         []store.Tag
+	DefaultColor string
+	DefaultIcon  string
 }
 
 // ContainerFormData is the view model for the container create/edit form.

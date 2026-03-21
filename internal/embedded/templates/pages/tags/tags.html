@@ -27,6 +27,8 @@
       hx-swap="beforeend"
       hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
     {{ if .Data.Parent }}<input type="hidden" name="parent_id" value="{{ .Data.Parent.ID }}">{{ end }}
+    <input type="hidden" name="color" value="{{ .Data.DefaultColor }}">
+    <input type="hidden" name="icon" value="{{ .Data.DefaultIcon }}">
     <span class="quick-entry-icon">+</span>
     <input type="text" name="name" placeholder="{{.T "tags.new_tag_placeholder"}}" required>
     <button type="submit" class="quick-entry-submit">↵</button>
