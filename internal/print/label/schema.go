@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"log"
 	"sort"
 	"strconv"
 	"sync"
@@ -89,6 +90,7 @@ func initSchemas() {
 func GetSchema(name string) (Schema, bool) {
 	schemasOnce.Do(initSchemas)
 	if schemasInitErr != nil {
+		log.Printf("label: schema init failed: %v", schemasInitErr)
 		return Schema{}, false
 	}
 	s, ok := builtinSchemas[name]
@@ -99,6 +101,7 @@ func GetSchema(name string) (Schema, bool) {
 func SchemaNames() []string {
 	schemasOnce.Do(initSchemas)
 	if schemasInitErr != nil {
+		log.Printf("label: schema init failed: %v", schemasInitErr)
 		return nil
 	}
 	names := make([]string, 0, len(builtinSchemas))
