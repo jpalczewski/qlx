@@ -232,7 +232,6 @@
       .then(function (html) {
         if (treeContainer) {
           treeContainer.textContent = "";
-          var tmp = document.createElement("div");
           // Safe parse via DOMParser
           var parser = new DOMParser();
           var doc = parser.parseFromString(html, "text/html");
