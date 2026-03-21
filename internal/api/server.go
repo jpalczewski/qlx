@@ -382,6 +382,7 @@ func (s *Server) HandlePrint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.printService.Print(req.PrinterID, data, req.Template); err != nil {
+		webutil.LogError("print failed: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}

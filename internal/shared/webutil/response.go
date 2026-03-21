@@ -121,6 +121,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, status: 200}
 		next.ServeHTTP(sw, r)
-		LogRequest(r.Method, r.URL.Path, sw.status, time.Since(start))
+		duration := time.Since(start)
+		LogRequest(r.Method, r.URL.Path, sw.status, duration)
+		if sw.status >= 500 {
+			LogError("%s %s → %d (%s)", r.Method, r.URL.Path, sw.status, duration.Round(time.Microsecond))
+		}
 	})
 }
