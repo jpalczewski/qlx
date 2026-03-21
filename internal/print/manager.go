@@ -126,6 +126,10 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 
 	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
 	if err := session.Start(); err != nil {
+		// Remove failed session from map so Stop() doesn't hang on it
+		m.mu.Lock()
+		delete(m.sessions, printerID)
+		m.mu.Unlock()
 		return fmt.Errorf("connect %s: %w", cfg.Name, err)
 	}
 

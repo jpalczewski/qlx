@@ -55,6 +55,7 @@ func (s *PrinterSession) Start() error {
 			st.Connected = false
 			st.LastError = err.Error()
 		})
+		close(s.stopped) // ensure Stop() never blocks on <-s.stopped
 		return err
 	}
 
