@@ -31,7 +31,7 @@ func (t *RemoteTransport) Write(data []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return len(data), nil
 }
 

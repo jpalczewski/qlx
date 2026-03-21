@@ -436,7 +436,7 @@ func (s *Server) HandlePrinterEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		case evt := <-ch:
 			data, _ := json.Marshal(evt)
-			fmt.Fprintf(w, "data: %s\n\n", data)
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
 		}
 	}

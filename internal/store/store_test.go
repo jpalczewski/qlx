@@ -402,7 +402,7 @@ func TestPrinterPersistence(t *testing.T) {
 
 	s1, _ := NewStore(path, filepath.Join(tmpDir, "assets"))
 	p := s1.AddPrinter("Test", "niimbot", "B1", "serial", "/dev/tty.BT")
-	s1.Save()
+	_ = s1.Save()
 
 	s2, _ := NewStore(path, filepath.Join(tmpDir, "assets"))
 	got := s2.GetPrinter(p.ID)

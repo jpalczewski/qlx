@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image/png"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -428,6 +432,108 @@ func (s *Server) HandleTemplateSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandlePrintImage(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		PrinterID string `json:"printer_id"`
+		PNG       string `json:"png"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// Decode base64 PNG (format: "data:image/png;base64,XXXX")
+	parts := strings.SplitN(req.PNG, ",", 2)
+	if len(parts) != 2 {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid PNG data"})
+		return
+	}
+	imgData, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "base64 decode: " + err.Error()})
+		return
+	}
+
+	img, err := png.Decode(bytes.NewReader(imgData))
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "png decode: " + err.Error()})
+		return
+	}
+
+	if err := s.printerManager.PrintImage(req.PrinterID, img); err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandleAssetUpload(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(1 << 20); err != nil { // 1MB limit
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	defer func() { _ = file.Close() }()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	asset, err := s.store.SaveAsset(header.Filename, header.Header.Get("Content-Type"), data)
+	if err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]string{"id": asset.ID, "name": asset.Name})
+}
+
+func (s *Server) HandleAssetServe(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	asset := s.store.GetAsset(id)
+	if asset == nil {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := s.store.AssetData(id)
+	if err != nil {
+		http.Error(w, "asset read error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", asset.MimeType)
+	_, _ = w.Write(data)
+}
+
+func (s *Server) HandleContainerItemsJSON(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	items := s.store.ContainerItems(id)
+
+	var result []map[string]string
+	for _, item := range items {
+		path := s.store.ContainerPath(item.ContainerID)
+		var parts []string
+		for _, c := range path {
+			parts = append(parts, c.Name)
+		}
+		result = append(result, map[string]string{
+			"name": item.Name, "description": item.Description,
+			"location": strings.Join(parts, " → "), "id": item.ID,
+			"qr_url": "/ui/items/" + item.ID,
+		})
+	}
+	webutil.JSON(w, http.StatusOK, result)
 }
 
 func splitTags(s string) []string {

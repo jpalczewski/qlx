@@ -516,7 +516,7 @@ func (s *Store) DeleteAsset(id string) {
 		return
 	}
 
-	os.Remove(filepath.Join(s.assetsDir, id+".bin"))
+	_ = os.Remove(filepath.Join(s.assetsDir, id+".bin"))
 	delete(s.assets, id)
 }
 

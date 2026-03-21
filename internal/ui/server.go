@@ -25,6 +25,8 @@ type ContainerListData struct {
 	Items     []store.Item
 	Container *store.Container
 	Path      []store.Container
+	Printers  []store.PrinterConfig
+	Templates []store.Template
 }
 
 type ItemDetailData struct {
@@ -157,6 +159,10 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /ui/actions/printers", s.HandlePrinterCreate)
 	mux.HandleFunc("DELETE /ui/actions/printers/{id}", s.HandlePrinterDelete)
 	mux.HandleFunc("POST /ui/actions/items/{id}/print", s.HandleItemPrint)
+	mux.HandleFunc("POST /ui/actions/print-image", s.HandlePrintImage)
+	mux.HandleFunc("POST /ui/actions/assets", s.HandleAssetUpload)
+	mux.HandleFunc("GET /ui/actions/assets/{id}", s.HandleAssetServe)
+	mux.HandleFunc("GET /ui/actions/containers/{id}/items-json", s.HandleContainerItemsJSON)
 
 	mux.HandleFunc("GET /ui/templates", s.HandleTemplates)
 	mux.HandleFunc("GET /ui/templates/new", s.HandleTemplateNew)
@@ -185,9 +191,14 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 }
 
 func (s *Server) containerViewModel(containerID string) (ContainerListData, bool) {
+	printers := s.store.AllPrinters()
+	templates := s.store.AllTemplates()
+
 	if containerID == "" {
 		return ContainerListData{
-			Children: s.store.ContainerChildren(""),
+			Children:  s.store.ContainerChildren(""),
+			Printers:  printers,
+			Templates: templates,
 		}, true
 	}
 
@@ -201,6 +212,8 @@ func (s *Server) containerViewModel(containerID string) (ContainerListData, bool
 		Items:     s.store.ContainerItems(containerID),
 		Container: container,
 		Path:      s.store.ContainerPath(containerID),
+		Printers:  printers,
+		Templates: templates,
 	}, true
 }
 
