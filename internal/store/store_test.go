@@ -505,3 +505,96 @@ func TestTemplateCRUD(t *testing.T) {
 	// Delete nonexistent (should not panic)
 	s.DeleteTemplate("nonexistent")
 }
+
+func TestAssetCRUD(t *testing.T) {
+	tmpDir := t.TempDir()
+	assetsDir := filepath.Join(tmpDir, "assets")
+	path := filepath.Join(tmpDir, "data.json")
+
+	s, err := NewStore(path, assetsDir)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+
+	// Save
+	imgData := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A} // PNG header
+	asset, err := s.SaveAsset("logo.png", "image/png", imgData)
+	if err != nil {
+		t.Fatalf("SaveAsset error = %v", err)
+	}
+	if asset.ID == "" {
+		t.Error("SaveAsset should set ID")
+	}
+	if asset.Name != "logo.png" {
+		t.Errorf("Name = %q, want %q", asset.Name, "logo.png")
+	}
+	if asset.MimeType != "image/png" {
+		t.Errorf("MimeType = %q, want %q", asset.MimeType, "image/png")
+	}
+	if asset.CreatedAt.IsZero() {
+		t.Error("CreatedAt should be set")
+	}
+
+	// Get metadata
+	got := s.GetAsset(asset.ID)
+	if got == nil {
+		t.Fatal("GetAsset returned nil")
+	}
+	if got.Name != "logo.png" {
+		t.Errorf("GetAsset Name = %q, want %q", got.Name, "logo.png")
+	}
+
+	// Get nonexistent
+	if s.GetAsset("nonexistent") != nil {
+		t.Error("GetAsset should return nil for nonexistent ID")
+	}
+
+	// Read binary data
+	data, err := s.AssetData(asset.ID)
+	if err != nil {
+		t.Fatalf("AssetData error = %v", err)
+	}
+	if len(data) != len(imgData) {
+		t.Errorf("AssetData length = %d, want %d", len(data), len(imgData))
+	}
+	for i, b := range data {
+		if b != imgData[i] {
+			t.Errorf("AssetData[%d] = %x, want %x", i, b, imgData[i])
+			break
+		}
+	}
+
+	// AssetData for nonexistent
+	_, err = s.AssetData("nonexistent")
+	if err == nil {
+		t.Error("AssetData should error for nonexistent ID")
+	}
+
+	// List
+	_, err = s.SaveAsset("icon.jpg", "image/jpeg", []byte{0xFF, 0xD8})
+	if err != nil {
+		t.Fatalf("SaveAsset second error = %v", err)
+	}
+	all := s.AllAssets()
+	if len(all) != 2 {
+		t.Errorf("AllAssets count = %d, want 2", len(all))
+	}
+
+	// Delete
+	s.DeleteAsset(asset.ID)
+	if s.GetAsset(asset.ID) != nil {
+		t.Error("DeleteAsset should remove asset")
+	}
+	if len(s.AllAssets()) != 1 {
+		t.Errorf("AllAssets after delete = %d, want 1", len(s.AllAssets()))
+	}
+
+	// Verify binary file removed
+	_, err = os.Stat(filepath.Join(assetsDir, asset.ID+".bin"))
+	if !os.IsNotExist(err) {
+		t.Error("DeleteAsset should remove binary file from disk")
+	}
+
+	// Delete nonexistent (should not panic)
+	s.DeleteAsset("nonexistent")
+}

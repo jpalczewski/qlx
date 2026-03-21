@@ -466,3 +466,67 @@ func (s *Store) DeleteTemplate(id string) {
 
 	delete(s.templates, id)
 }
+
+func (s *Store) SaveAsset(name, mimeType string, data []byte) (*Asset, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	a := &Asset{
+		ID:        uuid.New().String(),
+		Name:      name,
+		MimeType:  mimeType,
+		CreatedAt: time.Now(),
+	}
+
+	if s.assetsDir != "" {
+		if err := os.MkdirAll(s.assetsDir, 0755); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(filepath.Join(s.assetsDir, a.ID+".bin"), data, 0644); err != nil {
+			return nil, err
+		}
+	}
+
+	s.assets[a.ID] = a
+	return a, nil
+}
+
+func (s *Store) GetAsset(id string) *Asset {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.assets[id]
+}
+
+func (s *Store) AssetData(id string) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if _, ok := s.assets[id]; !ok {
+		return nil, errors.New("asset not found")
+	}
+
+	return os.ReadFile(filepath.Join(s.assetsDir, id+".bin"))
+}
+
+func (s *Store) DeleteAsset(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.assets[id]; !ok {
+		return
+	}
+
+	os.Remove(filepath.Join(s.assetsDir, id+".bin"))
+	delete(s.assets, id)
+}
+
+func (s *Store) AllAssets() []Asset {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var assets []Asset
+	for _, a := range s.assets {
+		assets = append(assets, *a)
+	}
+	return assets
+}
