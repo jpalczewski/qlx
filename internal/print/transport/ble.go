@@ -123,11 +123,24 @@ func (t *BLETransport) Read(buf []byte) (int, error) {
 }
 
 func (t *BLETransport) Close() error {
-	if t.connected {
-		t.connected = false
-		return t.device.Disconnect()
+	if !t.connected {
+		return nil
 	}
-	return nil
+	t.connected = false
+
+	// Disconnect with timeout — if the device is powered off,
+	// CoreBluetooth may hang indefinitely on Disconnect().
+	done := make(chan error, 1)
+	go func() {
+		done <- t.device.Disconnect()
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(3 * time.Second):
+		return errors.New("BLE disconnect timed out (device may be powered off)")
+	}
 }
 
 // BLEScanResult represents a discovered BLE device.
