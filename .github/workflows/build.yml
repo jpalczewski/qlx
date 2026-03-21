@@ -1,0 +1,46 @@
+name: Build Go Binary
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: Go version to use
+        type: string
+        default: "1.25"
+      binary-name:
+        description: Output binary name
+        type: string
+        default: qlx
+      build-tags:
+        description: Go build tags
+        type: string
+        default: ""
+      artifact-name:
+        description: Artifact name for the binary
+        type: string
+        default: qlx-binary
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ inputs.go-version }}
+      - name: Build binary
+        env:
+          BINARY_NAME: ${{ inputs.binary-name }}
+          BUILD_TAGS: ${{ inputs.build-tags }}
+        run: |
+          if [ -n "${BUILD_TAGS}" ]; then
+            go build -tags "${BUILD_TAGS}" -o "${BINARY_NAME}" ./cmd/qlx/
+          else
+            go build -o "${BINARY_NAME}" ./cmd/qlx/
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.binary-name }}
+          retention-days: 1

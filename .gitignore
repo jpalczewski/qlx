@@ -9,3 +9,5 @@ data/
 *.tmp
 .serena/
 .superpowers/
+.worktrees/
+qlx-e2e-test
