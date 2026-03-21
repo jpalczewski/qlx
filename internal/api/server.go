@@ -46,6 +46,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/printers/{id}", s.HandlePrinterDelete)
 	mux.HandleFunc("GET /api/encoders", s.HandleEncoders)
 	mux.HandleFunc("POST /api/items/{id}/print", s.HandlePrint)
+	s.registerBluetoothRoutes(mux)
 }
 
 type upsertContainerRequest struct {

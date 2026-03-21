@@ -109,6 +109,8 @@ func (ps *PrintService) defaultTransportFactory(name string) transport.Transport
 		return &transport.SerialTransport{}
 	case "remote":
 		return &transport.RemoteTransport{}
+	case "ble":
+		return &transport.BLETransport{}
 	default:
 		return nil
 	}
