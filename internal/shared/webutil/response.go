@@ -68,7 +68,15 @@ func LogRequest(method, path string, status int, duration time.Duration) {
 	)
 }
 
-var TraceEnabled bool
+var (
+	TraceEnabled bool
+	traceFile    *os.File
+)
+
+// SetTraceFile sets the file for trace output. Call with nil to disable file tracing.
+func SetTraceFile(f *os.File) {
+	traceFile = f
+}
 
 func LogError(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "%s[ERROR]%s %s\n", colorRed, colorReset, fmt.Sprintf(format, args...))
@@ -82,7 +90,11 @@ func LogTrace(format string, args ...any) {
 	if !TraceEnabled {
 		return
 	}
-	fmt.Fprintf(os.Stderr, "%s[TRACE]%s %s\n", colorGray, colorReset, fmt.Sprintf(format, args...))
+	msg := fmt.Sprintf(format, args...)
+	fmt.Fprintf(os.Stderr, "%s[TRACE]%s %s\n", colorGray, colorReset, msg)
+	if traceFile != nil {
+		fmt.Fprintf(traceFile, "%s [TRACE] %s\n", time.Now().Format("15:04:05.000"), msg)
+	}
 }
 
 // HexDump formats bytes as hex string, max maxBytes shown.

@@ -34,6 +34,15 @@ func main() {
 	flag.Parse()
 
 	webutil.TraceEnabled = *trace
+	if *trace {
+		traceFile, err := os.OpenFile(filepath.Join(*dataDir, "trace.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to open trace log: %v\n", err)
+			os.Exit(1)
+		}
+		defer traceFile.Close()
+		webutil.SetTraceFile(traceFile)
+	}
 
 	if err := os.MkdirAll(*dataDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create data directory: %v\n", err)
