@@ -23,18 +23,40 @@
 
         <section class="print-section">
             <h3>Drukuj etykietę</h3>
-            <form hx-post="/item/{{ .Item.ID }}/print" hx-target="#print-result">
-                <div class="field">
-                    <label for="template">Szablon</label>
-                    <select id="template" name="template">
-                        <option value="simple">Prosty</option>
-                        <option value="standard">Standardowy</option>
-                        <option value="compact">Kompaktowy</option>
-                        <option value="detailed">Szczegółowy</option>
-                    </select>
-                </div>
-                <button type="submit">🖨️ Drukuj</button>
-            </form>
+            {{ if .Printers }}
+            <div class="form-group">
+                <label for="print-printer">Drukarka</label>
+                <select id="print-printer">
+                    {{ range .Printers }}
+                    <option value="{{ .ID }}">{{ .Name }}</option>
+                    {{ end }}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="print-template">Szablon</label>
+                <select id="print-template">
+                    <option value="simple">Prosty</option>
+                    <option value="standard">Standardowy</option>
+                    <option value="compact">Kompaktowy</option>
+                    <option value="detailed">Szczegółowy</option>
+                </select>
+            </div>
+            <button id="print-btn" onclick="(function(){
+                var printer = document.getElementById('print-printer').value;
+                var tmpl = document.getElementById('print-template').value;
+                var result = document.getElementById('print-result');
+                result.textContent = 'Drukowanie...';
+                fetch('/ui/actions/items/{{ .Item.ID }}/print', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({printer_id: printer, template: tmpl})
+                }).then(function(r){ return r.json(); }).then(function(d){
+                    result.textContent = d.ok ? 'Wydrukowano!' : ('Błąd: ' + d.error);
+                }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
+            })()">🖨️ Drukuj</button>
+            {{ else }}
+            <p class="empty">Brak skonfigurowanych drukarek. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">Dodaj drukarkę</a>.</p>
+            {{ end }}
             <div id="print-result"></div>
         </section>
 

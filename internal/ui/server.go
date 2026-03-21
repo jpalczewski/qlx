@@ -7,14 +7,17 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/embedded"
+	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
 
 type Server struct {
-	store     *store.Store
-	templates map[string]*template.Template
-	staticFS  fs.FS
+	store        *store.Store
+	printService *print.PrintService
+	templates    map[string]*template.Template
+	staticFS     fs.FS
 }
 
 type ContainerListData struct {
@@ -25,11 +28,22 @@ type ContainerListData struct {
 }
 
 type ItemDetailData struct {
-	Item *store.Item
-	Path []store.Container
+	Item     *store.Item
+	Path     []store.Container
+	Printers []store.PrinterConfig
 }
 
-func NewServer(s *store.Store) *Server {
+type PrintersData struct {
+	Printers []store.PrinterConfig
+	Encoders []EncoderData
+}
+
+type EncoderData struct {
+	Name   string
+	Models []encoder.ModelInfo
+}
+
+func NewServer(s *store.Store, ps *print.PrintService) *Server {
 	layoutContent, err := embedded.Templates.ReadFile("templates/layout.html")
 	if err != nil {
 		panic(err)
@@ -55,6 +69,7 @@ func NewServer(s *store.Store) *Server {
 		"item":           "templates/item.html",
 		"item-form":      "templates/item_form.html",
 		"container-form": "templates/container_form.html",
+		"printers":       "templates/printers.html",
 	}
 
 	templates := make(map[string]*template.Template)
@@ -78,7 +93,7 @@ func NewServer(s *store.Store) *Server {
 		panic(err)
 	}
 
-	return &Server{store: s, templates: templates, staticFS: staticFS}
+	return &Server{store: s, printService: ps, templates: templates, staticFS: staticFS}
 }
 
 func dict(values ...any) (map[string]any, error) {
@@ -115,6 +130,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /ui/actions/items/{id}", s.HandleItemDelete)
 	mux.HandleFunc("POST /ui/actions/containers/{id}/move", s.HandleContainerMove)
 	mux.HandleFunc("POST /ui/actions/items/{id}/move", s.HandleItemMove)
+
+	mux.HandleFunc("GET /ui/printers", s.HandlePrinters)
+	mux.HandleFunc("POST /ui/actions/printers", s.HandlePrinterCreate)
+	mux.HandleFunc("DELETE /ui/actions/printers/{id}", s.HandlePrinterDelete)
+	mux.HandleFunc("POST /ui/actions/items/{id}/print", s.HandleItemPrint)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, data any) {
@@ -162,7 +182,23 @@ func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
 	}
 
 	return ItemDetailData{
-		Item: item,
-		Path: s.store.ContainerPath(item.ContainerID),
+		Item:     item,
+		Path:     s.store.ContainerPath(item.ContainerID),
+		Printers: s.store.AllPrinters(),
 	}, true
+}
+
+func (s *Server) printersViewModel() PrintersData {
+	printers := s.store.AllPrinters()
+	var encoders []EncoderData
+	for name, enc := range s.printService.AvailableEncoders() {
+		encoders = append(encoders, EncoderData{
+			Name:   name,
+			Models: enc.Models(),
+		})
+	}
+	return PrintersData{
+		Printers: printers,
+		Encoders: encoders,
+	}
 }

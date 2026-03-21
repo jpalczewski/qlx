@@ -1,8 +1,12 @@
 package ui
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -170,5 +174,85 @@ func (s *Server) HandleItemMove(w http.ResponseWriter, r *http.Request) {
 	if !webutil.SaveOrFail(w, s.store.Save) {
 		return
 	}
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) HandlePrinters(w http.ResponseWriter, r *http.Request) {
+	data := s.printersViewModel()
+	s.render(w, r, "printers", data)
+}
+
+func (s *Server) HandlePrinterCreate(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	enc := r.FormValue("encoder")
+	model := r.FormValue("model")
+	transport := r.FormValue("transport")
+	address := r.FormValue("address")
+
+	s.store.AddPrinter(name, enc, model, transport, address)
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+
+	data := s.printersViewModel()
+	s.render(w, r, "printers", data)
+}
+
+func (s *Server) HandlePrinterDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	if err := s.store.DeletePrinter(id); err != nil {
+		if err == store.ErrPrinterNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if !webutil.SaveOrFail(w, s.store.Save) {
+		return
+	}
+
+	data := s.printersViewModel()
+	s.render(w, r, "printers", data)
+}
+
+func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	item := s.store.GetItem(id)
+	if item == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "item not found"})
+		return
+	}
+
+	var req struct {
+		PrinterID    string `json:"printer_id"`
+		TemplateName string `json:"template"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
+		return
+	}
+
+	path := s.store.ContainerPath(item.ContainerID)
+	pathParts := make([]string, 0, len(path))
+	for _, c := range path {
+		pathParts = append(pathParts, c.Name)
+	}
+
+	data := label.LabelData{
+		Name:        item.Name,
+		Description: item.Description,
+		Location:    strings.Join(pathParts, " → "),
+		QRContent:   fmt.Sprintf("/ui/items/%s", item.ID),
+		BarcodeID:   item.ID,
+	}
+
+	if err := s.printService.Print(req.PrinterID, data, req.TemplateName); err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }

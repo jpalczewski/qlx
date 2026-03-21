@@ -15,7 +15,7 @@ type Server struct {
 }
 
 func NewServer(s *store.Store, ps *qlprint.PrintService) *Server {
-	uiServer := ui.NewServer(s)
+	uiServer := ui.NewServer(s, ps)
 	apiServer := api.NewServer(s, ps)
 
 	mux := http.NewServeMux()
