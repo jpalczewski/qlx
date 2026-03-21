@@ -197,7 +197,8 @@ func TestItemsByTag(t *testing.T) {
 	container := s.CreateContainer("", "Box", "")
 	hdmi := s.CreateItem(container.ID, "HDMI Cable", "", 1)
 	laptop := s.CreateItem(container.ID, "Laptop", "", 1)
-	_ = s.CreateItem(container.ID, "Book", "", 1) // no tags
+	book := s.CreateItem(container.ID, "Book", "", 1) // no tags
+	_ = book
 
 	if err := s.AddItemTag(hdmi.ID, cables.ID); err != nil {
 		t.Fatalf("AddItemTag error = %v", err)

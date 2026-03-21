@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -296,11 +297,6 @@ func removeFromSlice(slice []string, val string) []string {
 }
 
 // containsString reports whether slice contains val.
-func containsString(slice []string, val string) bool {
-	for _, s := range slice {
-		if s == val {
-			return true
-		}
-	}
-	return false
+func containsString(sl []string, val string) bool {
+	return slices.Contains(sl, val)
 }
