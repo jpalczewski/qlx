@@ -532,6 +532,7 @@ func (s *Server) HandleAssetServe(w http.ResponseWriter, r *http.Request) {
 		ct = "application/octet-stream"
 	}
 	w.Header().Set("Content-Type", ct)
+	//nolint:gosec // G705: Content-Type is sanitized above, data is user-uploaded image
 	_, _ = w.Write(data)
 }
 
