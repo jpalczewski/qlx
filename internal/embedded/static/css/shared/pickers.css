@@ -1,0 +1,119 @@
+/* Color picker */
+.color-picker-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	margin-bottom: var(--space-sm);
+}
+
+.color-swatch {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	border: 2px solid transparent;
+	cursor: pointer;
+	transition: border-color 0.15s;
+}
+
+.color-swatch:hover {
+	border-color: var(--color-text);
+}
+
+.color-swatch.selected {
+	border-color: var(--color-text);
+	box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-text);
+}
+
+/* Icon picker */
+.icon-picker-categories {
+	margin-bottom: var(--space-sm);
+}
+
+.icon-picker-category {
+	margin-bottom: var(--space-xs);
+}
+
+.icon-picker-category-header {
+	font-size: var(--font-size-sm);
+	color: var(--color-text-muted);
+	cursor: pointer;
+	padding: var(--space-xs) 0;
+	user-select: none;
+}
+
+.icon-picker-category-header::before {
+	content: "▸ ";
+}
+
+.icon-picker-category.open .icon-picker-category-header::before {
+	content: "▾ ";
+}
+
+.icon-picker-grid {
+	display: none;
+	flex-wrap: wrap;
+	gap: var(--space-xs);
+	padding: var(--space-xs) 0;
+}
+
+.icon-picker-category.open .icon-picker-grid {
+	display: flex;
+}
+
+.icon-swatch {
+	width: 36px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-sm);
+	border: 2px solid transparent;
+	cursor: pointer;
+	color: var(--color-text);
+	transition: border-color 0.15s;
+	background: none;
+	padding: 0;
+}
+
+.icon-swatch:hover {
+	border-color: var(--color-text-muted);
+}
+
+.icon-swatch.selected {
+	border-color: var(--color-accent);
+	background: var(--color-bg-alt);
+}
+
+.icon-swatch svg {
+	width: 20px;
+	height: 20px;
+}
+
+/* Color dot in list views */
+.color-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--color-text-muted);
+	margin-right: var(--space-xs);
+	flex-shrink: 0;
+}
+
+/* Entity icon in list/detail views */
+.entity-icon {
+	display: inline-flex;
+	align-items: center;
+	margin-right: var(--space-xs);
+	color: currentColor;
+}
+
+.entity-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.entity-icon.large svg {
+	width: 24px;
+	height: 24px;
+}
