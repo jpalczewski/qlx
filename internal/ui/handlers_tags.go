@@ -7,9 +7,9 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-// HandleTags renders the tag tree page. Accepts optional ?parent= query parameter.
+// HandleTags renders the tag tree page. Accepts optional ?parent_id= query parameter.
 func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
-	parentID := r.URL.Query().Get("parent")
+	parentID := r.URL.Query().Get("parent_id")
 
 	var parent *store.Tag
 	var path []store.Tag
@@ -53,7 +53,7 @@ func (s *Server) HandleTagCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if parentID != "" {
-		http.Redirect(w, r, "/ui/tags?parent="+parentID, http.StatusSeeOther)
+		http.Redirect(w, r, "/ui/tags?parent_id="+parentID, http.StatusSeeOther)
 	} else {
 		http.Redirect(w, r, "/ui/tags", http.StatusSeeOther)
 	}
@@ -72,7 +72,7 @@ func (s *Server) HandleTagUpdate(w http.ResponseWriter, r *http.Request) {
 
 	parentID := tag.ParentID
 	if parentID != "" {
-		http.Redirect(w, r, "/ui/tags?parent="+parentID, http.StatusSeeOther)
+		http.Redirect(w, r, "/ui/tags?parent_id="+parentID, http.StatusSeeOther)
 	} else {
 		http.Redirect(w, r, "/ui/tags", http.StatusSeeOther)
 	}
@@ -94,7 +94,7 @@ func (s *Server) HandleTagDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if parentID != "" {
-		http.Redirect(w, r, "/ui/tags?parent="+parentID, http.StatusSeeOther)
+		http.Redirect(w, r, "/ui/tags?parent_id="+parentID, http.StatusSeeOther)
 	} else {
 		http.Redirect(w, r, "/ui/tags", http.StatusSeeOther)
 	}

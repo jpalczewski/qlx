@@ -32,7 +32,7 @@
     <h2>{{.T "search.tags"}}</h2>
     <ul class="tag-list">
     {{ range .Data.Tags }}
-        <li><a href="/ui/tags?parent={{ .ID }}" hx-get="/ui/tags?parent={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
+        <li><a href="/ui/tags?parent_id={{ .ID }}" hx-get="/ui/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
     {{ end }}
     </ul>
 </section>

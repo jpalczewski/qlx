@@ -111,7 +111,16 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 	tagsSvc *service.TagService, search *service.SearchService,
 	printersSvc *service.PrinterService) *Server {
 
-	templates := loadTemplates(s)
+	resolveTagsFn := func(ids []string) []store.Tag {
+		tags := make([]store.Tag, 0, len(ids))
+		for _, id := range ids {
+			if t := tagsSvc.GetTag(id); t != nil {
+				tags = append(tags, *t)
+			}
+		}
+		return tags
+	}
+	templates := loadTemplates(resolveTagsFn)
 
 	staticFS, err := fs.Sub(embedded.Static, "static")
 	if err != nil {
@@ -133,29 +142,21 @@ func NewServer(s *store.Store, pm *print.PrinterManager, tr *webutil.Translation
 }
 
 // loadTemplates discovers and parses all HTML templates from the embedded FS.
-func loadTemplates(s *store.Store) map[string]*template.Template {
-	layoutTmpl := loadLayout(s)
+func loadTemplates(resolveTagsFn func([]string) []store.Tag) map[string]*template.Template {
+	layoutTmpl := loadLayout(resolveTagsFn)
 	mergeHTMLDir(layoutTmpl, "templates/partials")
 	mergeHTMLDir(layoutTmpl, "templates/components")
 	return discoverPages(layoutTmpl)
 }
 
-func loadLayout(s *store.Store) *template.Template {
+func loadLayout(resolveTagsFn func([]string) []store.Tag) *template.Template {
 	content, err := embedded.Templates.ReadFile("templates/layouts/base.html")
 	if err != nil {
 		panic(err)
 	}
 	return template.Must(template.New("layout").Funcs(template.FuncMap{
-		"dict": dict,
-		"resolveTags": func(ids []string) []store.Tag {
-			var tags []store.Tag
-			for _, id := range ids {
-				if t := s.GetTag(id); t != nil {
-					tags = append(tags, *t)
-				}
-			}
-			return tags
-		},
+		"dict":        dict,
+		"resolveTags": resolveTagsFn,
 	}).Parse(string(content)))
 }
 
