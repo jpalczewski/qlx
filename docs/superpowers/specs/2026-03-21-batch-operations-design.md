@@ -20,7 +20,7 @@ Adding fields (quantity, tags) to existing models requires a migration strategy.
 - Migration must: (1) write backup atomically (temp + rename), (2) run migration function on in-memory data, (3) write migrated data atomically (temp + rename, same pattern as existing `Save()`), (4) only then update in-memory version
 - If the process is killed mid-migration, the backup file exists and the store file is either the old version (migration not persisted) or the new version (migration completed). No ambiguous state.
 - The server must NOT accept HTTP requests until all migrations complete. `NewStore()` runs migrations before returning.
-- On first startup after adding migration support, `Load()` must detect missing `version` field (treat as v0) and persist migrated data before returning
+- On first startup after adding migration support, `NewStore()` must detect missing `version` field (treat as v0) and persist migrated data before returning
 
 ### Store File Format (after v1)
 ```json
@@ -60,8 +60,8 @@ type Tag struct {
 - CRUD: `CreateTag`, `GetTag`, `UpdateTag`, `DeleteTag`
 - Query: `TagChildren(id)`, `TagPath(id)`, `TagDescendants(id)` (single-pass: collect all tags, walk from root down building a flat set — O(N) regardless of depth, safe for MIPS. Expected scale: hundreds of tags, not thousands)
 - Assignment: `AddTag(objectType, objectID, tagID)`, `RemoveTag(objectType, objectID, tagID)`
-- Filter: `ItemsByTag(tagID)` — returns items with this tag OR any descendant tag (inheritance upward)
-- Bulk: `MoveItems(ids []string, targetContainerID string)`, `MoveContainers(ids []string, targetParentID string)`
+- Filter: `ItemsByTag(tagID)` — returns items whose `TagIDs` intersect with `{tagID} ∪ TagDescendants(tagID)` (filtering by a parent tag matches items carrying any descendant tag)
+- Bulk: `MoveItems(ids []string, targetContainerID string)`, `MoveContainers(ids []string, targetParentID string)` — cycle detection must validate ALL moves in the batch before committing any (pre-validate, then apply). This prevents partial moves that create cycles when two containers in the batch are in the same ancestor chain. Single write lock held for the entire operation.
 - Bulk: `DeleteItems(ids []string)`, `DeleteContainers(ids []string)` (containers only if empty)
 - Search: `SearchContainers(q string)`, `SearchItems(q string)`, `SearchTags(q string)` — case-insensitive substring match on name
 
