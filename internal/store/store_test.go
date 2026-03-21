@@ -361,6 +361,56 @@ func TestPersistence(t *testing.T) {
 	}
 }
 
+func TestPrinterCRUD(t *testing.T) {
+	s := NewMemoryStore()
+
+	p := s.AddPrinter("Brother kuchnia", "brother-ql", "QL-700", "usb", "/dev/usb/lp0")
+	if p.ID == "" {
+		t.Error("AddPrinter should set ID")
+	}
+	if p.Name != "Brother kuchnia" {
+		t.Errorf("Name = %q, want %q", p.Name, "Brother kuchnia")
+	}
+
+	got := s.GetPrinter(p.ID)
+	if got == nil || got.Name != "Brother kuchnia" {
+		t.Error("GetPrinter failed")
+	}
+
+	all := s.AllPrinters()
+	if len(all) != 1 {
+		t.Errorf("AllPrinters count = %d, want 1", len(all))
+	}
+
+	err := s.DeletePrinter(p.ID)
+	if err != nil {
+		t.Fatalf("DeletePrinter error: %v", err)
+	}
+	if s.GetPrinter(p.ID) != nil {
+		t.Error("printer should be deleted")
+	}
+
+	err = s.DeletePrinter("nonexistent")
+	if err == nil {
+		t.Error("expected error deleting nonexistent printer")
+	}
+}
+
+func TestPrinterPersistence(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "data.json")
+
+	s1, _ := NewStore(path)
+	p := s1.AddPrinter("Test", "niimbot", "B1", "serial", "/dev/tty.BT")
+	s1.Save()
+
+	s2, _ := NewStore(path)
+	got := s2.GetPrinter(p.ID)
+	if got == nil || got.Name != "Test" {
+		t.Error("printer not persisted")
+	}
+}
+
 func TestDeleteContainer_Constraints(t *testing.T) {
 	s := NewMemoryStore()
 

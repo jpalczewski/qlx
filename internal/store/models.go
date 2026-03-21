@@ -17,3 +17,12 @@ type Item struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+type PrinterConfig struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Encoder   string `json:"encoder"`
+	Model     string `json:"model"`
+	Transport string `json:"transport"`
+	Address   string `json:"address"`
+}

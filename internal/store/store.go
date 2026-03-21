@@ -19,11 +19,13 @@ var (
 	ErrInvalidContainer     = errors.New("invalid container for item")
 	ErrContainerHasChildren = errors.New("container has children")
 	ErrContainerHasItems    = errors.New("container has items")
+	ErrPrinterNotFound      = errors.New("printer not found")
 )
 
 type storeData struct {
-	Containers map[string]*Container `json:"containers"`
-	Items      map[string]*Item      `json:"items"`
+	Containers map[string]*Container       `json:"containers"`
+	Items      map[string]*Item            `json:"items"`
+	Printers   map[string]*PrinterConfig   `json:"printers"`
 }
 
 type Store struct {
@@ -31,6 +33,7 @@ type Store struct {
 	path       string
 	containers map[string]*Container
 	items      map[string]*Item
+	printers   map[string]*PrinterConfig
 }
 
 func NewStore(path string) (*Store, error) {
@@ -38,6 +41,7 @@ func NewStore(path string) (*Store, error) {
 		path:       path,
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
+		printers:   make(map[string]*PrinterConfig),
 	}
 
 	fileData, err := os.ReadFile(path)
@@ -63,6 +67,9 @@ func NewStore(path string) (*Store, error) {
 	if d.Items != nil {
 		s.items = d.Items
 	}
+	if d.Printers != nil {
+		s.printers = d.Printers
+	}
 
 	return s, nil
 }
@@ -82,6 +89,7 @@ func (s *Store) Save() error {
 	data, err := json.Marshal(&storeData{
 		Containers: s.containers,
 		Items:      s.items,
+		Printers:   s.printers,
 	})
 	if err != nil {
 		return err
@@ -297,7 +305,53 @@ func NewMemoryStore() *Store {
 	return &Store{
 		containers: make(map[string]*Container),
 		items:      make(map[string]*Item),
+		printers:   make(map[string]*PrinterConfig),
 	}
+}
+
+func (s *Store) AddPrinter(name, encoder, model, transport, address string) *PrinterConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	p := &PrinterConfig{
+		ID:        uuid.New().String(),
+		Name:      name,
+		Encoder:   encoder,
+		Model:     model,
+		Transport: transport,
+		Address:   address,
+	}
+	s.printers[p.ID] = p
+	return p
+}
+
+func (s *Store) GetPrinter(id string) *PrinterConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.printers[id]
+}
+
+func (s *Store) DeletePrinter(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.printers[id]; !ok {
+		return ErrPrinterNotFound
+	}
+
+	delete(s.printers, id)
+	return nil
+}
+
+func (s *Store) AllPrinters() []PrinterConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var printers []PrinterConfig
+	for _, p := range s.printers {
+		printers = append(printers, *p)
+	}
+	return printers
 }
 
 func (s *Store) AllItems() []Item {
