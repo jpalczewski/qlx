@@ -77,19 +77,30 @@ func drawQR(dst *image.RGBA, content string, x, y, size int) error {
 }
 
 // drawBarcode generates a Code128 barcode and draws it scaled into dst at (x, y, w, h).
+// If the content encodes to a barcode wider than w, it truncates content to fit.
 func drawBarcode(dst *image.RGBA, content string, x, y, w, h int) error {
 	if content == "" {
 		return nil
 	}
-	bc, err := code128.Encode(content)
-	if err != nil {
-		return fmt.Errorf("barcode encode: %w", err)
+
+	// Try encoding, shorten content if barcode is wider than available space
+	for len(content) > 0 {
+		bc, err := code128.Encode(content)
+		if err != nil {
+			return fmt.Errorf("barcode encode: %w", err)
+		}
+		if bc.Bounds().Dx() <= w {
+			scaled, err := barcode.Scale(bc, w, h)
+			if err != nil {
+				return fmt.Errorf("barcode scale: %w", err)
+			}
+			draw.Draw(dst, image.Rect(x, y, x+w, y+h), scaled, image.Point{}, draw.Src)
+			return nil
+		}
+		// Barcode too wide, shorten content
+		content = content[:len(content)-1]
 	}
-	scaled, err := barcode.Scale(bc, w, h)
-	if err != nil {
-		return fmt.Errorf("barcode scale: %w", err)
-	}
-	draw.Draw(dst, image.Rect(x, y, x+w, y+h), scaled, image.Point{}, draw.Src)
+	// Content too short to encode, skip silently
 	return nil
 }
 
