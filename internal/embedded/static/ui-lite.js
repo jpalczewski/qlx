@@ -9,7 +9,8 @@
     initDragDrop();
   });
 
-  // Toast notifications
+  // Toast notifications (exposed globally for template scripts)
+  window.showToast = showToast;
   function showToast(message, isError) {
     var container = document.getElementById("toast-container");
     if (!container) {
@@ -210,6 +211,27 @@
     el.textContent = text.trim();
   }
 
-  // Start SSE on load
+  // Fetch initial printer statuses (SSE only sends updates, not initial state)
+  function fetchInitialStatuses() {
+    fetch('/api/printers/status')
+      .then(function(r) { return r.json(); })
+      .then(function(statuses) {
+        if (statuses && typeof statuses === 'object') {
+          Object.keys(statuses).forEach(function(id) {
+            updatePrinterCard(id, statuses[id]);
+            updateNavbarPrinter(statuses[id]);
+          });
+        }
+      })
+      .catch(function() {});
+  }
+
+  // Start SSE + fetch initial state on load
   initSSE();
+  fetchInitialStatuses();
+
+  // Re-fetch after HTMX swaps (navigating to printers page)
+  document.body.addEventListener("htmx:afterSwap", function() {
+    fetchInitialStatuses();
+  });
 })();
