@@ -329,11 +329,7 @@ func (s *Server) HandleExportCSV(w http.ResponseWriter, r *http.Request) {
 	items := s.store.AllItems()
 	for _, item := range items {
 		path := s.inventory.ContainerPath(item.ContainerID)
-		var pathStrs []string
-		for _, c := range path {
-			pathStrs = append(pathStrs, c.Name)
-		}
-		pathStr := strings.Join(pathStrs, " -> ")
+		pathStr := webutil.FormatContainerPath(path, " -> ")
 
 		_ = cw.Write([]string{
 			item.ID,
@@ -424,14 +420,10 @@ func (s *Server) HandlePrint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := s.inventory.ContainerPath(item.ContainerID)
-	var pathStrs []string
-	for _, c := range path {
-		pathStrs = append(pathStrs, c.Name)
-	}
 	data := label.LabelData{
 		Name:        item.Name,
 		Description: item.Description,
-		Location:    strings.Join(pathStrs, " → "),
+		Location:    webutil.FormatContainerPath(path, " → "),
 		QRContent:   "/item/" + item.ID,
 		BarcodeID:   item.ID,
 	}

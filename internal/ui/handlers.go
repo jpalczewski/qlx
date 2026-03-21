@@ -248,15 +248,10 @@ func (s *Server) HandleItemPrint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := s.inventory.ContainerPath(item.ContainerID)
-	pathParts := make([]string, 0, len(path))
-	for _, c := range path {
-		pathParts = append(pathParts, c.Name)
-	}
-
 	data := label.LabelData{
 		Name:        item.Name,
 		Description: item.Description,
-		Location:    strings.Join(pathParts, " → "),
+		Location:    webutil.FormatContainerPath(path, " → "),
 		QRContent:   fmt.Sprintf("/ui/items/%s", item.ID),
 		BarcodeID:   item.ID,
 	}
@@ -548,13 +543,9 @@ func (s *Server) HandleContainerItemsJSON(w http.ResponseWriter, r *http.Request
 	var result []map[string]string
 	for _, item := range items {
 		path := s.inventory.ContainerPath(item.ContainerID)
-		var parts []string
-		for _, c := range path {
-			parts = append(parts, c.Name)
-		}
 		result = append(result, map[string]string{
 			"name": item.Name, "description": item.Description,
-			"location": strings.Join(parts, " → "), "id": item.ID,
+			"location": webutil.FormatContainerPath(path, " → "), "id": item.ID,
 			"qr_url": "/ui/items/" + item.ID,
 		})
 	}
