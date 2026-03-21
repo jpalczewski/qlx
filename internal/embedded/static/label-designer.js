@@ -730,17 +730,15 @@
     }
   }
 
+  // Use htmx.onLoad for proper 3rd party library init after HTMX content swap
+  if (typeof htmx !== "undefined") {
+    htmx.onLoad(tryInit);
+  }
+
+  // Also init on first page load (full page, not HTMX swap)
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", tryInit);
   } else {
     tryInit();
-  }
-
-  // Re-init after HTMX swaps (register only once)
-  if (!window.__designerHtmxBound) {
-    document.body.addEventListener("htmx:afterSwap", function () {
-      tryInit();
-    });
-    window.__designerHtmxBound = true;
   }
 })();
