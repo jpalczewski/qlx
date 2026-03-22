@@ -109,7 +109,7 @@
       if (hasTarget) return;
       var ids = dragData.ids;
       dragData = null;
-      fetch("/ui/actions/bulk/move", {
+      fetch("/bulk/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: ids, target_container_id: targetId })
@@ -137,10 +137,10 @@
     var movedType = dragData.type;
     var url, body;
     if (movedType === "container") {
-      url = "/ui/actions/containers/" + encodeURIComponent(dragData.id) + "/move";
+      url = "/containers/" + encodeURIComponent(dragData.id) + "/move";
       body = "parent_id=" + encodeURIComponent(targetId);
     } else {
-      url = "/ui/actions/items/" + encodeURIComponent(dragData.id) + "/move";
+      url = "/items/" + encodeURIComponent(dragData.id) + "/move";
       body = "container_id=" + encodeURIComponent(targetId);
     }
 

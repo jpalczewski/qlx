@@ -5,12 +5,12 @@
     <h2>{{.T "settings.language"}}</h2>
     <div class="lang-options">
         <button class="lang-option{{if eq .Lang "pl"}} lang-active{{end}}"
-                hx-post="/ui/actions/set-lang" hx-vals='{"lang":"pl"}'
+                hx-post="/set-lang" hx-vals='{"lang":"pl"}'
                 hx-swap="none" hx-on::after-request="window.location.reload()">
             🇵🇱 Polski
         </button>
         <button class="lang-option{{if eq .Lang "en"}} lang-active{{end}}"
-                hx-post="/ui/actions/set-lang" hx-vals='{"lang":"en"}'
+                hx-post="/set-lang" hx-vals='{"lang":"en"}'
                 hx-swap="none" hx-on::after-request="window.location.reload()">
             🇬🇧 English
         </button>
@@ -20,8 +20,8 @@
 <div class="settings-section">
     <h2>{{.T "settings.data"}}</h2>
     <div class="actions">
-        <a href="/api/export/json" class="btn btn-secondary" download="qlx-export.json">{{.T "settings.export_json"}}</a>
-        <a href="/api/export/csv" class="btn btn-secondary" download="qlx-export.csv">{{.T "settings.export_csv"}}</a>
+        <a href="/export/json" class="btn btn-secondary" download="qlx-export.json">{{.T "settings.export_json"}}</a>
+        <a href="/export/csv" class="btn btn-secondary" download="qlx-export.csv">{{.T "settings.export_csv"}}</a>
     </div>
 </div>
 {{ end }}

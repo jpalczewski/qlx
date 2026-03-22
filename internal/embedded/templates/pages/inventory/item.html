@@ -21,7 +21,7 @@
             <p>
                 {{ range $i, $c := .Data.Path }}
                 {{ if $i }} → {{ end }}
-                <a href="/ui/containers/{{ $c.ID }}" hx-get="/ui/containers/{{ $c.ID }}" hx-target="#content"><span class="entity-icon" style="width:16px;height:16px">{{ if $c.Icon }}{{ icon $c.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ $c.Name }}</a>
+                <a href="/containers/{{ $c.ID }}" hx-get="/containers/{{ $c.ID }}" hx-target="#content"><span class="entity-icon" style="width:16px;height:16px">{{ if $c.Icon }}{{ icon $c.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ $c.Name }}</a>
                 {{ end }}
             </p>
         </section>
@@ -55,9 +55,9 @@
                 var tmpl = document.getElementById('print-template').value;
                 var result = document.getElementById('print-result');
                 result.textContent = 'Drukowanie...';
-                fetch('/ui/actions/items/{{ .Data.Item.ID }}/print', {
+                fetch('/items/{{ .Data.Item.ID }}/print', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
                     body: JSON.stringify({printer_id: printer, template: tmpl})
                 }).then(function(r){ return r.json(); }).then(function(d){
                     if (!d.ok) { result.textContent = 'Błąd: ' + (d.error || 'unknown'); return; }
@@ -70,7 +70,7 @@
                     var params = {
                         name: itemData.Name || '', description: itemData.Description || '',
                         location: itemData.Location || '', id: '{{ .Data.Item.ID }}',
-                        qr_url: '/ui/items/{{ .Data.Item.ID }}',
+                        qr_url: '/items/{{ .Data.Item.ID }}',
                         date: new Date().toISOString().slice(0,10),
                         time: new Date().toTimeString().slice(0,5),
                         printer: ''
@@ -97,18 +97,18 @@
                 }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
             })()">{{.T "action.print"}}</button>
             {{ else }}
-            <p class="empty">{{.T "inventory.no_printers"}}. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+            <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
             {{ end }}
             <div id="print-result"></div>
         </section>
 
         <section class="actions">
-            <a href="/ui/items/{{ .Data.Item.ID }}/edit" hx-get="/ui/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="button">{{.T "inventory.edit"}}</a>
-            <button hx-delete="/ui/actions/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="danger">{{.T "action.delete"}}</button>
+            <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="button">{{.T "inventory.edit"}}</a>
+            <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="danger">{{.T "action.delete"}}</button>
         </section>
 
         <section class="back">
-            <a href="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/ui/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
+            <a href="/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
         </section>
     </article>
 </div>

@@ -51,15 +51,15 @@
 </head>
 <body>
     <nav>
-        <a class="brand" href="/ui" hx-get="/ui" hx-target="#content">QLX</a>
-        <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "nav.printers"}}</a>
-        <a href="/ui/templates" hx-get="/ui/templates" hx-target="#content">{{.T "nav.templates"}}</a>
-        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "nav.tags"}}</a>
+        <a class="brand" href="/" hx-get="/" hx-target="#content">QLX</a>
+        <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "nav.printers"}}</a>
+        <a href="/templates" hx-get="/templates" hx-target="#content">{{.T "nav.templates"}}</a>
+        <a href="/tags" hx-get="/tags" hx-target="#content">{{.T "nav.tags"}}</a>
         <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
-               hx-get="/ui/search" hx-trigger="input changed delay:300ms"
+               hx-get="/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
         <span id="printer-status"></span>
-        <a class="nav-settings" href="/ui/settings" hx-get="/ui/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
+        <a class="nav-settings" href="/settings" hx-get="/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
     </nav>
     <main id="content">
         {{ template "content" . }}

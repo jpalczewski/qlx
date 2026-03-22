@@ -8,7 +8,7 @@
   /** Open an SSE connection to receive live printer status updates. */
   function initSSE() {
     if (evtSource) return;
-    evtSource = new EventSource("/api/printers/events");
+    evtSource = new EventSource("/printers/events");
     evtSource.onmessage = function (e) {
       try {
         var evt = JSON.parse(e.data);
@@ -95,7 +95,7 @@
    * Fetch initial printer statuses (SSE only sends updates, not initial state).
    */
   function fetchInitialStatuses() {
-    fetch("/api/printers/status")
+    fetch("/printers/status", { headers: { "Accept": "application/json" } })
       .then(function (r) { return r.json(); })
       .then(function (statuses) {
         if (statuses && typeof statuses === "object") {

@@ -10,7 +10,7 @@
     <h2>{{.T "search.containers"}}</h2>
     <ul class="container-list">
     {{ range .Data.Containers }}
-        <li><a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
+        <li><a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
     {{ end }}
     </ul>
 </section>
@@ -21,7 +21,7 @@
     <h2>{{.T "search.items"}}</h2>
     <ul class="item-list">
     {{ range .Data.Items }}
-        <li><a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
+        <li><a href="/items/{{ .ID }}" hx-get="/items/{{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
     {{ end }}
     </ul>
 </section>
@@ -32,7 +32,7 @@
     <h2>{{.T "search.tags"}}</h2>
     <ul class="tag-list">
     {{ range .Data.Tags }}
-        <li><a href="/ui/tags?parent_id={{ .ID }}" hx-get="/ui/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
+        <li><a href="/tags?parent_id={{ .ID }}" hx-get="/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
     {{ end }}
     </ul>
 </section>

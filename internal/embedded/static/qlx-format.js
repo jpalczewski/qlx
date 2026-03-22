@@ -287,7 +287,7 @@ window.QlxFormat = (function () {
         rect.qlxFit = fit || "contain";
         resolve(rect);
       };
-      imgEl.src = "/ui/actions/assets/" + assetId;
+      imgEl.src = "/assets/" + assetId;
     });
   }
 

@@ -4,7 +4,7 @@
 
     <h1>{{ if .Data.Item }}{{.T "inventory.edit_item"}}{{ else }}{{.T "inventory.new_item"}}{{ end }}</h1>
 
-    <form hx-{{ if .Data.Item }}put{{ else }}post{{ end }}="/ui/actions/items{{ if .Data.Item }}/{{ .Data.Item.ID }}{{ end }}" hx-target="#content">
+    <form hx-{{ if .Data.Item }}put{{ else }}post{{ end }}="/items{{ if .Data.Item }}/{{ .Data.Item.ID }}{{ end }}" hx-target="#content">
         <input type="hidden" name="container_id" value="{{ if .Data.ContainerID }}{{ .Data.ContainerID }}{{ else }}{{ .Data.Item.ContainerID }}{{ end }}">
 
         {{ if .Data.Item }}
@@ -36,7 +36,7 @@
 
         <div class="actions">
             <button type="submit">{{ if .Data.Item }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
-            <a href="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
+            <a href="{{ if .Data.Item }}/items/{{ .Data.Item.ID }}{{ else }}/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/items/{{ .Data.Item.ID }}{{ else }}/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
         </div>
     </form>
 </div>

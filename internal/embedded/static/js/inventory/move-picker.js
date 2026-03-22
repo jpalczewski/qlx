@@ -4,13 +4,13 @@
   var picker = qlx.createTreePicker({
     id: "move-picker",
     title: function () { return qlx.t("inventory.move_to_container"); },
-    endpoint: "/ui/partials/tree",
-    searchEndpoint: "/ui/partials/tree/search",
+    endpoint: "/partials/tree",
+    searchEndpoint: "/partials/tree/search",
     searchPlaceholder: function () { return qlx.t("nav.search_placeholder"); },
     confirmLabel: function () { return qlx.t("action.move"); },
     onConfirm: function (targetId) {
       var ids = qlx.selectionEntries();
-      fetch("/ui/actions/bulk/move", {
+      fetch("/bulk/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: ids, target_container_id: targetId })

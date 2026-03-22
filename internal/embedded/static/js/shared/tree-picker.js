@@ -5,7 +5,7 @@
    * Expand or collapse a tree node, fetching children from the given endpoint.
    * @param {Element} expandEl - the clicked expand toggle
    * @param {HTMLElement} treeContainer - the tree root container
-   * @param {string} endpoint - base URL for fetching children (e.g. "/ui/partials/tree")
+   * @param {string} endpoint - base URL for fetching children (e.g. "/partials/tree")
    */
   function handleTreeExpand(expandEl, treeContainer, endpoint) {
     var li = expandEl.closest(".tree-node");

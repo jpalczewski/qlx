@@ -5,7 +5,7 @@
         {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
         <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content" class="tag-name">{{ .Name }}</a>
         <button class="tag-remove"
-                hx-delete="/ui/actions/{{ $.Data.ObjectType }}s/{{ $.Data.ObjectID }}/tags/{{ .ID }}"
+                hx-delete="/{{ $.Data.ObjectType }}s/{{ $.Data.ObjectID }}/tags/{{ .ID }}"
                 hx-target="#tag-chips-{{ $.Data.ObjectID }}"
                 hx-swap="outerHTML">&times;</button>
     </span>

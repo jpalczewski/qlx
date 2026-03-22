@@ -1,9 +1,9 @@
 {{ define "breadcrumb" }}
 <nav class="breadcrumb">
-    <a href="/ui" hx-get="/ui" hx-target="#content" data-drop-id="" data-drop-type="container">{{ or .Home "Home" }}</a>
+    <a href="/" hx-get="/" hx-target="#content" data-drop-id="" data-drop-type="container">{{ or .Home "Home" }}</a>
     {{ range .Path }}
     <span class="sep">→</span>
-    <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" data-drop-id="{{ .ID }}" data-drop-type="container"><span class="entity-icon" style="width:16px;height:16px">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</a>
+    <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" data-drop-id="{{ .ID }}" data-drop-type="container"><span class="entity-icon" style="width:16px;height:16px">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</a>
     {{ end }}
     {{ with .Current }}
     <span class="sep">→</span>

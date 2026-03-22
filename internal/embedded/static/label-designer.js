@@ -486,7 +486,7 @@
     var formData = new FormData();
     formData.append("file", file);
 
-    fetch("/ui/actions/assets", { method: "POST", body: formData })
+    fetch("/assets", { method: "POST", body: formData, headers: { "Accept": "application/json" } })
       .then(function (resp) {
         if (!resp.ok) throw new Error("Upload failed");
         return resp.json();
@@ -523,7 +523,7 @@
         imgEl.onerror = function () {
           showToast("Failed to load uploaded image", true);
         };
-        imgEl.src = "/ui/actions/assets/" + assetId;
+        imgEl.src = "/assets/" + assetId;
       })
       .catch(function (err) {
         showToast("Upload failed: " + err.message, true);
@@ -688,12 +688,12 @@
 
       var method = templateId ? "PUT" : "POST";
       var url = templateId
-        ? "/ui/actions/templates/" + templateId
-        : "/ui/actions/templates";
+        ? "/templates/" + templateId
+        : "/templates";
 
       fetch(url, {
         method: method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify(payload)
       })
         .then(function (resp) {
@@ -707,7 +707,7 @@
         .then(function () {
           showToast("Template saved");
           if (typeof htmx !== "undefined") {
-            htmx.ajax("GET", "/ui/templates", { target: "#content" });
+            htmx.ajax("GET", "/templates", { target: "#content" });
           }
         })
         .catch(function (err) {
