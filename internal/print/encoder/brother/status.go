@@ -28,10 +28,6 @@ const (
 	statusTypeNotify      = 0x05
 	statusTypePhaseChange = 0x06
 
-	// Phase type values (byte 19).
-	phaseReceiving = 0x00
-	phasePrinting  = 0x01
-
 	// Media type: no media loaded.
 	mediaTypeNone byte = 0x00
 

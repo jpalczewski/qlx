@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+//nolint:gocyclo // table-driven test with inline check functions
 func TestParseStatus(t *testing.T) {
 	// Base: valid status with no errors, 62mm continuous media.
 	base := [statusSize]byte{}
