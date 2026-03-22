@@ -6,12 +6,12 @@ test.describe('Printer management', () => {
   const printerName = `Test Printer ${Date.now()}`;
 
   test('printers page loads', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Drukarki');
   });
 
   test('add printer via form', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
 
     await page.click('summary:has-text("Dodaj drukarkę")');
     await page.fill('#name', printerName);
@@ -20,7 +20,7 @@ test.describe('Printer management', () => {
     await page.fill('#address', 'AA:BB:CC:DD:EE:FF');
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/printers') && r.request().method() === 'POST'
+      r.url().includes('/printers') && r.request().method() === 'POST'
     );
     await page.click('button:has-text("Dodaj")');
     await responsePromise;
@@ -29,10 +29,10 @@ test.describe('Printer management', () => {
   });
 
   test('BLE scan button triggers request', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/api/bluetooth/scan')
+      r.url().includes('/bluetooth/scan')
     );
 
     await page.click('button:has-text("Skanuj Bluetooth")');
@@ -46,10 +46,10 @@ test.describe('Printer management', () => {
   });
 
   test('BLE scan with mocked results populates form', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
 
     // Mock the BLE scan endpoint
-    await page.route('**/api/bluetooth/scan', async route => {
+    await page.route('**/bluetooth/scan', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -71,11 +71,11 @@ test.describe('Printer management', () => {
   });
 
   test('delete printer', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/printers`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
 
     page.on('dialog', dialog => dialog.accept());
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/printers/') && r.request().method() === 'DELETE'
+      r.url().includes('/printers/') && r.request().method() === 'DELETE'
     );
     await page.click(`.printer-card:has-text("${printerName}") button:has-text("Usuń")`);
     await responsePromise;
