@@ -250,8 +250,12 @@ func TestContainersByTag(t *testing.T) {
 	boxB := s.CreateContainer(root.ID, "Box B", "", "", "")
 
 	// Tag: Box A -> warehouse, Box B -> shelf (child of warehouse)
-	s.AddContainerTag(boxA.ID, warehouse.ID)
-	s.AddContainerTag(boxB.ID, shelf.ID)
+	if err := s.AddContainerTag(boxA.ID, warehouse.ID); err != nil {
+		t.Fatalf("AddContainerTag error = %v", err)
+	}
+	if err := s.AddContainerTag(boxB.ID, shelf.ID); err != nil {
+		t.Fatalf("AddContainerTag error = %v", err)
+	}
 
 	// ContainersByTag(warehouse) should return both (includes descendant shelf)
 	containers := s.ContainersByTag(warehouse.ID)
