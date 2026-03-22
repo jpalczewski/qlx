@@ -12,6 +12,12 @@
         </section>
         {{ end }}
 
+        {{ if .Data.Item.TagIDs }}
+        <section class="item-tags">
+            {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Item.ID "ObjectType" "item" "Tags" (resolveTags .Data.Item.TagIDs)) }}
+        </section>
+        {{ end }}
+
         <section class="location">
             <h3>{{.T "inventory.location"}}</h3>
             <p>
