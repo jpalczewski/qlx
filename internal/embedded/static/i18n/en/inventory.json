@@ -32,5 +32,9 @@
   "inventory.new_container": "New container",
   "inventory.quantity": "Quantity",
   "inventory.print_container_label": "Print container label",
-  "inventory.print_date": "Add print date"
+  "inventory.print_date": "Add print date",
+  "inventory.show_children": "Show contents",
+  "inventory.printed": "Printed!",
+  "inventory.select_template": "Select a template",
+  "inventory.enter_text": "Enter text"
 }

@@ -31,7 +31,7 @@
     </div>
 
     <div class="form-group">
-        <label>
+        <label class="checkbox-label">
             <input type="checkbox" id="adhoc-print-date">
             {{.T "inventory.print_date"}}
         </label>
@@ -55,7 +55,7 @@
         var printDate = document.getElementById('adhoc-print-date').checked;
         var result = document.getElementById('adhoc-result');
         if (!text.trim()) {
-            result.textContent = 'Please enter text';
+            result.textContent = '{{.T "inventory.enter_text"}}';
             return;
         }
         result.textContent = '...';
@@ -65,7 +65,7 @@
             body: JSON.stringify({text: text, printer_id: printer, template: tmpl, print_date: printDate})
         }).then(function(r) { return r.json(); }).then(function(d) {
             if (!d.ok) { result.textContent = 'Error: ' + (d.error || 'unknown'); return; }
-            if (d.render !== 'client') { result.textContent = 'Printed!'; return; }
+            if (d.render !== 'client') { result.textContent = '{{.T "inventory.printed"}}'; return; }
             result.textContent = 'Rendering...';
             var elements = [];
             try { elements = JSON.parse(d.template.elements || '[]'); } catch(e) {}
@@ -88,7 +88,7 @@
                 fc.renderAll();
                 return window.LabelPrint.print(fc, printer, 2);
             }).then(function(){
-                result.textContent = 'Printed!';
+                result.textContent = '{{.T "inventory.printed"}}';
             }).catch(function(e){
                 result.textContent = 'Error: ' + e;
             }).finally(function(){

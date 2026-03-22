@@ -32,5 +32,9 @@
   "inventory.new_container": "Nowy kontener",
   "inventory.quantity": "Ilość",
   "inventory.print_container_label": "Drukuj etykietę kontenera",
-  "inventory.print_date": "Dodaj datę wydruku"
+  "inventory.print_date": "Dodaj datę wydruku",
+  "inventory.show_children": "Pokaż zawartość",
+  "inventory.printed": "Wydrukowano!",
+  "inventory.select_template": "Wybierz szablon",
+  "inventory.enter_text": "Wpisz tekst"
 }
