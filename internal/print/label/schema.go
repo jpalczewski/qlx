@@ -21,7 +21,7 @@ type Schema struct {
 
 // Element defines a single layout slot in a schema.
 type Element struct {
-	Slot       string  `json:"slot"`        // title, description, location, qr, barcode
+	Slot       string  `json:"slot"`        // title, description, location, qr, barcode, tags, children
 	FontSize   float64 `json:"font_size"`   // pixel size for text slots
 	FontFamily string  `json:"font_family"` // override schema default; empty = inherit
 	Align      string  `json:"align"`       // left, center, right
@@ -29,6 +29,8 @@ type Element struct {
 	Color      string  `json:"color"`       // hex color e.g. "#505050"
 	Size       int     `json:"size"`        // px for qr
 	Height     int     `json:"height"`      // px for barcode
+	ShowPath   string  `json:"show_path"`   // tags only: "auto"|"true"|"false" (default "auto")
+	ShowIcons  *bool   `json:"show_icons"`  // render inline icons (default true for title/children/tags)
 }
 
 // parseSchema parses JSON bytes into a Schema, applying defaults.
@@ -49,6 +51,9 @@ func parseSchema(data []byte) (Schema, error) {
 		}
 		if s.Elements[i].Color == "" {
 			s.Elements[i].Color = "#000000"
+		}
+		if s.Elements[i].ShowPath == "" {
+			s.Elements[i].ShowPath = "auto"
 		}
 	}
 	return s, nil
