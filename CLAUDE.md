@@ -19,6 +19,8 @@ make run                    # starts on :8080, data in ./data
 make test                   # all tests
 make test-ble               # with BLE build tag
 go test ./internal/store/ -run TestName -v  # single test
+make test-e2e               # Playwright E2E (headless)
+make test-e2e-ui            # Playwright E2E (interactive)
 
 # Lint
 make lint                   # golangci-lint (govet, staticcheck, errcheck, gosec, etc.)
@@ -70,6 +72,10 @@ internal/
 
 - `/api/*` → JSON responses
 - `/ui/*` → Full HTML on direct GET, HTMX fragments when `HX-Request` header present
+
+### HTMX Navigation
+
+Links use `hx-get` + `hx-target="#content"` without `hx-push-url`. URL sync is handled by a global `htmx:afterRequest` hook in `internal/embedded/static/js/shared/htmx-hooks.js` — do not add per-link `hx-push-url`. Tag autocomplete inputs must be wrapped in `<div class="tag-ac-wrap">` for correct dropdown positioning.
 
 ### Print Workflow
 
@@ -124,6 +130,8 @@ Target has ~35MB usable RAM. Respect memory tuning in main.go: `SetMemoryLimit(1
 
 ## Tool Usage
 
-- Use **Serena** proactively for code exploration (symbol overview, find references) instead of reading entire files
+- Use **Serena** proactively for code exploration instead of reading entire files
+  - Go: `find_symbol` requires full receiver syntax (`(*Server).Method`) or `substring_matching: true`
+  - Prefer `search_for_pattern` and `get_symbols_overview` over `Read` for code files
 - Use **Context7** for up-to-date library documentation lookup
-- Use **Playwright** for frontend testing when applicable
+- Use **Playwright MCP** (`mcp__playwright__browser_*`) for interactive UI debugging and testing

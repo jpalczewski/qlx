@@ -4,5 +4,14 @@
   "tags.tag_action": "Tag",
   "tags.title": "Tags",
   "tags.no_tags": "No tags",
-  "tags.new_tag_placeholder": "New tag..."
+  "tags.new_tag_placeholder": "New tag...",
+  "tags.stats_items": "Items",
+  "tags.stats_containers": "Containers",
+  "tags.stats_total_quantity": "Total quantity",
+  "tags.containers_section": "Containers",
+  "tags.items_section": "Items",
+  "tags.children_section": "Child tags",
+  "tags.no_tagged_objects": "No items or containers tagged with this tag.",
+  "tags.quantity_label": "qty",
+  "tags.create_tag_prompt": "Create \"{0}\"?"
 }

@@ -22,3 +22,5 @@
     background: none; border: 1px dashed var(--color-border); border-radius: 12px;
     cursor: pointer; padding: 0.15rem 0.5rem; color: var(--color-text-muted); font-size: 0.85rem;
 }
+.tag-chip .tag-name { color: inherit; text-decoration: none; }
+.tag-chip .tag-name:hover { text-decoration: underline; }
