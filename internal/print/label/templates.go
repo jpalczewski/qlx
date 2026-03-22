@@ -7,5 +7,3 @@ type LabelData struct {
 	QRContent   string // URL for QR code
 	BarcodeID   string // item ID for barcode
 }
-
-var templateNames = []string{"simple", "standard", "compact", "detailed"}
