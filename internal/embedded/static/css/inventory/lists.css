@@ -40,3 +40,22 @@
     font-size: 0.9rem;
     margin-top: 0.25rem;
 }
+
+/* When a list item has tag chips, square off card bottom to join with chips */
+.container-list li:has(.tag-chips) a,
+.item-list li:has(.tag-chips) a {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+/* Tag chips in list attach to card bottom */
+.container-list .tag-chips,
+.item-list .tag-chips {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 0.35rem 1rem;
+    margin: 0;
+}

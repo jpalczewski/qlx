@@ -24,8 +24,8 @@
             body: "tag_id=" + encodeURIComponent(tag.id)
           }).then(function (resp) {
             if (resp.ok) {
-              // Refresh the whole page to update chips
-              htmx.ajax("GET", window.location.pathname, { target: "#content" });
+              var returnUrl = "/ui/" + objectType + "s/" + objectId;
+              htmx.ajax("GET", returnUrl, { target: "#content" });
             }
           });
         },

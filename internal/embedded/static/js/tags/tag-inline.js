@@ -10,13 +10,17 @@
       var objectType = btn.getAttribute("data-object-type");
       var chipsDiv = btn.closest(".tag-chips");
 
-      // Replace button with input
+      // Replace button with a positioned wrapper + input so the dropdown
+      // is absolutely positioned relative to the input, not the chips div.
       var input = document.createElement("input");
       input.type = "text";
       input.className = "tag-ac-input";
       input.placeholder = qlx.t ? qlx.t("tags.search_tags") : "Tag...";
+      var wrap = document.createElement("div");
+      wrap.className = "tag-ac-wrap";
+      wrap.appendChild(input);
       btn.style.display = "none";
-      chipsDiv.appendChild(input);
+      chipsDiv.appendChild(wrap);
       input.focus();
 
       var ac = qlx.TagAutocomplete({
@@ -29,8 +33,8 @@
             body: "tag_id=" + encodeURIComponent(tag.id)
           }).then(function (resp) {
             if (resp.ok) {
-              // Refresh chips via HTMX
-              htmx.ajax("GET", window.location.pathname, { target: "#content" });
+              var returnUrl = "/ui/" + objectType + "s/" + objectId;
+              htmx.ajax("GET", returnUrl, { target: "#content" });
             }
             cleanup();
           }).catch(function () {
@@ -43,7 +47,7 @@
       });
 
       function cleanup() {
-        if (input.parentNode) input.parentNode.removeChild(input);
+        if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
         btn.style.display = "";
       }
 
