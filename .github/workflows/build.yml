@@ -3,10 +3,6 @@ name: Build Go Binary
 on:
   workflow_call:
     inputs:
-      go-version:
-        description: Go version to use
-        type: string
-        default: "1.25"
       binary-name:
         description: Output binary name
         type: string
@@ -24,11 +20,13 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ inputs.go-version }}
+          go-version-file: go.mod
+          cache: true
       - name: Build binary
         env:
           BINARY_NAME: ${{ inputs.binary-name }}
