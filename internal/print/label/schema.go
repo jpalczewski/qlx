@@ -21,13 +21,14 @@ type Schema struct {
 
 // Element defines a single layout slot in a schema.
 type Element struct {
-	Slot     string  `json:"slot"`      // title, description, location, qr, barcode
-	FontSize float64 `json:"font_size"` // pixel size for text slots
-	Align    string  `json:"align"`     // left, center, right
-	Wrap     bool    `json:"wrap"`      // enable text wrapping
-	Color    string  `json:"color"`     // hex color e.g. "#505050"
-	Size     int     `json:"size"`      // px for qr
-	Height   int     `json:"height"`    // px for barcode
+	Slot       string  `json:"slot"`        // title, description, location, qr, barcode
+	FontSize   float64 `json:"font_size"`   // pixel size for text slots
+	FontFamily string  `json:"font_family"` // override schema default; empty = inherit
+	Align      string  `json:"align"`       // left, center, right
+	Wrap       bool    `json:"wrap"`        // enable text wrapping
+	Color      string  `json:"color"`       // hex color e.g. "#505050"
+	Size       int     `json:"size"`        // px for qr
+	Height     int     `json:"height"`      // px for barcode
 }
 
 // parseSchema parses JSON bytes into a Schema, applying defaults.

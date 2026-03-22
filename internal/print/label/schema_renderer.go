@@ -59,10 +59,17 @@ func resolveElements(schema Schema, data LabelData, widthPx, pad, qrReserved int
 		switch el.Slot {
 		case "title", "description", "location":
 			text := slotText[el.Slot]
-			if schema.FontFamily == "basic" {
-				text = transliteratePL(text)
+			effectiveFont := el.FontFamily
+			if effectiveFont == "" {
+				effectiveFont = schema.FontFamily
 			}
-			rt, err := resolveTextElement(el, text, schema.FontFamily, widthPx, pad, qrReserved)
+			if effectiveFont == "" {
+				effectiveFont = "spleen"
+			}
+			if IsBasicFont(effectiveFont) {
+				text = TransliteratePL(text)
+			}
+			rt, err := resolveTextElement(el, text, effectiveFont, widthPx, pad, qrReserved)
 			if err != nil {
 				return nil, 0, 0, err
 			}
@@ -79,19 +86,15 @@ func resolveElements(schema Schema, data LabelData, widthPx, pad, qrReserved int
 
 // resolveTextElement builds a resolvedText from a single Element definition.
 func resolveTextElement(el Element, text, fontFamily string, widthPx, pad, qrReserved int) (resolvedText, error) {
-	var face font.Face
+	face, err := LoadFace(fontFamily, el.FontSize)
+	if err != nil {
+		return resolvedText{}, err
+	}
+	metrics := face.Metrics()
 	var lh int
-	if fontFamily == "basic" {
-		face = loadBasicFontFace()
-		metrics := face.Metrics()
+	if IsBasicFont(fontFamily) {
 		lh = (metrics.Ascent + metrics.Descent).Ceil()
 	} else {
-		var err error
-		face, err = loadFontFace(el.FontSize)
-		if err != nil {
-			return resolvedText{}, err
-		}
-		metrics := face.Metrics()
 		lh = (metrics.Ascent + metrics.Descent + fixed.I(int(el.FontSize/4))).Ceil()
 	}
 
