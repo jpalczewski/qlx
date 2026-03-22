@@ -16,3 +16,4 @@ qlx-e2e-test
 .playwright-mcp
 *.png
 test-results/.last-run.json
+qlx-test

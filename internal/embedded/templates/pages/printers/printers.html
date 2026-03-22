@@ -23,10 +23,12 @@
     <p class="empty">{{.T "printers.no_printers"}}</p>
     {{ end }}
 
-    <section class="ble-scan">
-        <button onclick="scanBLE()" class="button">{{.T "printers.scan_bluetooth"}}</button>
-        <div id="ble-results"></div>
+    <section class="scan-buttons">
+        <button onclick="scanUSB()" class="button">Skanuj USB</button>
+        <button onclick="scanBLE()" class="button secondary">{{.T "printers.scan_bluetooth"}}</button>
     </section>
+    <div id="usb-results"></div>
+    <div id="ble-results"></div>
 
     <section class="actions">
         <details>
@@ -54,8 +56,9 @@
                 </div>
                 <div class="form-group">
                     <label for="transport">Transport</label>
-                    <select id="transport" name="transport">
-                        <option value="usb">USB</option>
+                    <select id="transport" name="transport" onchange="updateAddressPlaceholder()">
+                        <option value="gousb">USB (bidirectional)</option>
+                        <option value="usb">USB (file)</option>
                         <option value="serial">Serial/Bluetooth</option>
                         <option value="ble">Bluetooth (BLE)</option>
                         <option value="remote">Remote QLX</option>
@@ -63,7 +66,7 @@
                 </div>
                 <div class="form-group">
                     <label for="address">{{.T "printers.address"}}</label>
-                    <input type="text" id="address" name="address" required placeholder="/dev/usb/lp0">
+                    <input type="text" id="address" name="address" required placeholder="04F9:2042:SERIAL">
                 </div>
                 <button type="submit">{{.T "printers.add"}}</button>
             </form>
@@ -150,6 +153,91 @@ function fillPrinter(name, address) {
     if (addressInput) addressInput.value = address;
     var details = document.querySelector('details');
     if (details) details.open = true;
+    updateAddressPlaceholder();
+}
+
+function scanUSB() {
+    var container = document.getElementById('usb-results');
+    container.textContent = '';
+    var loading = document.createElement('p');
+    loading.textContent = 'Skanowanie USB...';
+    container.appendChild(loading);
+
+    fetch('/printers/scan/usb', {headers: {'Accept': 'application/json'}})
+        .then(function(r) {
+            if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || r.statusText); });
+            return r.json();
+        })
+        .then(function(devices) {
+            container.textContent = '';
+            if (!devices || devices.length === 0) {
+                var empty = document.createElement('p');
+                empty.className = 'empty';
+                empty.textContent = 'Nie znaleziono drukarek USB';
+                container.appendChild(empty);
+                return;
+            }
+            var ul = document.createElement('ul');
+            ul.className = 'container-list';
+            devices.forEach(function(d) {
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.href = '#';
+                a.className = 'container-item';
+                a.onclick = function(e) {
+                    e.preventDefault();
+                    fillPrinterUSB(d.name, d.address);
+                };
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'name';
+                nameSpan.textContent = d.name;
+                var descSpan = document.createElement('span');
+                descSpan.className = 'desc';
+                descSpan.textContent = 'S/N: ' + d.serial + ' | ' + d.address;
+                a.appendChild(nameSpan);
+                a.appendChild(descSpan);
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
+        })
+        .catch(function(err) {
+            container.textContent = '';
+            var errP = document.createElement('p');
+            errP.className = 'empty';
+            errP.textContent = 'USB: ' + err.message;
+            container.appendChild(errP);
+        });
+}
+
+function fillPrinterUSB(name, address) {
+    var nameInput = document.getElementById('name');
+    var encoderSelect = document.getElementById('encoder');
+    var modelSelect = document.getElementById('model');
+    var transportSelect = document.getElementById('transport');
+    var addressInput = document.getElementById('address');
+    if (nameInput) nameInput.value = name;
+    if (encoderSelect) encoderSelect.value = 'brother-ql';
+    if (modelSelect) modelSelect.value = 'QL-700';
+    if (transportSelect) transportSelect.value = 'gousb';
+    if (addressInput) addressInput.value = address;
+    var details = document.querySelector('details');
+    if (details) details.open = true;
+    updateAddressPlaceholder();
+}
+
+function updateAddressPlaceholder() {
+    var transport = document.getElementById('transport');
+    var address = document.getElementById('address');
+    if (!transport || !address) return;
+    var placeholders = {
+        'gousb': '04F9:2042:SERIAL',
+        'usb': '/dev/usb/lp0',
+        'serial': '/dev/tty.usbserial-XXX',
+        'ble': 'AA:BB:CC:DD:EE:FF',
+        'remote': 'http://host:8080'
+    };
+    address.placeholder = placeholders[transport.value] || '';
 }
 </script>
 {{ end }}
