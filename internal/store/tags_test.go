@@ -237,6 +237,48 @@ func TestItemsByTag(t *testing.T) {
 	}
 }
 
+func TestContainersByTag(t *testing.T) {
+	s := NewMemoryStore()
+
+	// Create tag hierarchy: warehouse > shelf
+	warehouse := s.CreateTag("", "Warehouse", "blue", "")
+	shelf := s.CreateTag(warehouse.ID, "Shelf", "green", "")
+
+	// Create containers
+	root := s.CreateContainer("", "Root", "", "", "")
+	boxA := s.CreateContainer(root.ID, "Box A", "", "", "")
+	boxB := s.CreateContainer(root.ID, "Box B", "", "", "")
+
+	// Tag: Box A -> warehouse, Box B -> shelf (child of warehouse)
+	s.AddContainerTag(boxA.ID, warehouse.ID)
+	s.AddContainerTag(boxB.ID, shelf.ID)
+
+	// ContainersByTag(warehouse) should return both (includes descendant shelf)
+	containers := s.ContainersByTag(warehouse.ID)
+	if len(containers) != 2 {
+		t.Fatalf("ContainersByTag(warehouse) count = %d, want 2", len(containers))
+	}
+	names := map[string]bool{containers[0].Name: true, containers[1].Name: true}
+	if !names["Box A"] || !names["Box B"] {
+		t.Errorf("ContainersByTag names = %v, want Box A and Box B", names)
+	}
+
+	// ContainersByTag(shelf) should return only Box B
+	shelfContainers := s.ContainersByTag(shelf.ID)
+	if len(shelfContainers) != 1 {
+		t.Fatalf("ContainersByTag(shelf) count = %d, want 1", len(shelfContainers))
+	}
+	if shelfContainers[0].Name != "Box B" {
+		t.Errorf("ContainersByTag(shelf) container = %q, want Box B", shelfContainers[0].Name)
+	}
+
+	// Nonexistent tag returns empty
+	none := s.ContainersByTag("nonexistent")
+	if len(none) != 0 {
+		t.Errorf("ContainersByTag(nonexistent) count = %d, want 0", len(none))
+	}
+}
+
 func TestMoveTag(t *testing.T) {
 	t.Run("valid move", func(t *testing.T) {
 		s := NewMemoryStore()
