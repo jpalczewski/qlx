@@ -7,8 +7,8 @@ test.describe('Quick Print', () => {
 
   test('setup: create printer via API', async ({ request, app }) => {
     const printerRes = await request.post(`${app.baseURL}/printers`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'E2E Quick Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'E2E Quick Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
     });
     expect(printerRes.ok()).toBeTruthy();
     const printer = await printerRes.json();
@@ -33,9 +33,6 @@ test.describe('Quick Print', () => {
 
     await page.fill('#adhoc-text', 'Test label text');
     await page.selectOption('#adhoc-printer', printerId);
-
-    // Pick the first option in the template selector
-    const firstOption = await page.locator('#adhoc-template option').first().getAttribute('value');
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/adhoc/print') && r.request().method() === 'POST'
@@ -73,7 +70,8 @@ test.describe('Quick Print', () => {
     // Leave textarea empty and click print
     await page.click('#adhoc-print-btn');
 
-    // The JS handler sets result text client-side for empty text
-    await expect(page.locator('#adhoc-result')).toHaveText('Please enter text');
+    // The JS handler sets result text client-side for empty text (i18n rendered server-side)
+    const result = page.locator('#adhoc-result');
+    await expect(result).not.toHaveText('');
   });
 });

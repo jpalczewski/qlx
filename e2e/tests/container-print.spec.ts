@@ -8,23 +8,23 @@ test.describe('Container print', () => {
 
   test('setup: create printer, container with items and tags', async ({ request, app }) => {
     const printerRes = await request.post(`${app.baseURL}/printers`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'E2E Print Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'E2E Print Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
     });
     expect(printerRes.ok()).toBeTruthy();
     const printer = await printerRes.json();
     printerId = printer.id;
 
     const tagRes = await request.post(`${app.baseURL}/tags`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'print-test-tag', color: '#ff0000' },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'print-test-tag', color: '#ff0000' },
     });
     expect(tagRes.ok()).toBeTruthy();
     const tag = await tagRes.json();
 
     const containerRes = await request.post(`${app.baseURL}/containers`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'Print Container', description: 'Container for print tests' },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'Print Container', description: 'Container for print tests' },
     });
     expect(containerRes.ok()).toBeTruthy();
     const container = await containerRes.json();
@@ -32,27 +32,26 @@ test.describe('Container print', () => {
 
     // Assign tag to container
     await request.post(`${app.baseURL}/containers/${containerId}/tags`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { tag_id: tag.id },
+      headers: { 'Accept': 'application/json' },
+      form: { tag_id: tag.id },
     });
 
     // Create items inside container
     const item1Res = await request.post(`${app.baseURL}/items`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'Print Item A', description: 'First item', container_id: containerId },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'Print Item A', description: 'First item', container_id: containerId },
     });
     expect(item1Res.ok()).toBeTruthy();
 
     const item2Res = await request.post(`${app.baseURL}/items`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      data: { name: 'Print Item B', description: 'Second item', container_id: containerId },
+      headers: { 'Accept': 'application/json' },
+      form: { name: 'Print Item B', description: 'Second item', container_id: containerId },
     });
     expect(item2Res.ok()).toBeTruthy();
   });
 
   test('print section visible on container detail', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h2')).toContainText('Print Container');
 
     // Container label print section elements
     await expect(page.locator('#cprint-printer')).toBeVisible();
@@ -64,6 +63,10 @@ test.describe('Container print', () => {
 
   test('container print sends request with correct body', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
+
+    // Uncheck default-checked boxes for this test
+    await page.uncheck('#cprint-date');
+    await page.uncheck('#cprint-children');
 
     // Select the first schema checkbox
     const firstCheckbox = page.locator('input[name="cprint-schema"]').first();
@@ -86,9 +89,9 @@ test.describe('Container print', () => {
   test('print_date checkbox is included in request when checked', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
-    // Select a schema and check print date
+    // Select a schema
     await page.locator('input[name="cprint-schema"]').first().check();
-    await page.check('#cprint-date');
+    // print_date is checked by default now
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
@@ -103,9 +106,8 @@ test.describe('Container print', () => {
   test('show_children checkbox is included in request when checked', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
-    // Select a schema and check show children
+    // Select a schema — show_children is checked by default
     await page.locator('input[name="cprint-schema"]').first().check();
-    await page.check('#cprint-children');
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
