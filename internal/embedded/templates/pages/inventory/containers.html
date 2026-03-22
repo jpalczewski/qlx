@@ -73,12 +73,20 @@
               hx-post="/ui/actions/items"
               hx-target="#item-list"
               hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) { this.reset(); this.querySelector('input[name=name]').focus(); }">
+              hx-on::after-request="if(event.detail.successful) { var wasOpen = this.hasAttribute('data-desc-open'); this.reset(); if(wasOpen) this.setAttribute('data-desc-open',''); this.querySelector('input[name=name]').focus(); }">
             <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
             <span class="quick-entry-icon">+</span>
             <input type="text" name="name" placeholder="{{.T "inventory.new_item_placeholder"}}" required>
             <input type="number" name="quantity" value="1" min="1">
             <button type="submit" class="quick-entry-submit">↵</button>
+            <div class="quick-entry-desc">
+                <button type="button" class="quick-entry-desc-trigger">
+                    <span class="quick-entry-desc-arrow">▸</span> {{.T "form.description"}}
+                </button>
+                <div class="quick-entry-desc-body">
+                    <textarea name="description" rows="2" placeholder="{{.T "form.description"}}..."></textarea>
+                </div>
+            </div>
         </form>
         {{ end }}
     </section>
