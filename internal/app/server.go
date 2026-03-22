@@ -67,6 +67,7 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 		handler.NewSettingsHandler(resp),
 		handler.NewI18nHandler(translations),
 		handler.NewAdhocHandler(pm, printers, templates, resp),
+		handler.NewBluetoothHandler(),
 	}
 
 	mux := http.NewServeMux()

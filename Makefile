@@ -19,7 +19,7 @@ test-ble:
 	go test -tags ble ./... -v
 
 run:
-	go run ./cmd/qlx/ --port 8080 --data ./data
+	go run -tags ble ./cmd/qlx/ --port 18081 --data ./data
 
 test-e2e:
 	cd e2e && npx playwright test
