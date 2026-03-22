@@ -289,13 +289,6 @@ func fillRect(img *image.RGBA, x0, y0, x1, y1 int, c color.RGBA) {
 	}
 }
 
-func drawCornerMarker(img *image.RGBA, x, y, dx, dy int, c color.RGBA) {
-	for i := 0; i < 10; i++ {
-		img.Set(x+i*dx, y, c)
-		img.Set(x, y+i*dy, c)
-	}
-}
-
 func queryInt(r *http.Request, key string, fallback int) int {
 	v := r.URL.Query().Get(key)
 	if v == "" {

@@ -8,7 +8,7 @@ test.describe('Container print', () => {
 
   test('setup: create printer, container with items and tags', async ({ request, app }) => {
     const printerRes = await request.post(`${app.baseURL}/printers`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'E2E Print Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
     });
     expect(printerRes.ok()).toBeTruthy();
@@ -16,14 +16,14 @@ test.describe('Container print', () => {
     printerId = printer.id;
 
     const tagRes = await request.post(`${app.baseURL}/tags`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'print-test-tag', color: '#ff0000' },
     });
     expect(tagRes.ok()).toBeTruthy();
     const tag = await tagRes.json();
 
     const containerRes = await request.post(`${app.baseURL}/containers`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'Print Container', description: 'Container for print tests' },
     });
     expect(containerRes.ok()).toBeTruthy();
@@ -32,19 +32,19 @@ test.describe('Container print', () => {
 
     // Assign tag to container
     await request.post(`${app.baseURL}/containers/${containerId}/tags`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { tag_id: tag.id },
     });
 
     // Create items inside container
     const item1Res = await request.post(`${app.baseURL}/items`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'Print Item A', description: 'First item', container_id: containerId },
     });
     expect(item1Res.ok()).toBeTruthy();
 
     const item2Res = await request.post(`${app.baseURL}/items`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'Print Item B', description: 'Second item', container_id: containerId },
     });
     expect(item2Res.ok()).toBeTruthy();

@@ -7,7 +7,7 @@ test.describe('Quick Print', () => {
 
   test('setup: create printer via API', async ({ request, app }) => {
     const printerRes = await request.post(`${app.baseURL}/printers`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       data: { name: 'E2E Quick Printer', encoder: 'niimbot', model: 'b1', transport: 'remote', address: 'http://localhost:9999' },
     });
     expect(printerRes.ok()).toBeTruthy();

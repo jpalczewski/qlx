@@ -137,3 +137,63 @@ func TestPrinterManager_AvailableEncoders(t *testing.T) {
 		t.Error("expected 'mock' encoder to be present in AvailableEncoders")
 	}
 }
+
+func TestApplyCalibrationOffset_NoOffset(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	cfg := &store.PrinterConfig{Name: "test"}
+	result := applyCalibrationOffset(img, cfg, 100)
+	// With zero offsets, should return original image
+	if result != img {
+		t.Error("expected same image when offsets are zero")
+	}
+}
+
+func TestApplyCalibrationOffset_PositiveX(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	// Set a pixel to verify it moves
+	img.Set(0, 0, image.Black)
+
+	cfg := &store.PrinterConfig{Name: "test", OffsetX: 10}
+	result := applyCalibrationOffset(img, cfg, 100)
+
+	bounds := result.Bounds()
+	if bounds.Dx() != 100 || bounds.Dy() != 50 {
+		t.Fatalf("expected 100x50, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}
+
+func TestApplyCalibrationOffset_NegativeX(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	cfg := &store.PrinterConfig{Name: "test", OffsetX: -5}
+	result := applyCalibrationOffset(img, cfg, 100)
+
+	bounds := result.Bounds()
+	if bounds.Dx() != 100 || bounds.Dy() != 50 {
+		t.Fatalf("expected 100x50, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}
+
+func TestApplyCalibrationOffset_PositiveY(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	cfg := &store.PrinterConfig{Name: "test", OffsetY: 10}
+	result := applyCalibrationOffset(img, cfg, 100)
+
+	bounds := result.Bounds()
+	if bounds.Dx() != 100 || bounds.Dy() != 50 {
+		t.Fatalf("expected 100x50, got %dx%d", bounds.Dx(), bounds.Dy())
+	}
+}
+
+func TestApplyCalibrationOffset_BothAxes(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	cfg := &store.PrinterConfig{Name: "test", OffsetX: 5, OffsetY: -3}
+	result := applyCalibrationOffset(img, cfg, 200)
+
+	bounds := result.Bounds()
+	if bounds.Dx() != 200 {
+		t.Fatalf("expected width 200 (printhead), got %d", bounds.Dx())
+	}
+	if bounds.Dy() != 50 {
+		t.Fatalf("expected height 50, got %d", bounds.Dy())
+	}
+}
