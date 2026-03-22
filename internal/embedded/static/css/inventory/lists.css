@@ -41,21 +41,42 @@
     margin-top: 0.25rem;
 }
 
-/* When a list item has tag chips, square off card bottom to join with chips */
-.container-list li:has(.tag-chips) a,
-.item-list li:has(.tag-chips) a {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-bottom-color: transparent;
-}
-
-/* Tag chips in list attach to card bottom */
-.container-list .tag-chips,
-.item-list .tag-chips {
+/* When a list item has tag chips, li becomes card with inline chips */
+.container-list li:has(.tag-chips),
+.item-list li:has(.tag-chips) {
+    display: flex;
+    align-items: center;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    padding: 0.35rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.container-list li:has(.tag-chips):hover,
+.item-list li:has(.tag-chips):hover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-alt);
+}
+
+.container-list li:has(.tag-chips) a,
+.item-list li:has(.tag-chips) a {
+    flex: 1 1 0;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    border-radius: 8px 0 0 8px;
+}
+
+.container-list li:has(.tag-chips) a:hover,
+.item-list li:has(.tag-chips) a:hover {
+    background: transparent;
+    border-color: transparent;
+}
+
+/* Chips sit inline to the right, same size as detail page */
+.container-list .tag-chips,
+.item-list .tag-chips {
+    flex: 0 0 auto;
+    padding: 0.25rem 0.75rem;
     margin: 0;
 }
