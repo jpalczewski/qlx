@@ -5,12 +5,11 @@ test.describe('Tag UI improvements', () => {
   test('tag chip links navigate to tag detail page', async ({ page, app }) => {
     // Setup: create a container, item, tag, and assign tag
     const baseURL = app.baseURL;
-    await page.request.post(`${baseURL}/api/containers`, {
+    const containerResp = await page.request.post(`${baseURL}/api/containers`, {
       data: { name: 'Test Container' }
     });
-    const containerResp = await page.request.get(`${baseURL}/api/containers`);
-    const containers = await containerResp.json();
-    const containerId = containers[0].id;
+    const container = await containerResp.json();
+    const containerId = container.id;
 
     const itemResp = await page.request.post(`${baseURL}/api/items`, {
       data: { name: 'Test Item', container_id: containerId }
@@ -18,12 +17,11 @@ test.describe('Tag UI improvements', () => {
     const item = await itemResp.json();
     const itemId = item.id;
 
-    await page.request.post(`${baseURL}/api/tags`, {
+    const tagResp = await page.request.post(`${baseURL}/api/tags`, {
       data: { name: 'TestTag', color: 'blue', icon: '' }
     });
-    const tagsResp = await page.request.get(`${baseURL}/api/tags`);
-    const tags = await tagsResp.json();
-    const tagId = tags[0].id;
+    const tagObj = await tagResp.json();
+    const tagId = tagObj.id;
 
     await page.request.post(`${baseURL}/api/items/${itemId}/tags`, {
       data: { tag_id: tagId }
@@ -86,10 +84,99 @@ test.describe('Tag UI improvements', () => {
     await expect(page.locator('.item-list')).toContainText('Tagged Item');
   });
 
-  test('inline + button opens autocomplete and assigns tag', async ({ page, app }) => {
+  test('container detail always shows tag + button even with no tags', async ({ page, app }) => {
     const baseURL = app.baseURL;
 
-    // Setup
+    const contResp = await page.request.post(`${baseURL}/api/containers`, {
+      data: { name: 'Empty Tag Container' }
+    });
+    const container = await contResp.json();
+
+    await page.goto(`${baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+
+    // .container-tags section must exist with a + button, regardless of tag count
+    const addBtn = page.locator('.container-tags .tag-add');
+    await expect(addBtn).toBeVisible();
+  });
+
+  test('add tag from container detail + button', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const tagResp = await page.request.post(`${baseURL}/api/tags`, {
+      data: { name: 'DetailTag', color: 'teal', icon: '' }
+    });
+    const tag = await tagResp.json();
+
+    const contResp = await page.request.post(`${baseURL}/api/containers`, {
+      data: { name: 'Detail Container' }
+    });
+    const container = await contResp.json();
+
+    await page.goto(`${baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+
+    // Click + in the container detail header tag section
+    const addBtn = page.locator('.container-tags .tag-add');
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+
+    // Autocomplete input appears
+    const input = page.locator('.tag-ac-input');
+    await expect(input).toBeVisible();
+    await input.fill('Detail');
+
+    // Select matching option
+    const option = page.locator('.tag-ac-option', { hasText: 'DetailTag' });
+    await expect(option).toBeVisible();
+    await option.click();
+
+    // Chip appears in the container detail header
+    await expect(page.locator('.container-tags .tag-chip', { hasText: 'DetailTag' })).toBeVisible();
+  });
+
+  test('item list does not show tag + button when item has no tags', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const contResp = await page.request.post(`${baseURL}/api/containers`, {
+      data: { name: 'Parent Container' }
+    });
+    const container = await contResp.json();
+
+    await page.request.post(`${baseURL}/api/items`, {
+      data: { name: 'Untagged Item', container_id: container.id }
+    });
+
+    await page.goto(`${baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+
+    // Item appears in list
+    await expect(page.locator('.item-list')).toContainText('Untagged Item');
+
+    // No + button inside the item list (item has no tags)
+    await expect(page.locator('.item-list .tag-add')).toHaveCount(0);
+  });
+
+  test('item detail always shows tag + button even with no tags', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const contResp = await page.request.post(`${baseURL}/api/containers`, {
+      data: { name: 'Container' }
+    });
+    const container = await contResp.json();
+
+    const itemResp = await page.request.post(`${baseURL}/api/items`, {
+      data: { name: 'Bare Item', container_id: container.id }
+    });
+    const item = await itemResp.json();
+
+    await page.goto(`${baseURL}/ui/items/${item.id}`, { waitUntil: 'domcontentloaded' });
+
+    // .item-tags section must exist with a + button
+    const addBtn = page.locator('.item-tags .tag-add');
+    await expect(addBtn).toBeVisible();
+  });
+
+  test('inline + button opens autocomplete and assigns tag (item in list)', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
     const tagResp = await page.request.post(`${baseURL}/api/tags`, {
       data: { name: 'InlineTag', color: 'red', icon: '' }
     });
@@ -104,33 +191,29 @@ test.describe('Tag UI improvements', () => {
     });
     const item = await itemResp.json();
 
-    // Assign a tag first so + button is visible (tag-chips renders only if TagIDs not empty)
-    const otherTag = await (await page.request.post(`${baseURL}/api/tags`, {
-      data: { name: 'OtherTag', color: 'blue', icon: '' }
+    // Pre-assign a tag so the + button appears in the item list
+    const seedTag = await (await page.request.post(`${baseURL}/api/tags`, {
+      data: { name: 'SeedTag', color: 'blue', icon: '' }
     })).json();
     await page.request.post(`${baseURL}/api/items/${item.id}/tags`, {
-      data: { tag_id: otherTag.id }
+      data: { tag_id: seedTag.id }
     });
 
-    // Navigate to container
     await page.goto(`${baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
 
-    // Click + button
-    const addBtn = page.locator('.tag-add').first();
+    // Click + button in the item list row
+    const addBtn = page.locator('.item-list .tag-add').first();
     await expect(addBtn).toBeVisible();
     await addBtn.click();
 
-    // Input should appear
     const input = page.locator('.tag-ac-input');
     await expect(input).toBeVisible();
     await input.fill('Inline');
 
-    // Dropdown should show InlineTag
     const option = page.locator('.tag-ac-option', { hasText: 'InlineTag' });
     await expect(option).toBeVisible();
     await option.click();
 
-    // Tag chip should appear
     await expect(page.locator('.tag-chip', { hasText: 'InlineTag' })).toBeVisible();
   });
 
