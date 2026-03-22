@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/jpalczewski/qlx/compare/v0.2.0...v0.3.0) (2026-03-22)
+
+
+### Features
+
+* icons and colors for containers, items and tags ([#9](https://github.com/jpalczewski/qlx/issues/9), [#10](https://github.com/jpalczewski/qlx/issues/10)) ([#50](https://github.com/jpalczewski/qlx/issues/50)) ([ec542f2](https://github.com/jpalczewski/qlx/commit/ec542f2b5f27babc7762fea3eee52c2579e1b5bc))
+* **label:** configurable JSON schemas with Terminus TTF font and Polish character support ([#51](https://github.com/jpalczewski/qlx/issues/51)) ([6dbbcdc](https://github.com/jpalczewski/qlx/commit/6dbbcdcb7decc894c860bce173b4b9ee13f65a6b))
+* **label:** replace Terminus with Spleen fonts, add micro schema and Polish transliteration ([#52](https://github.com/jpalczewski/qlx/issues/52)) ([293dfe0](https://github.com/jpalczewski/qlx/commit/293dfe00931f96a809c64688ac8f3420773ecf10))
+* **ui:** collapsible description in quick-entry forms ([#54](https://github.com/jpalczewski/qlx/issues/54)) ([ad0db8e](https://github.com/jpalczewski/qlx/commit/ad0db8e43d96f495038629e0e93311983be9d9f5))
+
+
+### Bug Fixes
+
+* **ui:** fix tag navigation, dropdown positioning, and list chip styling ([#53](https://github.com/jpalczewski/qlx/issues/53)) ([b173652](https://github.com/jpalczewski/qlx/commit/b1736522bac4bc83fe1fecccb6b9c067b451fad9))
+
+
+### Miscellaneous
+
+* deduplicate bulk types, add validation, partition store, complete edit UX ([#33](https://github.com/jpalczewski/qlx/issues/33), [#42](https://github.com/jpalczewski/qlx/issues/42), [#43](https://github.com/jpalczewski/qlx/issues/43), [#45](https://github.com/jpalczewski/qlx/issues/45)) ([#48](https://github.com/jpalczewski/qlx/issues/48)) ([f3c724a](https://github.com/jpalczewski/qlx/commit/f3c724ae37a9a8d5f39cf7151b1903cb78fb5df1))
+* unify api/ and ui/ into handler/ with content negotiation ([#67](https://github.com/jpalczewski/qlx/issues/67)) ([dc7ac93](https://github.com/jpalczewski/qlx/commit/dc7ac93f9fa37d297ff1d11e1cd88b93be8fcba2))
+
 ## [0.2.0](https://github.com/jpalczewski/qlx/compare/v0.1.0...v0.2.0) (2026-03-21)
 
 
