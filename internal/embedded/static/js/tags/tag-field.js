@@ -18,13 +18,13 @@
           activeFieldAC = null;
           input.value = "";
           // POST assign tag
-          fetch("/ui/actions/" + objectType + "s/" + objectId + "/tags", {
+          fetch("/" + objectType + "s/" + objectId + "/tags", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: "tag_id=" + encodeURIComponent(tag.id)
           }).then(function (resp) {
             if (resp.ok) {
-              var returnUrl = "/ui/" + objectType + "s/" + objectId;
+              var returnUrl = "/" + objectType + "s/" + objectId;
               htmx.ajax("GET", returnUrl, { target: "#content" });
             }
           });

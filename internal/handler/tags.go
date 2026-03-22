@@ -89,10 +89,23 @@ func (h *TagHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.resp.Respond(w, r, http.StatusOK, tag, "tag-detail", func() any {
+		items := h.tags.ItemsByTag(id)
+		containers := h.tags.ContainersByTag(id)
+		totalQty := 0
+		for _, it := range items {
+			totalQty += it.Quantity
+		}
 		return TagDetailData{
-			Tag:      *tag,
-			Path:     h.tags.TagPath(id),
-			Children: h.tags.TagChildren(id),
+			Tag:        *tag,
+			Path:       h.tags.TagPath(id),
+			Children:   h.tags.TagChildren(id),
+			Items:      items,
+			Containers: containers,
+			Stats: TagStats{
+				ItemCount:      len(items),
+				ContainerCount: len(containers),
+				TotalQuantity:  totalQty,
+			},
 		}
 	})
 }
@@ -192,9 +205,7 @@ func (h *TagHandler) AddItemTag(w http.ResponseWriter, r *http.Request) {
 		Tags:       h.resolveTagIDs(item.TagIDs),
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, chips, "tag-chips", func() any {
-		return chips
-	})
+	h.respondTagChips(w, r, chips)
 }
 
 // RemoveItemTag handles DELETE /items/{id}/tags/{tag_id}.
@@ -219,9 +230,7 @@ func (h *TagHandler) RemoveItemTag(w http.ResponseWriter, r *http.Request) {
 		Tags:       h.resolveTagIDs(item.TagIDs),
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, chips, "tag-chips", func() any {
-		return chips
-	})
+	h.respondTagChips(w, r, chips)
 }
 
 // AddContainerTag handles POST /containers/{id}/tags.
@@ -251,9 +260,7 @@ func (h *TagHandler) AddContainerTag(w http.ResponseWriter, r *http.Request) {
 		Tags:       h.resolveTagIDs(container.TagIDs),
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, chips, "tag-chips", func() any {
-		return chips
-	})
+	h.respondTagChips(w, r, chips)
 }
 
 // RemoveContainerTag handles DELETE /containers/{id}/tags/{tag_id}.
@@ -278,9 +285,22 @@ func (h *TagHandler) RemoveContainerTag(w http.ResponseWriter, r *http.Request) 
 		Tags:       h.resolveTagIDs(container.TagIDs),
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, chips, "tag-chips", func() any {
-		return chips
-	})
+	h.respondTagChips(w, r, chips)
+}
+
+// respondTagChips sends tag chips as JSON or renders the tag-chips partial HTML.
+func (h *TagHandler) respondTagChips(w http.ResponseWriter, r *http.Request, chips TagChipsData) {
+	if webutil.WantsJSON(r) {
+		webutil.JSON(w, http.StatusOK, chips)
+		return
+	}
+	// For HTMX and plain fetch: render the tag-chips partial.
+	// Any page template works since all include the partial via layout.
+	if hr, ok := h.resp.(*HTMLResponder); ok {
+		hr.RenderPartial(w, r, "containers", "tag-chips", chips)
+		return
+	}
+	webutil.JSON(w, http.StatusOK, chips)
 }
 
 // resolveTagIDs looks up each tag ID and returns the corresponding Tag objects.

@@ -7,13 +7,13 @@ test.describe('Quick-entry description', () => {
 
   test('create container then test description toggle', async ({ page, app }) => {
     containerName = `Desc Test ${Date.now()}`;
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
 
     // Create a container first
     const nameInput = page.locator('.containers .quick-entry input[name="name"]');
     await nameInput.fill(containerName);
     const resp = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/containers') && r.request().method() === 'POST'
+      r.url().includes('/containers') && r.request().method() === 'POST'
     );
     await nameInput.press('Enter');
     await resp;
@@ -21,7 +21,7 @@ test.describe('Quick-entry description', () => {
   });
 
   test('container description trigger expands on click', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const trigger = page.locator('.containers .quick-entry-desc-trigger');
     const body = page.locator('.containers .quick-entry-desc-body');
 
@@ -38,7 +38,7 @@ test.describe('Quick-entry description', () => {
   });
 
   test('escape collapses description', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const trigger = page.locator('.containers .quick-entry-desc-trigger');
     const body = page.locator('.containers .quick-entry-desc-body');
 
@@ -54,7 +54,7 @@ test.describe('Quick-entry description', () => {
   });
 
   test('submit container with description', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const name = `WithDesc ${Date.now()}`;
 
     const nameInput = page.locator('.containers .quick-entry input[name="name"]');
@@ -67,7 +67,7 @@ test.describe('Quick-entry description', () => {
     await textarea.fill('Test description text');
 
     const resp = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/containers') && r.request().method() === 'POST'
+      r.url().includes('/containers') && r.request().method() === 'POST'
     );
     await page.locator('.containers .quick-entry-submit').click();
     await resp;
@@ -78,7 +78,7 @@ test.describe('Quick-entry description', () => {
   });
 
   test('expanded state persists after submit', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
 
     // Expand description
     const trigger = page.locator('.containers .quick-entry-desc-trigger');
@@ -88,7 +88,7 @@ test.describe('Quick-entry description', () => {
     await nameInput.fill(`Persist ${Date.now()}`);
 
     const resp = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/containers') && r.request().method() === 'POST'
+      r.url().includes('/containers') && r.request().method() === 'POST'
     );
     await nameInput.press('Enter');
     await resp;
@@ -99,7 +99,7 @@ test.describe('Quick-entry description', () => {
   });
 
   test('item description toggle works', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     // Navigate into the container
     await page.click(`a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
@@ -118,7 +118,7 @@ test.describe('Quick-entry description', () => {
     await textarea.fill('Item description here');
 
     const resp = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/items') && r.request().method() === 'POST'
+      r.url().includes('/items') && r.request().method() === 'POST'
     );
     await page.locator('.items .quick-entry-submit').click();
     await resp;

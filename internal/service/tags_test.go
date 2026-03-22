@@ -119,6 +119,12 @@ func (m *mockTagStore) RemoveContainerTag(containerID, tagID string) error {
 	}
 	return nil
 }
+func (m *mockTagStore) ItemsByTag(tagID string) []store.Item {
+	return nil
+}
+func (m *mockTagStore) ContainersByTag(tagID string) []store.Container {
+	return nil
+}
 func (m *mockTagStore) GetItem(id string) *store.Item {
 	if m.getItem != nil {
 		return m.getItem(id)

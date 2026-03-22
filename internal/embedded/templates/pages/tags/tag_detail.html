@@ -1,10 +1,10 @@
 {{ define "tag-detail" }}
 <div class="tag-detail-view">
     <nav class="breadcrumb">
-        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "tags.title"}}</a>
+        <a href="/tags" hx-get="/tags" hx-target="#content">{{.T "tags.title"}}</a>
         {{ range .Data.Path }}
         <span class="sep">→</span>
-        <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
+        <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
         {{ end }}
     </nav>
 
@@ -35,7 +35,7 @@
         <ul class="container-list">
             {{ range .Data.Containers }}
             <li>
-                <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item">
+                <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" class="container-item">
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
@@ -51,7 +51,7 @@
         <ul class="item-list">
             {{ range .Data.Items }}
             <li>
-                <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
+                <a href="/items/{{ .ID }}" hx-get="/items/{{ .ID }}" hx-target="#content" class="item-item">
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
@@ -71,7 +71,7 @@
         <ul class="tag-list">
             {{ range .Data.Children }}
             <li>
-                <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
+                <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
             </li>
             {{ end }}
         </ul>

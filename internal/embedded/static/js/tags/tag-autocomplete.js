@@ -10,7 +10,7 @@
 
   function fetchTags() {
     if (cache) return Promise.resolve(cache);
-    return fetch("/api/tags")
+    return fetch("/tags", { headers: { "Accept": "application/json" } })
       .then(function (r) { return r.json(); })
       .then(function (tags) {
         cache = tags || [];
@@ -31,9 +31,9 @@
   }
 
   function createTag(name) {
-    return fetch("/api/tags", {
+    return fetch("/tags", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: JSON.stringify({ name: name, color: "", icon: "" })
     }).then(function (r) {
       if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || "Error"); });

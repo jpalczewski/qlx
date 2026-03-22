@@ -51,6 +51,8 @@ type TagStore interface {
 	RemoveItemTag(itemID, tagID string) error
 	AddContainerTag(containerID, tagID string) error
 	RemoveContainerTag(containerID, tagID string) error
+	ItemsByTag(tagID string) []store.Item
+	ContainersByTag(tagID string) []store.Container
 }
 
 // BulkStore defines bulk operation store methods.

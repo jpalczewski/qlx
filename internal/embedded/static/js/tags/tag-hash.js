@@ -50,7 +50,7 @@
               if (!newEl) { pendingTagId = null; return; }
 
               var newId = newEl.getAttribute("data-id");
-              fetch("/ui/actions/" + objectType + "s/" + newId + "/tags", {
+              fetch("/" + objectType + "s/" + newId + "/tags", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: "tag_id=" + encodeURIComponent(pendingTagId)
