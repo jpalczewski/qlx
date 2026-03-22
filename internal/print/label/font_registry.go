@@ -144,18 +144,19 @@ func IsBasicFont(name string) bool {
 	return ok && entry.basic
 }
 
+var plReplacer = strings.NewReplacer(
+	"ą", "a", "Ą", "A",
+	"ć", "c", "Ć", "C",
+	"ę", "e", "Ę", "E",
+	"ł", "l", "Ł", "L",
+	"ń", "n", "Ń", "N",
+	"ó", "o", "Ó", "O",
+	"ś", "s", "Ś", "S",
+	"ź", "z", "Ź", "Z",
+	"ż", "z", "Ż", "Z",
+)
+
 // TransliteratePL replaces Polish diacritic characters with their ASCII equivalents.
 func TransliteratePL(s string) string {
-	r := strings.NewReplacer(
-		"ą", "a", "Ą", "A",
-		"ć", "c", "Ć", "C",
-		"ę", "e", "Ę", "E",
-		"ł", "l", "Ł", "L",
-		"ń", "n", "Ń", "N",
-		"ó", "o", "Ó", "O",
-		"ś", "s", "Ś", "S",
-		"ź", "z", "Ź", "Z",
-		"ż", "z", "Ż", "Z",
-	)
-	return r.Replace(s)
+	return plReplacer.Replace(s)
 }
