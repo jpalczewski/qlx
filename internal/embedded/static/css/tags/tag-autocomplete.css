@@ -38,6 +38,8 @@
 .tag-ac-option .entity-icon svg { width: 12px; height: 12px; }
 .tag-ac-option.create { font-style: italic; color: var(--color-text-muted); }
 
+.tag-ac-parent { opacity: 0.55; font-size: 0.8em; }
+
 .tag-ac-error {
     padding: 0.35rem 0.6rem;
     font-size: 0.85rem;

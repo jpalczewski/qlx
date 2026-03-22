@@ -3,13 +3,21 @@
   var cache = null;
   var debounceTimer = null;
 
-  function invalidateCache() { cache = null; }
+  function invalidateCache() { cache = null; tagById = {}; }
+
+  // id → tag lookup, rebuilt whenever cache is refreshed
+  var tagById = {};
 
   function fetchTags() {
     if (cache) return Promise.resolve(cache);
     return fetch("/api/tags")
       .then(function (r) { return r.json(); })
-      .then(function (tags) { cache = tags || []; return cache; });
+      .then(function (tags) {
+        cache = tags || [];
+        tagById = {};
+        cache.forEach(function (t) { tagById[t.id] = t; });
+        return cache;
+      });
   }
 
   function filterTags(tags, query) {
@@ -68,7 +76,14 @@
     opt.appendChild(dot);
 
     var nameSpan = document.createElement("span");
-    nameSpan.textContent = tag.name;
+    if (tag.parent_id && tagById[tag.parent_id]) {
+      var parentSpan = document.createElement("span");
+      parentSpan.className = "tag-ac-parent";
+      parentSpan.textContent = tagById[tag.parent_id].name + " / ";
+      nameSpan.appendChild(parentSpan);
+    }
+    var tagNameNode = document.createTextNode(tag.name);
+    nameSpan.appendChild(tagNameNode);
     opt.appendChild(nameSpan);
 
     opt.addEventListener("mousedown", function (e) {
