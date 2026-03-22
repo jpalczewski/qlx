@@ -121,6 +121,15 @@ type AddPrinterRequest struct {
 type PrintRequest struct {
 	PrinterID string `json:"printer_id"`
 	Template  string `json:"template"`
+	PrintDate bool   `json:"print_date"`
+}
+
+// ContainerPrintRequest is the input for container label printing.
+type ContainerPrintRequest struct {
+	PrinterID    string   `json:"printer_id"`
+	Templates    []string `json:"templates"`
+	PrintDate    bool     `json:"print_date"`
+	ShowChildren bool     `json:"show_children"`
 }
 
 // TagAssignRequest is the input for assigning/removing tags.

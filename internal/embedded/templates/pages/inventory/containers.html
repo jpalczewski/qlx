@@ -95,6 +95,73 @@
 
     {{ if .Data.Container }}
     <section class="print-section">
+        <h3>{{.T "inventory.print_container_label"}}</h3>
+        {{ if .Data.Printers }}
+        <div class="form-group">
+            <label for="cprint-printer">{{.T "inventory.printer"}}</label>
+            <select id="cprint-printer">
+                {{ range .Data.Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>{{.T "inventory.template"}}</label>
+            <div id="cprint-templates">
+                {{ range .Data.Schemas }}
+                <label class="checkbox-label"><input type="checkbox" name="cprint-schema" value="{{ . }}"> {{ . }}</label>
+                {{ end }}
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="cprint-date"> Dodaj dat&#x119; wydruku</label>
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="cprint-children"> Poka&#x17C; zawarto&#x15B;&#x107;</label>
+        </div>
+        <button id="cprint-btn">{{.T "inventory.print_label"}}</button>
+        <div id="cprint-result"></div>
+        <script>
+        (function() {
+            var btn = document.getElementById('cprint-btn');
+            btn.addEventListener('click', function() {
+                var printer = document.getElementById('cprint-printer').value;
+                var checkboxes = document.querySelectorAll('input[name="cprint-schema"]:checked');
+                var templates = [];
+                for (var i = 0; i < checkboxes.length; i++) {
+                    templates.push(checkboxes[i].value);
+                }
+                if (templates.length === 0) {
+                    var result = document.getElementById('cprint-result');
+                    result.textContent = 'Wybierz przynajmniej jeden szablon.';
+                    return;
+                }
+                var printDate = document.getElementById('cprint-date').checked;
+                var showChildren = document.getElementById('cprint-children').checked;
+                var result = document.getElementById('cprint-result');
+                result.textContent = 'Drukowanie...';
+                fetch('/containers/{{ .Data.Container.ID }}/print', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+                    body: JSON.stringify({printer_id: printer, templates: templates, print_date: printDate, show_children: showChildren})
+                }).then(function(r) { return r.json(); }).then(function(d) {
+                    if (d.ok) {
+                        result.textContent = 'Wydrukowano!';
+                    } else {
+                        result.textContent = 'B\u0142\u0105d: ' + (d.error || 'unknown');
+                    }
+                }).catch(function(e) {
+                    result.textContent = 'B\u0142\u0105d: ' + e;
+                });
+            });
+        })();
+        </script>
+        {{ else }}
+        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+        {{ end }}
+    </section>
+
+    <section class="print-section">
         <h3>{{.T "inventory.print_labels"}}</h3>
         {{ if .Data.Printers }}
         <div class="form-group">

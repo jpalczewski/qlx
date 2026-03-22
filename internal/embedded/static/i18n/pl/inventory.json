@@ -30,5 +30,6 @@
   "inventory.new_item": "Nowy przedmiot",
   "inventory.edit_container": "Edytuj kontener",
   "inventory.new_container": "Nowy kontener",
-  "inventory.quantity": "Ilość"
+  "inventory.quantity": "Ilość",
+  "inventory.print_container_label": "Drukuj etykietę kontenera"
 }
