@@ -13,14 +13,15 @@ test.describe('Tags', () => {
   test('create a root tag via API and UI child', async ({ request, page, app }) => {
     // Create parent tag via API (reliable)
     parentTagName = `RootTag ${Date.now()}`;
-    const parentRes = await request.post(`${app.baseURL}/api/tags`, {
+    const parentRes = await request.post(`${app.baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
       form: { name: parentTagName, parent_id: '' }
     });
     const parent = await parentRes.json();
     parentTagId = parent.id;
 
     // Navigate to parent tag page directly (full page load, no HTMX)
-    await page.goto(`${app.baseURL}/ui/tags?parent_id=${parentTagId}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/tags?parent_id=${parentTagId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(parentTagName);
 
     // Create child via quick entry
@@ -30,7 +31,7 @@ test.describe('Tags', () => {
     await nameInput.fill(childTagName);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/tags') && r.request().method() === 'POST'
+      r.url().includes('/tags') && r.request().method() === 'POST'
     );
     await nameInput.press('Enter');
     await responsePromise;
@@ -41,7 +42,9 @@ test.describe('Tags', () => {
   test('verify breadcrumb shows parent path', async ({ request, page, app }) => {
     // Get child tag ID if not yet set
     if (!childTagId) {
-      const tagsRes = await request.get(`${app.baseURL}/api/tags`);
+      const tagsRes = await request.get(`${app.baseURL}/tags`, {
+        headers: { 'Accept': 'application/json' },
+      });
       const allTags = await tagsRes.json();
       const childTag = allTags.find((t: any) => t.name === childTagName);
       expect(childTag).toBeTruthy();
@@ -49,7 +52,7 @@ test.describe('Tags', () => {
     }
 
     // Navigate to child tag page directly
-    await page.goto(`${app.baseURL}/ui/tags?parent_id=${childTagId}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/tags?parent_id=${childTagId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText(childTagName);
 
     // Breadcrumb should contain the parent tag name
@@ -58,14 +61,17 @@ test.describe('Tags', () => {
 
   test('create container and item via API, then assign tag', async ({ request, app }) => {
     // Get child tag ID via API
-    const tagsRes = await request.get(`${app.baseURL}/api/tags`);
+    const tagsRes = await request.get(`${app.baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+    });
     const allTags = await tagsRes.json();
     const childTag = allTags.find((t: any) => t.name === childTagName);
     expect(childTag).toBeTruthy();
     childTagId = childTag.id;
 
     // Create container
-    const containerRes = await request.post(`${app.baseURL}/api/containers`, {
+    const containerRes = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'TagTestContainer' },
     });
     expect(containerRes.status()).toBe(201);
@@ -73,7 +79,8 @@ test.describe('Tags', () => {
     containerId = container.id;
 
     // Create item
-    const itemRes = await request.post(`${app.baseURL}/api/items`, {
+    const itemRes = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'TagTestItem', container_id: containerId },
     });
     expect(itemRes.status()).toBe(201);
@@ -81,14 +88,17 @@ test.describe('Tags', () => {
     itemId = item.id;
 
     // Assign parent tag to item
-    const tagRes = await request.post(`${app.baseURL}/api/items/${itemId}/tags`, {
+    const tagRes = await request.post(`${app.baseURL}/items/${itemId}/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: { tag_id: parentTagId },
     });
     expect(tagRes.status()).toBe(200);
   });
 
   test('verify tag assignment on item', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/api/items/${itemId}`);
+    const res = await request.get(`${app.baseURL}/items/${itemId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.item.tag_ids).toContain(parentTagId);
@@ -96,28 +106,37 @@ test.describe('Tags', () => {
 
   test('delete leaf tag and verify removal from item', async ({ request, app }) => {
     // Assign child tag to item first
-    const addRes = await request.post(`${app.baseURL}/api/items/${itemId}/tags`, {
+    const addRes = await request.post(`${app.baseURL}/items/${itemId}/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: { tag_id: childTagId },
     });
     expect(addRes.status()).toBe(200);
 
     // Verify it's there
-    let itemRes = await request.get(`${app.baseURL}/api/items/${itemId}`);
+    let itemRes = await request.get(`${app.baseURL}/items/${itemId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     let body = await itemRes.json();
     expect(body.item.tag_ids).toContain(childTagId);
 
     // Delete the child tag (leaf)
-    const delRes = await request.delete(`${app.baseURL}/api/tags/${childTagId}`);
+    const delRes = await request.delete(`${app.baseURL}/tags/${childTagId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(delRes.status()).toBe(200);
 
     // Verify tag is removed from item's tag_ids
-    itemRes = await request.get(`${app.baseURL}/api/items/${itemId}`);
+    itemRes = await request.get(`${app.baseURL}/items/${itemId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     body = await itemRes.json();
     expect(body.item.tag_ids).not.toContain(childTagId);
   });
 
   test('search for tag by name', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/api/search?q=${encodeURIComponent(parentTagName.substring(0, 8))}`);
+    const res = await request.get(`${app.baseURL}/search?q=${encodeURIComponent(parentTagName.substring(0, 8))}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(res.status()).toBe(200);
     const body = await res.json();
     const found = body.tags.some((t: any) => t.name === parentTagName);

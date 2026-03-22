@@ -6,13 +6,14 @@ test.describe('Icon and color system', () => {
 
   test('container edit form shows color picker with 10 swatches and a selected one', async ({ request, page, app }) => {
     // Create a container via API with a specific color so the picker shows it as selected
-    const res = await request.post(`${app.baseURL}/api/containers`, {
+    const res = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `ColorPickerTest ${Date.now()}`, color: 'green' },
     });
     expect(res.status()).toBe(201);
     const container = await res.json();
 
-    await page.goto(`${app.baseURL}/ui/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
 
     // Color picker grid is visible
     const grid = page.locator("[data-picker='color']");
@@ -34,13 +35,14 @@ test.describe('Icon and color system', () => {
   });
 
   test('clicking a color swatch updates hidden input and marks only that swatch selected', async ({ request, page, app }) => {
-    const res = await request.post(`${app.baseURL}/api/containers`, {
+    const res = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `ColorSelectTest ${Date.now()}` },
     });
     expect(res.status()).toBe(201);
     const container = await res.json();
 
-    await page.goto(`${app.baseURL}/ui/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
 
     const grid = page.locator("[data-picker='color']");
     await expect(grid).toBeVisible();
@@ -65,13 +67,14 @@ test.describe('Icon and color system', () => {
   });
 
   test('icon picker first category is open; clicking another category header opens it', async ({ request, page, app }) => {
-    const res = await request.post(`${app.baseURL}/api/containers`, {
+    const res = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `IconPickerTest ${Date.now()}` },
     });
     expect(res.status()).toBe(201);
     const container = await res.json();
 
-    await page.goto(`${app.baseURL}/ui/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers/${container.id}/edit`, { waitUntil: 'domcontentloaded' });
 
     const iconPicker = page.locator("[data-picker='icon']");
     await expect(iconPicker).toBeVisible();
@@ -89,14 +92,15 @@ test.describe('Icon and color system', () => {
   });
 
   test('created container shows entity-icon with svg in container detail view', async ({ request, page, app }) => {
-    const res = await request.post(`${app.baseURL}/api/containers`, {
+    const res = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `BlueWrenchContainer ${Date.now()}`, color: 'blue', icon: 'wrench' },
     });
     expect(res.status()).toBe(201);
     const container = await res.json();
 
     // Navigate to the container's detail page (not root list)
-    await page.goto(`${app.baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
 
     // Container header shows entity-icon with an svg
     const entityIcon = page.locator('.container-header .entity-icon');
@@ -111,14 +115,16 @@ test.describe('Icon and color system', () => {
 
   test('tag chip shows color and entity-icon svg on item list', async ({ request, page, app }) => {
     // 1. Create a container
-    const containerRes = await request.post(`${app.baseURL}/api/containers`, {
+    const containerRes = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `TagChipContainer ${Date.now()}` },
     });
     expect(containerRes.status()).toBe(201);
     const container = await containerRes.json();
 
     // 2. Create an item in that container
-    const itemRes = await request.post(`${app.baseURL}/api/items`, {
+    const itemRes = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: `TagChipItem ${Date.now()}`, container_id: container.id },
     });
     expect(itemRes.status()).toBe(201);
@@ -126,20 +132,22 @@ test.describe('Icon and color system', () => {
 
     // 3. Create a tag with color and icon
     const tagName = `RedWarningTag ${Date.now()}`;
-    const tagRes = await request.post(`${app.baseURL}/api/tags`, {
+    const tagRes = await request.post(`${app.baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: tagName, color: 'red', icon: 'warning' },
     });
     expect(tagRes.status()).toBe(201);
     const tag = await tagRes.json();
 
     // 4. Assign tag to item
-    const assignRes = await request.post(`${app.baseURL}/api/items/${item.id}/tags`, {
+    const assignRes = await request.post(`${app.baseURL}/items/${item.id}/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: { tag_id: tag.id },
     });
     expect(assignRes.status()).toBe(200);
 
     // 5. Navigate to the container view which lists items with their tag chips
-    await page.goto(`${app.baseURL}/ui/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
 
     // The tag chip containing the tag name is visible
     const tagChip = page.locator('.tag-chip').filter({ hasText: tagName });

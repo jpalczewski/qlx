@@ -20,9 +20,9 @@ window.LabelPrint = (function () {
         var ditheredUrl = dithered.toDataURL("image/png");
 
         // POST to server
-        fetch("/ui/actions/print-image", {
+        fetch("/print-image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
           body: JSON.stringify({
             printer_id: printerId,
             png: ditheredUrl

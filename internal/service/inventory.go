@@ -112,6 +112,11 @@ func (s *InventoryService) MoveContainer(id, newParentID string) error {
 	return s.store.Save()
 }
 
+// AllContainers returns all containers without filtering.
+func (s *InventoryService) AllContainers() []store.Container {
+	return s.store.AllContainers()
+}
+
 // --- Item read methods (passthrough) ---
 
 // GetItem returns the item with the given ID, or nil.

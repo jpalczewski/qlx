@@ -14,7 +14,7 @@
                 </div>
                 <button onclick="connectPrinter('{{ .ID }}')" class="button" style="font-size:0.8rem;padding:0.4rem 0.8rem">Connect</button>
                 <button onclick="disconnectPrinter('{{ .ID }}')" class="button secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem">Disconnect</button>
-                <button hx-delete="/ui/actions/printers/{{ .ID }}" hx-target="#content" hx-confirm="{{$.T "printers.confirm_delete"}}" class="danger">{{$.T "action.delete"}}</button>
+                <button hx-delete="/printers/{{ .ID }}" hx-target="#content" hx-confirm="{{$.T "printers.confirm_delete"}}" class="danger">{{$.T "action.delete"}}</button>
             </div>
         </li>
         {{ end }}
@@ -31,7 +31,7 @@
     <section class="actions">
         <details>
             <summary>+ {{.T "printers.add_printer"}}</summary>
-            <form hx-post="/ui/actions/printers" hx-target="#content">
+            <form hx-post="/printers" hx-target="#content">
                 <div class="form-group">
                     <label for="name">{{.T "printers.name"}}</label>
                     <input type="text" id="name" name="name" required placeholder="{{.T "printers.name_placeholder"}}">
@@ -78,7 +78,7 @@ function scanBLE() {
     loading.textContent = 'Skanowanie... (5s)';
     container.appendChild(loading);
 
-    fetch('/api/bluetooth/scan')
+    fetch('/bluetooth/scan', {headers: {'Accept': 'application/json'}})
         .then(function(r) {
             if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || r.statusText); });
             return r.json();
@@ -126,14 +126,14 @@ function scanBLE() {
 }
 
 function connectPrinter(id) {
-    fetch('/api/printers/' + id + '/connect', {method: 'POST'})
+    fetch('/printers/' + id + '/connect', {method: 'POST', headers: {'Accept': 'application/json'}})
         .then(function(r) { return r.json(); })
         .then(function(d) { if (d.error) showToast(d.error, true); else showToast('Connected', false); })
         .catch(function(e) { showToast('Error: ' + e, true); });
 }
 
 function disconnectPrinter(id) {
-    fetch('/api/printers/' + id + '/disconnect', {method: 'POST'})
+    fetch('/printers/' + id + '/disconnect', {method: 'POST', headers: {'Accept': 'application/json'}})
         .then(function(r) { return r.json(); })
         .then(function(d) { showToast('Disconnected', false); })
         .catch(function(e) { showToast('Error: ' + e, true); });

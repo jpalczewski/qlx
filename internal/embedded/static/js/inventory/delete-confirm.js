@@ -56,7 +56,7 @@
   /** Execute bulk delete of selected items. */
   function executeBulkDelete() {
     var ids = qlx.selectionEntries();
-    fetch("/ui/actions/bulk/delete", {
+    fetch("/bulk/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: ids })

@@ -7,13 +7,13 @@ test.describe('Quick Entry', () => {
 
   test('add container via quick entry at root', async ({ page, app }) => {
     containerName = `QE Container ${Date.now()}`;
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
     await page.fill('.containers .quick-entry input[name="name"]', containerName);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/containers') && r.request().method() === 'POST'
+      r.url().includes('/containers') && r.request().method() === 'POST'
     );
     await page.press('.containers .quick-entry input[name="name"]', 'Enter');
     await responsePromise;
@@ -25,7 +25,7 @@ test.describe('Quick Entry', () => {
   });
 
   test('navigate into container and add item via quick entry', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -33,7 +33,7 @@ test.describe('Quick Entry', () => {
     await page.fill('.items .quick-entry input[name="name"]', itemName);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/items') && r.request().method() === 'POST'
+      r.url().includes('/items') && r.request().method() === 'POST'
     );
     await page.press('.items .quick-entry input[name="name"]', 'Enter');
     await responsePromise;
@@ -42,7 +42,7 @@ test.describe('Quick Entry', () => {
   });
 
   test('add another item and verify both visible', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -50,7 +50,7 @@ test.describe('Quick Entry', () => {
     await page.fill('.items .quick-entry input[name="name"]', itemName2);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/items') && r.request().method() === 'POST'
+      r.url().includes('/items') && r.request().method() === 'POST'
     );
     await page.press('.items .quick-entry input[name="name"]', 'Enter');
     await responsePromise;
@@ -72,34 +72,40 @@ test.describe('Bulk Operations via API', () => {
   let item3Id: string;
 
   test('setup: create containers and items', async ({ request, app }) => {
-    const c1 = await request.post(`${app.baseURL}/api/containers`, {
+    const c1 = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkSource' },
     });
     container1Id = (await c1.json()).id;
 
-    const c2 = await request.post(`${app.baseURL}/api/containers`, {
+    const c2 = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkTarget' },
     });
     container2Id = (await c2.json()).id;
 
-    const i1 = await request.post(`${app.baseURL}/api/items`, {
+    const i1 = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkItem1', container_id: container1Id },
     });
     item1Id = (await i1.json()).id;
 
-    const i2 = await request.post(`${app.baseURL}/api/items`, {
+    const i2 = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkItem2', container_id: container1Id },
     });
     item2Id = (await i2.json()).id;
 
-    const i3 = await request.post(`${app.baseURL}/api/items`, {
+    const i3 = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkItem3', container_id: container1Id },
     });
     item3Id = (await i3.json()).id;
   });
 
   test('bulk move items to another container', async ({ request, app }) => {
-    const res = await request.post(`${app.baseURL}/api/bulk/move`, {
+    const res = await request.post(`${app.baseURL}/bulk/move`, {
+      headers: { 'Accept': 'application/json' },
       data: {
         ids: [
           { id: item1Id, type: 'item' },
@@ -111,14 +117,18 @@ test.describe('Bulk Operations via API', () => {
     expect(res.status()).toBe(200);
 
     // Verify items moved to container2
-    const c2Items = await request.get(`${app.baseURL}/api/containers/${container2Id}/items`);
+    const c2Items = await request.get(`${app.baseURL}/containers/${container2Id}/items`, {
+      headers: { 'Accept': 'application/json' },
+    });
     const body = await c2Items.json();
     const itemIds = body.items.map((i: any) => i.id);
     expect(itemIds).toContain(item1Id);
     expect(itemIds).toContain(item2Id);
 
     // Verify item3 still in container1
-    const c1Items = await request.get(`${app.baseURL}/api/containers/${container1Id}/items`);
+    const c1Items = await request.get(`${app.baseURL}/containers/${container1Id}/items`, {
+      headers: { 'Accept': 'application/json' },
+    });
     const body1 = await c1Items.json();
     const itemIds1 = body1.items.map((i: any) => i.id);
     expect(itemIds1).toContain(item3Id);
@@ -126,7 +136,8 @@ test.describe('Bulk Operations via API', () => {
   });
 
   test('bulk delete item', async ({ request, app }) => {
-    const res = await request.post(`${app.baseURL}/api/bulk/delete`, {
+    const res = await request.post(`${app.baseURL}/bulk/delete`, {
+      headers: { 'Accept': 'application/json' },
       data: {
         ids: [{ id: item3Id, type: 'item' }],
       },
@@ -136,20 +147,24 @@ test.describe('Bulk Operations via API', () => {
     expect(body.deleted.length).toBeGreaterThanOrEqual(1);
 
     // Verify item3 is gone
-    const itemRes = await request.get(`${app.baseURL}/api/items/${item3Id}`);
+    const itemRes = await request.get(`${app.baseURL}/items/${item3Id}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(itemRes.status()).toBe(404);
   });
 
   test('bulk tag items', async ({ request, app }) => {
     // Create a tag
-    const tagRes = await request.post(`${app.baseURL}/api/tags`, {
+    const tagRes = await request.post(`${app.baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'BulkTag' },
     });
     expect(tagRes.status()).toBe(201);
     const tag = await tagRes.json();
 
     // Bulk tag items
-    const bulkRes = await request.post(`${app.baseURL}/api/bulk/tags`, {
+    const bulkRes = await request.post(`${app.baseURL}/bulk/tags`, {
+      headers: { 'Accept': 'application/json' },
       data: {
         ids: [
           { id: item1Id, type: 'item' },
@@ -161,11 +176,15 @@ test.describe('Bulk Operations via API', () => {
     expect(bulkRes.status()).toBe(200);
 
     // Verify both items have the tag
-    const i1Res = await request.get(`${app.baseURL}/api/items/${item1Id}`);
+    const i1Res = await request.get(`${app.baseURL}/items/${item1Id}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     const i1 = await i1Res.json();
     expect(i1.item.tag_ids).toContain(tag.id);
 
-    const i2Res = await request.get(`${app.baseURL}/api/items/${item2Id}`);
+    const i2Res = await request.get(`${app.baseURL}/items/${item2Id}`, {
+      headers: { 'Accept': 'application/json' },
+    });
     const i2 = await i2Res.json();
     expect(i2.item.tag_ids).toContain(tag.id);
   });
@@ -177,20 +196,24 @@ test.describe('Search', () => {
   let containerId: string;
 
   test('setup: create container and item for search', async ({ request, app }) => {
-    const cRes = await request.post(`${app.baseURL}/api/containers`, {
+    const cRes = await request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'Elektronika' },
     });
     expect(cRes.status()).toBe(201);
     containerId = (await cRes.json()).id;
 
-    const iRes = await request.post(`${app.baseURL}/api/items`, {
+    const iRes = await request.post(`${app.baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
       data: { name: 'Arduino Nano', container_id: containerId },
     });
     expect(iRes.status()).toBe(201);
   });
 
   test('API search finds item by partial name', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/api/search?q=ardui`);
+    const res = await request.get(`${app.baseURL}/search?q=ardui`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(res.status()).toBe(200);
     const body = await res.json();
     const found = body.items.some((i: any) => i.name === 'Arduino Nano');
@@ -198,7 +221,9 @@ test.describe('Search', () => {
   });
 
   test('API search finds container by partial name', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/api/search?q=elektro`);
+    const res = await request.get(`${app.baseURL}/search?q=elektro`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(res.status()).toBe(200);
     const body = await res.json();
     const found = body.containers.some((c: any) => c.name === 'Elektronika');
@@ -206,7 +231,9 @@ test.describe('Search', () => {
   });
 
   test('API search returns empty for nonexistent query', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/api/search?q=nonexistent99999`);
+    const res = await request.get(`${app.baseURL}/search?q=nonexistent99999`, {
+      headers: { 'Accept': 'application/json' },
+    });
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.items ?? []).toHaveLength(0);
@@ -215,14 +242,14 @@ test.describe('Search', () => {
   });
 
   test('UI search shows results', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
 
     // Type in the global search input
     await page.fill('#global-search', 'Arduino');
 
     // Wait for the HTMX search response
     await page.waitForResponse(r =>
-      r.url().includes('/ui/search') && r.request().method() === 'GET'
+      r.url().includes('/search') && r.request().method() === 'GET'
     );
 
     // The search results page should show

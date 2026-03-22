@@ -10,7 +10,7 @@
     <div class="container-header" {{ if .Data.Container.Color }}style="border-left: 3px solid {{ paletteHex .Data.Container.Color }}"{{ end }}>
         <span class="entity-icon large">{{ if .Data.Container.Icon }}{{ icon .Data.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>
         <h2>{{ .Data.Container.Name }}</h2>
-        <a href="/ui/containers/{{ .Data.Container.ID }}/edit" hx-get="/ui/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
+        <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
     </div>
     {{ if .Data.Container.Description }}<p class="description">{{ .Data.Container.Description }}</p>{{ end }}
     <section class="container-tags">
@@ -24,7 +24,7 @@
             {{ range .Data.Children }}
             <li draggable="true" data-id="{{ .ID }}" data-type="container">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
-                <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
+                <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
@@ -35,7 +35,7 @@
             {{ end }}
         </ul>
         <form class="quick-entry"
-              hx-post="/ui/actions/containers"
+              hx-post="/containers"
               hx-target="#container-list"
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) { var wasOpen = this.hasAttribute('data-desc-open'); this.reset(); if(wasOpen) this.setAttribute('data-desc-open',''); this.querySelector('input[name=name]').focus(); }">
@@ -60,7 +60,7 @@
             {{ range .Data.Items }}
             <li draggable="true" data-id="{{ .ID }}" data-type="item">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
-                <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
+                <a href="/items/{{ .ID }}" hx-get="/items/{{ .ID }}" hx-target="#content" class="item-item">
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
@@ -72,7 +72,7 @@
         </ul>
         {{ if .Data.Container }}
         <form class="quick-entry"
-              hx-post="/ui/actions/items"
+              hx-post="/items"
               hx-target="#item-list"
               hx-swap="beforeend"
               hx-on::after-request="if(event.detail.successful) { var wasOpen = this.hasAttribute('data-desc-open'); this.reset(); if(wasOpen) this.setAttribute('data-desc-open',''); this.querySelector('input[name=name]').focus(); }">
@@ -123,7 +123,7 @@
             var tmpl = document.getElementById('container-print-template').value;
             var result = document.getElementById('container-print-result');
             result.textContent = 'Pobieranie przedmiotów...';
-            fetch('/ui/actions/containers/{{ .Data.Container.ID }}/items-json')
+            fetch('/containers/{{ .Data.Container.ID }}/items-json', {headers: {'Accept': 'application/json'}})
                 .then(function(r){ return r.json(); })
                 .then(function(items){
                     if (!items || items.length === 0) {
@@ -142,9 +142,9 @@
                             }
                             return;
                         }
-                        fetch('/ui/actions/items/' + items[i].id + '/print', {
+                        fetch('/items/' + items[i].id + '/print', {
                             method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
+                            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
                             body: JSON.stringify({printer_id: printer, template: tmpl})
                         }).then(function(r){ return r.json(); }).then(function(d){
                             if (d.ok) { printed++; } else { errors.push(items[i].name + ': ' + d.error); }
@@ -155,7 +155,7 @@
                 }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
         })()">{{.T "inventory.print_all"}}</button>
         {{ else }}
-        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/ui/printers" hx-get="/ui/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
         {{ end }}
         <div id="container-print-result"></div>
     </section>
@@ -164,7 +164,7 @@
     {{ if .Data.Container }}
     {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
-        <button hx-delete="/ui/actions/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
+        <button hx-delete="/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
     </section>
     {{ end }}
     {{ end }}

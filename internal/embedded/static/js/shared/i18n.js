@@ -18,7 +18,7 @@
   /** Fetch translations from the server and populate the map. */
   function loadTranslations() {
     var lang = document.documentElement.lang || "en";
-    fetch("/api/i18n/" + encodeURIComponent(lang))
+    fetch("/i18n/" + encodeURIComponent(lang))
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data && typeof data === "object") {

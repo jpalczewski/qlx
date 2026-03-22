@@ -1,7 +1,7 @@
 {{ define "item-list-item" }}
 <li draggable="true" data-id="{{ .Data.ID }}" data-type="item" class="flash">
     <input type="checkbox" class="bulk-select" data-id="{{ .Data.ID }}" data-type="item">
-    <a href="/ui/items/{{ .Data.ID }}" hx-get="/ui/items/{{ .Data.ID }}" hx-target="#content" class="item-item">
+    <a href="/items/{{ .Data.ID }}" hx-get="/items/{{ .Data.ID }}" hx-target="#content" class="item-item">
         <span class="name"><span class="color-dot"{{ if .Data.Color }} style="background-color: {{ paletteHex .Data.Color }}"{{ end }}></span><span class="entity-icon">{{ if .Data.Icon }}{{ icon .Data.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Data.Name }}</span>
     </a>
     {{ if gt .Data.Quantity 1 }}<span class="badge">x{{ .Data.Quantity }}</span>{{ end }}

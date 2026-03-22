@@ -69,7 +69,7 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
     let ready = false;
     while (Date.now() - startTime < timeout) {
       try {
-        const res = await fetch(`http://127.0.0.1:${port}/ui`);
+        const res = await fetch(`http://127.0.0.1:${port}/`);
         if (res.ok) { ready = true; break; }
       } catch {
         // server not ready yet

@@ -9,12 +9,12 @@ test.describe('Template management', () => {
   const tag2 = 'test';
 
   test('templates page loads', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Szablony');
   });
 
   test('navigate to template designer', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     await page.click('a:has-text("Nowy szablon")');
     await expect(page.locator('#designer-app')).toBeVisible();
     await expect(page.locator('#template-name')).toBeVisible();
@@ -22,14 +22,14 @@ test.describe('Template management', () => {
   });
 
   test('create template via designer', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates/new`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates/new`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#designer-app')).toBeVisible();
 
     await page.fill('#template-name', templateName);
     await page.fill('#template-tags', `${tag1}, ${tag2}`);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/templates') && r.request().method() === 'POST'
+      r.url().includes('/templates') && r.request().method() === 'POST'
     );
     await page.click('#save-template');
     const response = await responsePromise;
@@ -40,7 +40,7 @@ test.describe('Template management', () => {
   });
 
   test('template appears in list', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     const card = page.locator(`.template-card:has(.name:has-text("${templateName}"))`).first();
     await expect(card).toBeVisible();
     await expect(card.locator('.name')).toContainText(templateName);
@@ -48,7 +48,7 @@ test.describe('Template management', () => {
   });
 
   test('filter templates by tag', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.tag-filter-bar')).toBeVisible();
 
     // Click on one of the tags in the filter bar
@@ -61,7 +61,7 @@ test.describe('Template management', () => {
   });
 
   test('edit existing template', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     const card = page.locator(`.template-card:has(.name:has-text("${templateName}"))`).first();
     await card.locator('a:has-text("Edytuj")').click();
     await expect(page.locator('#designer-app')).toBeVisible();
@@ -73,7 +73,7 @@ test.describe('Template management', () => {
     await page.fill('#template-name', updatedName);
 
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/templates/') && r.request().method() === 'PUT'
+      r.url().includes('/templates/') && r.request().method() === 'PUT'
     );
     await page.click('#save-template');
     const response = await responsePromise;
@@ -86,13 +86,13 @@ test.describe('Template management', () => {
   });
 
   test('delete template', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/ui/templates`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/templates`, { waitUntil: 'domcontentloaded' });
     const card = page.locator(`.template-card:has(.name:has-text("${updatedName}"))`).first();
     await expect(card).toBeVisible();
 
     page.on('dialog', dialog => dialog.accept());
     const responsePromise = page.waitForResponse(r =>
-      r.url().includes('/ui/actions/templates/') && r.request().method() === 'DELETE'
+      r.url().includes('/templates/') && r.request().method() === 'DELETE'
     );
     await card.locator('button:has-text("Usuń")').click();
     await responsePromise;

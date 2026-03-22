@@ -56,6 +56,16 @@ func (s *TagService) TagDescendants(id string) []string {
 	return s.store.TagDescendants(id)
 }
 
+// ItemsByTag returns all items tagged with the given tag ID.
+func (s *TagService) ItemsByTag(tagID string) []store.Item {
+	return s.store.ItemsByTag(tagID)
+}
+
+// ContainersByTag returns all containers tagged with the given tag ID.
+func (s *TagService) ContainersByTag(tagID string) []store.Container {
+	return s.store.ContainersByTag(tagID)
+}
+
 // --- Mutation methods ---
 
 // CreateTag creates a new tag and persists.

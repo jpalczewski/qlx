@@ -4,13 +4,13 @@
   var picker = qlx.createTreePicker({
     id: "tag-picker",
     title: function () { return qlx.t("tags.add_tag"); },
-    endpoint: "/ui/partials/tag-tree",
-    searchEndpoint: "/ui/partials/tag-tree/search",
+    endpoint: "/partials/tag-tree",
+    searchEndpoint: "/partials/tag-tree/search",
     searchPlaceholder: function () { return qlx.t("tags.search_tags"); },
     confirmLabel: function () { return qlx.t("tags.tag_action"); },
     onConfirm: function (tagId) {
       var ids = qlx.selectionEntries();
-      fetch("/ui/actions/bulk/tags", {
+      fetch("/bulk/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: ids, tag_id: tagId })

@@ -13,6 +13,9 @@ func IsJSON(r *http.Request) bool {
 	return strings.Contains(r.Header.Get("Accept"), "application/json")
 }
 
+// WantsJSON returns true if the client prefers JSON responses.
+var WantsJSON = IsJSON
+
 func IsHTMX(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }
