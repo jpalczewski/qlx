@@ -3,6 +3,8 @@
   "nav.printers": "Drukarki",
   "nav.templates": "Szablony",
   "nav.tags": "Tagi",
+  "nav.quick_print": "Szybki druk",
+  "nav.quick_print_text": "Tekst do wydruku",
   "nav.search_placeholder": "Szukaj...",
   "nav.title": "QLX - Etykiety"
 }

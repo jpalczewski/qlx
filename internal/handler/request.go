@@ -132,6 +132,14 @@ type ContainerPrintRequest struct {
 	ShowChildren bool     `json:"show_children"`
 }
 
+// AdhocPrintRequest is the input for ad-hoc label printing.
+type AdhocPrintRequest struct {
+	Text      string `json:"text" form:"text"`
+	PrinterID string `json:"printer_id" form:"printer_id"`
+	Template  string `json:"template" form:"template"`
+	PrintDate bool   `json:"print_date"`
+}
+
 // TagAssignRequest is the input for assigning/removing tags.
 type TagAssignRequest struct {
 	TagID string `json:"tag_id" form:"tag_id"`

@@ -126,5 +126,11 @@ type DesignerData struct {
 	PreviewDataJSON   string
 }
 
+// QuickPrintData is the view model for the quick print page.
+type QuickPrintData struct {
+	Printers []store.PrinterConfig
+	Schemas  []string
+}
+
 // SettingsData is the view model for the settings page.
 type SettingsData struct{}

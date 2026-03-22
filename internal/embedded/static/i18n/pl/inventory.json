@@ -31,5 +31,6 @@
   "inventory.edit_container": "Edytuj kontener",
   "inventory.new_container": "Nowy kontener",
   "inventory.quantity": "Ilość",
-  "inventory.print_container_label": "Drukuj etykietę kontenera"
+  "inventory.print_container_label": "Drukuj etykietę kontenera",
+  "inventory.print_date": "Dodaj datę wydruku"
 }
