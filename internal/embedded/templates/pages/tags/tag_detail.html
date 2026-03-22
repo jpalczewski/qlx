@@ -1,0 +1,80 @@
+{{ define "tag-detail" }}
+<div class="tag-detail-view">
+    <nav class="breadcrumb">
+        <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "tags.title"}}</a>
+        {{ range .Data.Path }}
+        <span class="sep">/</span>
+        <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
+        {{ end }}
+    </nav>
+
+    <h1>{{ .Data.Tag.Name }}</h1>
+
+    <div class="tag-stats">
+        <div class="stat">
+            <span class="stat-value">{{ .Data.Stats.ItemCount }}</span>
+            <span class="stat-label">{{.T "tags.stats_items"}}</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ .Data.Stats.ContainerCount }}</span>
+            <span class="stat-label">{{.T "tags.stats_containers"}}</span>
+        </div>
+        <div class="stat">
+            <span class="stat-value">{{ .Data.Stats.TotalQuantity }}</span>
+            <span class="stat-label">{{.T "tags.stats_total_quantity"}}</span>
+        </div>
+    </div>
+
+    {{ if and (eq .Data.Stats.ItemCount 0) (eq .Data.Stats.ContainerCount 0) }}
+    <p class="empty-state">{{.T "tags.no_tagged_objects"}}</p>
+    {{ end }}
+
+    {{ if .Data.Containers }}
+    <section>
+        <h3>{{.T "tags.containers_section"}}</h3>
+        <ul class="container-list">
+            {{ range .Data.Containers }}
+            <li>
+                <a href="/ui/containers/{{ .ID }}" hx-get="/ui/containers/{{ .ID }}" hx-target="#content" class="container-item">
+                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+            </li>
+            {{ end }}
+        </ul>
+    </section>
+    {{ end }}
+
+    {{ if .Data.Items }}
+    <section>
+        <h3>{{.T "tags.items_section"}}</h3>
+        <ul class="item-list">
+            {{ range .Data.Items }}
+            <li>
+                <a href="/ui/items/{{ .ID }}" hx-get="/ui/items/{{ .ID }}" hx-target="#content" class="item-item">
+                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
+                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
+                </a>
+                {{ if .TagIDs }}
+                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
+                {{ end }}
+            </li>
+            {{ end }}
+        </ul>
+    </section>
+    {{ end }}
+
+    {{ if .Data.Children }}
+    <section>
+        <h3>{{.T "tags.children_section"}}</h3>
+        <ul class="tag-list">
+            {{ range .Data.Children }}
+            <li>
+                <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
+            </li>
+            {{ end }}
+        </ul>
+    </section>
+    {{ end }}
+</div>
+{{ end }}
