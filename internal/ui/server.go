@@ -11,6 +11,7 @@ import (
 	"github.com/erxyi/qlx/internal/embedded"
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
+	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/palette"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -50,6 +51,7 @@ type ContainerListData struct {
 	Path      []store.Container
 	Printers  []store.PrinterConfig
 	Templates []store.Template
+	Schemas   []string
 }
 
 type ItemDetailData struct {
@@ -57,6 +59,7 @@ type ItemDetailData struct {
 	Path      []store.Container
 	Printers  []store.PrinterConfig
 	Templates []store.Template
+	Schemas   []string
 }
 
 type PrintersData struct {
@@ -408,11 +411,14 @@ func (s *Server) containerViewModel(containerID string) (ContainerListData, bool
 	printersList := s.printers.AllPrinters()
 	templatesList := s.store.AllTemplates()
 
+	schemas := label.SchemaNames()
+
 	if containerID == "" {
 		return ContainerListData{
 			Children:  s.inventory.ContainerChildren(""),
 			Printers:  printersList,
 			Templates: templatesList,
+			Schemas:   schemas,
 		}, true
 	}
 
@@ -428,6 +434,7 @@ func (s *Server) containerViewModel(containerID string) (ContainerListData, bool
 		Path:      s.inventory.ContainerPath(containerID),
 		Printers:  printersList,
 		Templates: templatesList,
+		Schemas:   schemas,
 	}, true
 }
 
@@ -442,6 +449,7 @@ func (s *Server) itemDetailViewModel(itemID string) (ItemDetailData, bool) {
 		Path:      s.inventory.ContainerPath(item.ContainerID),
 		Printers:  s.printers.AllPrinters(),
 		Templates: s.store.AllTemplates(),
+		Schemas:   label.SchemaNames(),
 	}, true
 }
 

@@ -4,6 +4,7 @@ qlx-mips
 *.test
 data.json
 data/
+data-prod/
 .gocache/
 .mcp.json
 *.tmp

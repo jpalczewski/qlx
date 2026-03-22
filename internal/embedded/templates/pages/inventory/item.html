@@ -39,11 +39,10 @@
                     {{ range .Data.Templates }}
                     <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
                     {{ end }}
-                    <optgroup label="Legacy">
-                        <option value="simple">{{.T "labels.template_simple"}}</option>
-                        <option value="standard">{{.T "labels.template_standard"}}</option>
-                        <option value="compact">{{.T "labels.template_compact"}}</option>
-                        <option value="detailed">{{.T "labels.template_detailed"}}</option>
+                    <optgroup label="Built-in">
+                        {{ range .Data.Schemas }}
+                        <option value="{{ . }}">{{ . }}</option>
+                        {{ end }}
                     </optgroup>
                 </select>
             </div>
