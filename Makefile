@@ -1,11 +1,11 @@
-.PHONY: build build-mac build-mips test test-ble test-e2e test-e2e-ui run clean deps lint lint-fix install-hooks
+.PHONY: build build-mac build-mips test test-ble test-usb test-all test-e2e test-e2e-ui run clean deps lint lint-fix install-hooks
 
 build:
 	go build -o qlx ./cmd/qlx/
 
 build-mac:
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 \
-	  go build -tags ble -o qlx-darwin ./cmd/qlx/
+	  go build -tags ble,usb -o qlx-darwin ./cmd/qlx/
 
 build-mips:
 	CGO_ENABLED=0 GOOS=linux GOARCH=mips GOMIPS=softfloat \
@@ -17,6 +17,12 @@ test:
 
 test-ble:
 	go test -tags ble ./... -v
+
+test-usb:
+	go test -tags usb ./... -v
+
+test-all:
+	go test -tags ble,usb ./... -v
 
 run:
 	go run -tags ble ./cmd/qlx/ --port 18081 --data ./data
