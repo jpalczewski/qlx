@@ -45,7 +45,8 @@
               target.removeEventListener("htmx:afterSwap", handler);
               if (!pendingTagId) return;
 
-              var newEl = target.querySelector("li[data-id]:last-of-type");
+              var allEls = target.querySelectorAll("li[data-id]");
+              var newEl = allEls.length > 0 ? allEls[allEls.length - 1] : null;
               if (!newEl) { pendingTagId = null; return; }
 
               var newId = newEl.getAttribute("data-id");
