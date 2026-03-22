@@ -159,27 +159,6 @@
     </section>
     {{ end }}
 
-    <section class="actions">
-        <details>
-            <summary>+ {{.T "inventory.add_container"}}</summary>
-            <form hx-post="/ui/actions/containers" hx-target="#content">
-                <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
-                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
-                <button type="submit">{{.T "inventory.create"}}</button>
-            </form>
-        </details>
-        {{ if .Data.Container }}
-        <details>
-            <summary>+ {{.T "inventory.add_item"}}</summary>
-            <form hx-post="/ui/actions/items" hx-target="#content">
-                <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
-                {{ template "fields/name-desc" dict "name" "" "description" "" "rows" "2" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
-                <button type="submit">{{.T "inventory.create"}}</button>
-            </form>
-        </details>
-        {{ end }}
-    </section>
-
     {{ if .Data.Container }}
     {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
