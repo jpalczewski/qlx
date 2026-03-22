@@ -6,48 +6,47 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    name: Lint
+  checks:
+    name: Lint & Vulncheck
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
       - uses: golangci/golangci-lint-action@v8
         with:
           version: v2.11.3
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25"
-      - name: Run tests
-        env:
-          CGO_ENABLED: "1"
-        run: go test ./... -race -coverprofile=coverage.out -v
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage.out
-
-  vulncheck:
-    name: Vulncheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25"
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: Run govulncheck
         run: govulncheck ./...
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run tests
+        env:
+          CGO_ENABLED: "1"
+        run: go test ./... -race -coverprofile=coverage.txt -v
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     name: Build
@@ -57,16 +56,16 @@ jobs:
 
   e2e:
     name: E2E Tests
-    needs: build
+    needs: [build, test]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
-        with:
-          go-version: "1.25"
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
       - uses: actions/download-artifact@v4
         with:
           name: qlx-binary
@@ -77,9 +76,24 @@ jobs:
       - name: Install E2E dependencies
         working-directory: e2e
         run: npm ci
+      - name: Get Playwright version
+        id: playwright-version
+        working-directory: e2e
+        run: echo "version=$(npx playwright --version | tr ' ' '-')" >> $GITHUB_OUTPUT
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: e2e
         run: npx playwright install chromium --with-deps
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: e2e
+        run: npx playwright install-deps chromium
       - name: Run E2E tests
         working-directory: e2e
         run: npx playwright test
