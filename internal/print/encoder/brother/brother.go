@@ -45,6 +45,17 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return err
 	}
 
+	// 2a. Read current status to detect loaded media type.
+	st, stErr := requestStatus(tr)
+	mediaType := mediaContinuous
+	mediaWidth := byte(62)
+	mediaLength := byte(0)
+	if stErr == nil {
+		mediaType = st.MediaType
+		mediaWidth = byte(st.MediaWidth)   //nolint:gosec // G115: media width fits in byte
+		mediaLength = byte(st.MediaLength) //nolint:gosec // G115: media length fits in byte
+	}
+
 	// 3. Media/quality info: ESC i z + 10 bytes
 	//nolint:gosec // G115: value range is validated by protocol constraints
 	rasterLines := uint32(height)
@@ -52,10 +63,10 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	mediaInfo[0] = 0x1B
 	mediaInfo[1] = 0x69
 	mediaInfo[2] = 0x7A
-	mediaInfo[3] = 0x86 // flags: quality + media_type + media_width
-	mediaInfo[4] = byte(mediaContinuous)
-	mediaInfo[5] = 62 // media_width_mm (default 62mm)
-	mediaInfo[6] = 0  // media_length_mm (0 for continuous)
+	mediaInfo[3] = 0xCE // flags: quality + media_type + media_width + media_length + raster_lines
+	mediaInfo[4] = mediaType
+	mediaInfo[5] = mediaWidth
+	mediaInfo[6] = mediaLength
 	binary.LittleEndian.PutUint32(mediaInfo[7:11], rasterLines)
 	mediaInfo[11] = 0x00 // page_number (starting page)
 	mediaInfo[12] = 0x00 // reserved

@@ -11,6 +11,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/label"
+	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 )
@@ -65,6 +66,7 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /printers/{id}/connect", h.Connect)
 	mux.HandleFunc("POST /printers/{id}/disconnect", h.Disconnect)
 	mux.HandleFunc("GET /printers/events", h.Events)
+	mux.HandleFunc("GET /printers/scan/usb", h.ScanUSB)
 }
 
 // ListPrinters handles GET /printers.
@@ -331,6 +333,31 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// ScanUSB handles GET /printers/scan/usb — enumerates connected Brother USB devices.
+func (h *PrintHandler) ScanUSB(w http.ResponseWriter, r *http.Request) {
+	webutil.LogInfo("starting USB scan...")
+	results, err := transport.ScanUSB()
+	if err != nil {
+		webutil.LogError("USB scan error: %v", err)
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// Deduplicate by serial number, keeping first occurrence.
+	seen := make(map[string]bool)
+	unique := make([]transport.USBScanResult, 0, len(results))
+	for _, res := range results {
+		if res.Serial != "" && seen[res.Serial] {
+			continue
+		}
+		seen[res.Serial] = true
+		unique = append(unique, res)
+	}
+
+	webutil.LogInfo("USB scan found %d device(s) (%d raw)", len(unique), len(results))
+	webutil.JSON(w, http.StatusOK, unique)
 }
 
 // printersVM builds the view model for the printers page.

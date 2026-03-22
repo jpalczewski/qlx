@@ -129,7 +129,13 @@ func (s *PrinterSession) Print(img image.Image, model string, opts encoder.Print
 
 func (s *PrinterSession) heartbeatLoop() {
 	defer close(s.stopped)
-	ticker := time.NewTicker(2 * time.Second)
+
+	interval := 2 * time.Second
+	if hc, ok := s.querier.(interface{ HeartbeatInterval() time.Duration }); ok {
+		interval = hc.HeartbeatInterval()
+	}
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for {

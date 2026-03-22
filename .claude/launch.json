@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qlx-dev",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "-tags", "ble,usb", "./cmd/qlx/", "--port", "8080", "--data", "./data"],
+      "port": 8080
+    }
+  ]
+}

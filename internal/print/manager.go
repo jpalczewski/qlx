@@ -370,6 +370,8 @@ func (m *PrinterManager) defaultTransportFactory(name string) transport.Transpor
 	switch name {
 	case "usb":
 		return &transport.FileTransport{}
+	case "gousb":
+		return &transport.GoUSBTransport{}
 	case "serial":
 		return &transport.SerialTransport{}
 	case "remote":
