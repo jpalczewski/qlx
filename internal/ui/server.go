@@ -297,6 +297,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// Tags UI
 	mux.HandleFunc("GET /ui/tags", s.HandleTags)
+	mux.HandleFunc("GET /ui/tags/{id}", s.HandleTagView)
 	mux.HandleFunc("POST /ui/actions/tags", s.HandleTagCreate)
 	mux.HandleFunc("PUT /ui/actions/tags/{id}", s.HandleTagUpdate)
 	mux.HandleFunc("DELETE /ui/actions/tags/{id}", s.HandleTagDelete)
