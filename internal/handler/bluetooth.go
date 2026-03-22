@@ -31,6 +31,22 @@ func (h *BluetoothHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
-	webutil.LogInfo("BLE scan found %d devices", len(results))
-	webutil.JSON(w, http.StatusOK, results)
+	unique := deduplicateBLE(results)
+	webutil.LogInfo("BLE scan found %d devices (%d raw)", len(unique), len(results))
+	webutil.JSON(w, http.StatusOK, unique)
+}
+
+// deduplicateBLE removes duplicate scan results by address, keeping the strongest RSSI.
+func deduplicateBLE(results []transport.BLEScanResult) []transport.BLEScanResult {
+	best := make(map[string]transport.BLEScanResult)
+	for _, r := range results {
+		if existing, ok := best[r.Address]; !ok || r.RSSI > existing.RSSI {
+			best[r.Address] = r
+		}
+	}
+	unique := make([]transport.BLEScanResult, 0, len(best))
+	for _, r := range best {
+		unique = append(unique, r)
+	}
+	return unique
 }
