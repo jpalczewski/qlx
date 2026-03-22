@@ -74,6 +74,7 @@ type PrinterStore interface {
 	AllPrinters() []store.PrinterConfig
 	AddPrinter(name, encoder, model, transport, address string) *store.PrinterConfig
 	DeletePrinter(id string) error
+	UpdatePrinterOffset(id string, offsetX, offsetY int) error
 }
 
 // TemplateStore defines template-related store operations.

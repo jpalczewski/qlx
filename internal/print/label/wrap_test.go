@@ -3,9 +3,9 @@ package label
 import "testing"
 
 func TestWrapText(t *testing.T) {
-	face, err := loadFontFace(13)
+	face, err := LoadFace("spleen", 13)
 	if err != nil {
-		t.Fatalf("loadFontFace: %v", err)
+		t.Fatalf("LoadFace: %v", err)
 	}
 	tests := []struct {
 		name     string

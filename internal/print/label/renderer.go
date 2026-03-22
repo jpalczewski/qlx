@@ -5,21 +5,30 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"time"
 
 	"github.com/boombuler/barcode"
 	"github.com/boombuler/barcode/code128"
 	qrcode "github.com/skip2/go-qrcode"
 )
 
+// RenderOpts controls optional rendering behaviour.
+type RenderOpts struct {
+	PrintDate bool // append "Wydrukowano: DATE" at bottom
+}
+
+// nowFunc is overridable for tests.
+var nowFunc = time.Now
+
 // Render produces a label image from the given data using the named schema.
 // widthPx controls the image width; height is calculated automatically.
 // dpi is accepted for API compatibility but not used for rendering.
-func Render(data LabelData, template string, widthPx, dpi int) (image.Image, error) {
+func Render(data LabelData, template string, widthPx, dpi int, opts RenderOpts) (image.Image, error) {
 	schema, ok := GetSchema(template)
 	if !ok {
 		return nil, fmt.Errorf("unknown template %q: valid templates are %v", template, SchemaNames())
 	}
-	return renderSchema(schema, data, widthPx)
+	return renderSchema(schema, data, widthPx, opts)
 }
 
 // newCanvas creates a white RGBA image of the given dimensions.

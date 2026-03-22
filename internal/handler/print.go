@@ -21,13 +21,34 @@ type PrintHandler struct {
 	inventory *service.InventoryService
 	printers  *service.PrinterService
 	templates *service.TemplateService
+	tags      *service.TagService
 	resp      Responder
 }
 
 // NewPrintHandler creates a new PrintHandler.
 func NewPrintHandler(pm *print.PrinterManager, inv *service.InventoryService,
-	prn *service.PrinterService, tmpl *service.TemplateService, resp Responder) *PrintHandler {
-	return &PrintHandler{pm: pm, inventory: inv, printers: prn, templates: tmpl, resp: resp}
+	prn *service.PrinterService, tmpl *service.TemplateService, tags *service.TagService, resp Responder) *PrintHandler {
+	return &PrintHandler{pm: pm, inventory: inv, printers: prn, templates: tmpl, tags: tags, resp: resp}
+}
+
+// resolveTags converts tag IDs to LabelTag structs with path information.
+func (h *PrintHandler) resolveTags(tagIDs []string) []label.LabelTag {
+	if h.tags == nil {
+		return nil
+	}
+	var tags []label.LabelTag
+	for _, tagID := range tagIDs {
+		tagPath := h.tags.TagPath(tagID)
+		if len(tagPath) > 0 {
+			tag := tagPath[len(tagPath)-1]
+			pathNames := make([]string, len(tagPath))
+			for i, t := range tagPath {
+				pathNames[i] = t.Name
+			}
+			tags = append(tags, label.LabelTag{Name: tag.Name, Icon: tag.Icon, Path: pathNames})
+		}
+	}
+	return tags
 }
 
 // RegisterRoutes registers printer and print routes on the given mux.
@@ -37,6 +58,7 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /printers/{id}", h.DeletePrinter)
 	mux.HandleFunc("GET /encoders", h.ListEncoders)
 	mux.HandleFunc("POST /items/{id}/print", h.PrintItem)
+	mux.HandleFunc("POST /containers/{id}/print", h.PrintContainer)
 	mux.HandleFunc("POST /print-image", h.PrintImage)
 	mux.HandleFunc("GET /printers/status", h.AllStatuses)
 	mux.HandleFunc("GET /printers/{id}/status", h.Status)
@@ -130,18 +152,21 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 		Location:    webutil.FormatContainerPath(path, " \u2192 "),
 		QRContent:   "/item/" + item.ID,
 		BarcodeID:   item.ID,
+		Icon:        item.Icon,
+		Tags:        h.resolveTags(item.TagIDs),
 	}
 
-	// Check if this is a legacy template or designer template
-	switch req.Template {
-	case "simple", "standard", "compact", "detailed":
-		if err := h.pm.Print(req.PrinterID, data, req.Template); err != nil {
+	opts := label.RenderOpts{PrintDate: req.PrintDate}
+
+	// Check if this is a built-in schema or designer template
+	if _, ok := label.GetSchema(req.Template); ok {
+		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-	default:
+	} else {
 		tmpl := h.templates.GetTemplate(req.Template)
 		if tmpl == nil {
 			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
@@ -243,6 +268,69 @@ func (h *PrintHandler) Events(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+// PrintContainer handles POST /containers/{id}/print.
+func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
+	var req ContainerPrintRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		return
+	}
+
+	container := h.inventory.GetContainer(r.PathValue("id"))
+	if container == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	path := h.inventory.ContainerPath(container.ParentID)
+	data := label.LabelData{
+		Name:        container.Name,
+		Description: container.Description,
+		Location:    webutil.FormatContainerPath(path, " \u2192 "),
+		QRContent:   "/containers/" + container.ID,
+		BarcodeID:   container.ID,
+		Icon:        container.Icon,
+		Tags:        h.resolveTags(container.TagIDs),
+	}
+
+	if req.ShowChildren {
+		for _, child := range h.inventory.ContainerChildren(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
+		}
+		for _, item := range h.inventory.ContainerItems(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
+		}
+	}
+
+	opts := label.RenderOpts{PrintDate: req.PrintDate}
+
+	if len(req.Templates) == 0 {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "no templates selected"})
+		return
+	}
+
+	for _, tmplName := range req.Templates {
+		if _, ok := label.GetSchema(tmplName); ok {
+			if err := h.pm.Print(req.PrinterID, data, tmplName, opts); err != nil {
+				webutil.LogError("container print failed (schema %s): %v", tmplName, err)
+				webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+				return
+			}
+		} else {
+			tmpl := h.templates.GetTemplate(tmplName)
+			if tmpl == nil {
+				webutil.JSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("template %q not found", tmplName)})
+				return
+			}
+			// Client-side rendering not supported for multi-template container print;
+			// skip designer templates silently.
+			webutil.LogInfo("skipping designer template %q for container print (not supported)", tmplName)
+		}
+	}
+
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 // printersVM builds the view model for the printers page.

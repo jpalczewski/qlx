@@ -55,10 +55,12 @@
         <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "nav.printers"}}</a>
         <a href="/templates" hx-get="/templates" hx-target="#content">{{.T "nav.templates"}}</a>
         <a href="/tags" hx-get="/tags" hx-target="#content">{{.T "nav.tags"}}</a>
+        <a href="/quick-print" hx-get="/quick-print" hx-target="#content">{{.T "nav.quick_print"}}</a>
         <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
                hx-get="/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
         <span id="printer-status"></span>
+        <a class="nav-settings" href="/debug/tools" hx-get="/debug/tools" hx-target="#content" title="Debug">🔧</a>
         <a class="nav-settings" href="/settings" hx-get="/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
     </nav>
     <main id="content">

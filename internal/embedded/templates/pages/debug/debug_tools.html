@@ -1,0 +1,241 @@
+{{ define "debug-tools" }}
+<div class="debug-tools-view">
+    <div class="page-header">
+        <h1>Debug Tools</h1>
+    </div>
+
+    <section>
+        <h2>Calibration Grid</h2>
+
+        {{ if .Data.Printers }}
+        <div class="form-group">
+            <label for="cal-printer">Printer</label>
+            <select id="cal-printer">
+                {{ range .Data.Printers }}
+                <option value="{{ .ID }}">{{ .Name }} ({{ .Model }})</option>
+                {{ end }}
+            </select>
+        </div>
+
+        <div id="printer-info" style="margin:1rem 0; padding:1rem; background:var(--color-bg-card); border:1px solid var(--color-border); border-radius:6px;">
+            <p style="color:var(--color-text-muted);">Select a printer to load info...</p>
+        </div>
+
+        <div class="form-group" style="display:flex; gap:1rem; align-items:end;">
+            <div>
+                <label for="cal-width">Width (px)</label>
+                <input type="number" id="cal-width" value="384" min="50" max="1000" style="width:100px">
+            </div>
+            <div>
+                <label for="cal-height">Height (px)</label>
+                <input type="number" id="cal-height" value="160" min="50" max="1000" style="width:100px">
+            </div>
+            <div>
+                <label for="cal-wmm">Width (mm)</label>
+                <input type="number" id="cal-wmm" value="0" min="0" max="200" style="width:80px">
+            </div>
+            <div>
+                <label for="cal-hmm">Height (mm)</label>
+                <input type="number" id="cal-hmm" value="0" min="0" max="200" style="width:80px">
+            </div>
+        </div>
+
+        <div class="form-group" style="display:flex; gap:0.5rem;">
+            <button class="button secondary" id="cal-preview-btn">Preview</button>
+            <button class="button" id="cal-print-btn">Print Calibration</button>
+        </div>
+
+        <div id="cal-preview" style="margin:1rem 0; background:#fff; display:inline-block; border:1px solid var(--color-border); border-radius:4px; padding:4px;"></div>
+        <div id="cal-result"></div>
+
+        <h2 style="margin-top:2rem;">Calibration Offset</h2>
+        <p class="desc">Shift all printed images to compensate for printhead alignment. Measure the calibration grid and enter corrections.</p>
+
+        <div class="form-group" style="display:flex; gap:1rem; align-items:end;">
+            <div>
+                <label for="off-x">Offset X (px)</label>
+                <input type="number" id="off-x" value="0" min="-50" max="50" style="width:100px">
+            </div>
+            <div>
+                <label for="off-y">Offset Y (px)</label>
+                <input type="number" id="off-y" value="0" min="-50" max="50" style="width:100px">
+            </div>
+            <button class="button" id="off-save-btn">Save Offset</button>
+        </div>
+        <p class="desc" style="font-size:0.85rem; color:var(--color-text-muted);">
+            Positive X = shift right, Positive Y = shift down. Applied to all prints on this printer.
+        </p>
+        <div id="off-result"></div>
+
+        {{ else }}
+        <p class="empty">No printers configured. <a href="/printers" hx-get="/printers" hx-target="#content">Add a printer</a>.</p>
+        {{ end }}
+    </section>
+
+    <section style="margin-top:2rem">
+        <h2>Available Fonts</h2>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            {{ range .Data.Fonts }}
+            <span style="padding:0.3rem 0.8rem; background:var(--color-bg-card); border:1px solid var(--color-border); border-radius:4px; font-family:monospace; font-size:0.9rem;">{{ . }}</span>
+            {{ end }}
+        </div>
+    </section>
+
+    <section style="margin-top:2rem">
+        <h2>Available Schemas</h2>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            {{ range .Data.Schemas }}
+            <span style="padding:0.3rem 0.8rem; background:var(--color-bg-card); border:1px solid var(--color-border); border-radius:4px; font-family:monospace; font-size:0.9rem;">{{ . }}</span>
+            {{ end }}
+        </div>
+    </section>
+</div>
+
+<script>
+(function() {
+    var printerSelect = document.getElementById('cal-printer');
+    var infoDiv = document.getElementById('printer-info');
+    var widthInput = document.getElementById('cal-width');
+    var heightInput = document.getElementById('cal-height');
+    var wmmInput = document.getElementById('cal-wmm');
+    var hmmInput = document.getElementById('cal-hmm');
+    var previewBtn = document.getElementById('cal-preview-btn');
+    var printBtn = document.getElementById('cal-print-btn');
+    var previewDiv = document.getElementById('cal-preview');
+    var result = document.getElementById('cal-result');
+
+    if (!printerSelect) return;
+
+    function loadPrinterInfo() {
+        var id = printerSelect.value;
+        if (!id) return;
+        infoDiv.textContent = '...';
+        fetch('/debug/printer-info?id=' + encodeURIComponent(id), {
+            headers: {'Accept': 'application/json'}
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            infoDiv.textContent = '';
+
+            var status = d.status || {};
+            var printer = d.printer || {};
+
+            var table = document.createElement('table');
+            table.style.cssText = 'width:100%; font-size:0.9rem;';
+
+            var rows = [
+                ['Model', printer.model || '?'],
+                ['Encoder', printer.encoder || '?'],
+                ['Connected', status.connected ? 'Yes' : 'No'],
+                ['Battery', status.battery >= 0 ? status.battery + '%' : 'N/A'],
+                ['Paper', status.paper_loaded ? 'Loaded' : 'No paper'],
+                ['Lid', status.lid_closed ? 'Closed' : 'Open'],
+                ['Printhead', d.printhead_px + ' px'],
+                ['DPI', d.dpi || '?'],
+                ['Label', (d.label_width_mm || '?') + ' x ' + (d.label_height_mm || '?') + ' mm'],
+                ['Labels used', (status.used_labels >= 0 ? status.used_labels : '?') + ' / ' + (status.total_labels >= 0 ? status.total_labels : '?')]
+            ];
+
+            rows.forEach(function(row) {
+                var tr = document.createElement('tr');
+                var td1 = document.createElement('td');
+                td1.style.cssText = 'padding:0.2rem 0.5rem; color:var(--color-text-muted); white-space:nowrap;';
+                td1.textContent = row[0];
+                var td2 = document.createElement('td');
+                td2.style.cssText = 'padding:0.2rem 0.5rem; font-family:monospace;';
+                td2.textContent = row[1];
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+                table.appendChild(tr);
+            });
+
+            infoDiv.appendChild(table);
+
+            // Auto-fill width from printhead
+            if (d.printhead_px > 0) {
+                widthInput.value = d.printhead_px;
+            }
+            // Auto-fill mm dimensions from RFID
+            if (d.label_width_mm > 0) {
+                wmmInput.value = d.label_width_mm;
+            }
+            if (d.label_height_mm > 0) {
+                hmmInput.value = d.label_height_mm;
+                // Calculate height in px from mm and DPI
+                if (d.dpi > 0) {
+                    heightInput.value = Math.round(d.label_height_mm * d.dpi / 25.4);
+                }
+            }
+
+            // Load current offsets
+            var offX = document.getElementById('off-x');
+            var offY = document.getElementById('off-y');
+            if (offX) offX.value = d.offset_x || 0;
+            if (offY) offY.value = d.offset_y || 0;
+
+            // Auto-preview
+            updatePreview();
+        }).catch(function(e) {
+            infoDiv.textContent = 'Error: ' + e;
+        });
+    }
+
+    function updatePreview() {
+        var w = widthInput.value;
+        var h = heightInput.value;
+        var wmm = wmmInput.value;
+        var hmm = hmmInput.value;
+        previewDiv.textContent = '';
+        var img = document.createElement('img');
+        img.src = '/debug/calibration.png?w=' + w + '&h=' + h + '&wmm=' + wmm + '&hmm=' + hmm + '&t=' + Date.now();
+        img.alt = 'Calibration grid';
+        img.style.imageRendering = 'pixelated';
+        img.style.maxWidth = '100%';
+        previewDiv.appendChild(img);
+    }
+
+    printerSelect.addEventListener('change', loadPrinterInfo);
+
+    previewBtn.addEventListener('click', updatePreview);
+
+    printBtn.addEventListener('click', function() {
+        var printer = printerSelect.value;
+        var w = parseInt(widthInput.value) || 384;
+        var h = parseInt(heightInput.value) || 240;
+        var wmm = parseInt(wmmInput.value) || 0;
+        var hmm = parseInt(hmmInput.value) || 0;
+        result.textContent = '...';
+        fetch('/debug/calibration/print', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: JSON.stringify({printer_id: printer, width: w, height: h, width_mm: wmm, height_mm: hmm})
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            result.textContent = d.ok ? 'Wydrukowano!' : ('Error: ' + (d.error || 'unknown'));
+        }).catch(function(e) {
+            result.textContent = 'Error: ' + e;
+        });
+    });
+
+    // Offset save
+    var offSaveBtn = document.getElementById('off-save-btn');
+    var offResult = document.getElementById('off-result');
+    if (offSaveBtn) {
+        offSaveBtn.addEventListener('click', function() {
+            var ox = parseInt(document.getElementById('off-x').value) || 0;
+            var oy = parseInt(document.getElementById('off-y').value) || 0;
+            offResult.textContent = '...';
+            fetch('/debug/calibration/offset', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+                body: JSON.stringify({printer_id: printerSelect.value, offset_x: ox, offset_y: oy})
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                offResult.textContent = d.ok ? 'Saved (' + ox + ', ' + oy + ')' : ('Error: ' + (d.error || 'unknown'));
+            }).catch(function(e) {
+                offResult.textContent = 'Error: ' + e;
+            });
+        });
+    }
+
+    // Load info for first printer on page load
+    loadPrinterInfo();
+})();
+</script>
+{{ end }}

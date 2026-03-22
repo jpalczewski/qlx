@@ -1,8 +1,8 @@
 {
-  "name": "compact",
-  "padding": 8,
-  "elements": [
-    {"slot": "title", "font_size": 13, "align": "left"},
-    {"slot": "description", "font_size": 13, "align": "left", "color": "#3c3c3c"}
-  ]
+    "name": "compact",
+    "elements": [
+        {"slot": "title"},
+        {"slot": "description"},
+        {"slot": "tags", "font_size": 11, "wrap": true}
+    ]
 }

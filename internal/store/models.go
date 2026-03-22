@@ -42,6 +42,8 @@ type PrinterConfig struct {
 	Model     string `json:"model"`
 	Transport string `json:"transport"`
 	Address   string `json:"address"`
+	OffsetX   int    `json:"offset_x"` // calibration: shift image right (px)
+	OffsetY   int    `json:"offset_y"` // calibration: shift image down (px)
 }
 
 // Template defines a reusable label layout.

@@ -59,13 +59,16 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 		handler.NewTagHandler(tags, inventory, resp),
 		handler.NewBulkHandler(bulk),
 		handler.NewSearchHandler(search, resp),
-		handler.NewPrintHandler(pm, inventory, printers, templates, resp),
+		handler.NewPrintHandler(pm, inventory, printers, templates, tags, resp),
 		handler.NewTemplateHandler(templates, pm, resp),
 		handler.NewAssetHandler(assets),
 		handler.NewExportHandler(export, inventory),
 		handler.NewPartialsHandler(inventory, search, tags, resp),
 		handler.NewSettingsHandler(resp),
 		handler.NewI18nHandler(translations),
+		handler.NewAdhocHandler(pm, printers, templates, resp),
+		handler.NewBluetoothHandler(),
+		handler.NewDebugHandler(pm, printers, resp),
 	}
 
 	mux := http.NewServeMux()

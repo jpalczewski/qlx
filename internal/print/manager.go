@@ -182,7 +182,7 @@ func (m *PrinterManager) AllStatuses() map[string]PrinterStatus {
 }
 
 // Print renders a label and sends it to the printer.
-func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string) error {
+func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string, opts label.RenderOpts) error {
 	cfg := m.store.GetPrinter(printerID)
 	if cfg == nil {
 		return fmt.Errorf("printer not found: %s", printerID)
@@ -198,7 +198,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
 
-	img, err := label.Render(data, templateName, modelInfo.PrintWidthPx, modelInfo.DPI)
+	img, err := label.Render(data, templateName, modelInfo.PrintWidthPx, modelInfo.DPI, opts)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}
@@ -217,13 +217,15 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		m.mu.RUnlock()
 	}
 
+	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
+
 	webutil.LogInfo("printing on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
-	opts := encoder.PrintOpts{
+	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
 		AutoCut:  true,
 		Quantity: 1,
 	}
-	if err := session.Print(img, cfg.Model, opts); err != nil {
+	if err := session.Print(img, cfg.Model, printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
@@ -274,6 +276,8 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, modelInfo.PrintWidthPx, cfg.Model)
 	}
 
+	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
+
 	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
 	opts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
@@ -286,6 +290,49 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 
 	webutil.LogInfo("print image complete on %s", cfg.Name)
 	return nil
+}
+
+// applyCalibrationOffset shifts the image content to compensate for printhead misalignment.
+// Positive X = content moves right on paper, negative X = content moves left.
+// The output image keeps the same dimensions (printhead width × original height).
+// Content that shifts outside the canvas is clipped; exposed areas are white.
+func applyCalibrationOffset(img image.Image, cfg *store.PrinterConfig, printheadPx int) image.Image {
+	if cfg.OffsetX == 0 && cfg.OffsetY == 0 {
+		return img
+	}
+
+	bounds := img.Bounds()
+	w := bounds.Dx()
+	h := bounds.Dy()
+
+	outW := w
+	if printheadPx > 0 {
+		outW = printheadPx
+	}
+	outH := h
+
+	dst := image.NewRGBA(image.Rect(0, 0, outW, outH))
+	imagedraw.Draw(dst, dst.Bounds(), image.NewUniform(color.White), image.Point{}, imagedraw.Src)
+
+	// Source point: where in the original image to start reading.
+	// If offset is negative (shift left), we skip pixels from the left of the source.
+	srcPt := bounds.Min
+	dstX := cfg.OffsetX
+	if dstX < 0 {
+		srcPt.X -= dstX // skip -dstX pixels from source left
+		dstX = 0
+	}
+	dstY := cfg.OffsetY
+	if dstY < 0 {
+		srcPt.Y -= dstY
+		dstY = 0
+	}
+
+	dstRect := image.Rect(dstX, dstY, dstX+w, dstY+h)
+	imagedraw.Draw(dst, dstRect, img, srcPt, imagedraw.Src)
+
+	webutil.LogInfo("applied calibration offset (%+d, %+d) for %s", cfg.OffsetX, cfg.OffsetY, cfg.Name)
+	return dst
 }
 
 // SubscribeSSE returns a channel that receives status events.

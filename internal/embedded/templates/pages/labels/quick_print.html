@@ -1,0 +1,102 @@
+{{ define "quick-print" }}
+<div class="quick-print-view">
+    <div class="page-header">
+        <h1>{{.T "nav.quick_print"}}</h1>
+    </div>
+
+    <div class="form-group">
+        <label for="adhoc-text">{{.T "nav.quick_print_text"}}</label>
+        <textarea id="adhoc-text" rows="3" class="form-control"></textarea>
+    </div>
+
+    {{ if .Data.Printers }}
+    <div class="form-group">
+        <label for="adhoc-printer">{{.T "inventory.printer"}}</label>
+        <select id="adhoc-printer">
+            {{ range .Data.Printers }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="adhoc-template">{{.T "inventory.template"}}</label>
+        <select id="adhoc-template">
+            <optgroup label="Built-in">
+                {{ range .Data.Schemas }}
+                <option value="{{ . }}">{{ . }}</option>
+                {{ end }}
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label class="checkbox-label">
+            <input type="checkbox" id="adhoc-print-date">
+            {{.T "inventory.print_date"}}
+        </label>
+    </div>
+
+    <button id="adhoc-print-btn" class="button">{{.T "action.print"}}</button>
+    {{ else }}
+    <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+    {{ end }}
+    <div id="adhoc-result"></div>
+</div>
+
+<script>
+(function() {
+    var btn = document.getElementById('adhoc-print-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+        var text = document.getElementById('adhoc-text').value;
+        var printer = document.getElementById('adhoc-printer').value;
+        var tmpl = document.getElementById('adhoc-template').value;
+        var printDate = document.getElementById('adhoc-print-date').checked;
+        var result = document.getElementById('adhoc-result');
+        if (!text.trim()) {
+            result.textContent = '{{.T "inventory.enter_text"}}';
+            return;
+        }
+        result.textContent = '...';
+        fetch('/adhoc/print', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+            body: JSON.stringify({text: text, printer_id: printer, template: tmpl, print_date: printDate})
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (!d.ok) { result.textContent = 'Error: ' + (d.error || 'unknown'); return; }
+            if (d.render !== 'client') { result.textContent = '{{.T "inventory.printed"}}'; return; }
+            result.textContent = 'Rendering...';
+            var elements = [];
+            try { elements = JSON.parse(d.template.elements || '[]'); } catch(e) {}
+            var itemData = d.item_data || {};
+            var params = {
+                name: itemData.Name || '', description: '', location: '',
+                id: '', qr_url: '',
+                date: new Date().toISOString().slice(0,10),
+                time: new Date().toTimeString().slice(0,5),
+                printer: ''
+            };
+            var w = d.template.width_mm > 0 ? Math.round(d.template.width_mm * 203/25.4) : (d.template.width_px || 384);
+            var h = d.template.height_mm > 0 ? Math.round(d.template.height_mm * 203/25.4) : (d.template.height_px || 240);
+            var tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = w; tmpCanvas.height = h;
+            tmpCanvas.style.display = 'none';
+            document.body.appendChild(tmpCanvas);
+            var fc = new fabric.StaticCanvas(tmpCanvas, {width:w, height:h, backgroundColor:'#ffffff'});
+            window.QlxFormat.qlxToCanvas(fc, elements, params).then(function(){
+                fc.renderAll();
+                return window.LabelPrint.print(fc, printer, 2);
+            }).then(function(){
+                result.textContent = '{{.T "inventory.printed"}}';
+            }).catch(function(e){
+                result.textContent = 'Error: ' + e;
+            }).finally(function(){
+                fc.dispose();
+                if(tmpCanvas.parentNode) tmpCanvas.parentNode.removeChild(tmpCanvas);
+            });
+        }).catch(function(e) { result.textContent = 'Error: ' + e; });
+    });
+})();
+</script>
+{{ end }}

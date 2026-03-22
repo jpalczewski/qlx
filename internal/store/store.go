@@ -571,6 +571,23 @@ func (s *Store) GetPrinter(id string) *PrinterConfig {
 	return s.printers[id]
 }
 
+// UpdatePrinterOffset sets calibration offsets for a printer.
+func (s *Store) UpdatePrinterOffset(id string, offsetX, offsetY int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	p, ok := s.printers[id]
+	if !ok {
+		return ErrPrinterNotFound
+	}
+
+	p.OffsetX = offsetX
+	p.OffsetY = offsetY
+	s.printers[id] = p
+	s.dirty |= dirtyPrinters
+	return nil
+}
+
 func (s *Store) DeletePrinter(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

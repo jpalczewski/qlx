@@ -1,0 +1,7 @@
+{
+    "name": "contents",
+    "elements": [
+        {"slot": "title", "font_size": 16},
+        {"slot": "children", "font_size": 12, "wrap": true}
+    ]
+}
