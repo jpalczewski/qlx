@@ -25,7 +25,7 @@ func TestGetSchema(t *testing.T) {
 
 func TestSchemaNames(t *testing.T) {
 	names := SchemaNames()
-	want := []string{"compact", "detailed", "micro", "simple", "standard"}
+	want := []string{"compact", "contents", "detailed", "micro", "simple", "standard"}
 	if len(names) != len(want) {
 		t.Fatalf("SchemaNames() = %v, want %v", names, want)
 	}

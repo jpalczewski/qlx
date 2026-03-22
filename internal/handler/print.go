@@ -132,16 +132,15 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 		BarcodeID:   item.ID,
 	}
 
-	// Check if this is a legacy template or designer template
-	switch req.Template {
-	case "simple", "standard", "compact", "detailed":
+	// Check if this is a built-in schema or designer template
+	if _, ok := label.GetSchema(req.Template); ok {
 		if err := h.pm.Print(req.PrinterID, data, req.Template, label.RenderOpts{}); err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-	default:
+	} else {
 		tmpl := h.templates.GetTemplate(req.Template)
 		if tmpl == nil {
 			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})

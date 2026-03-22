@@ -1,8 +1,9 @@
 {
-  "name": "simple",
-  "padding": 8,
-  "elements": [
-    {"slot": "title", "font_size": 24, "align": "center", "wrap": true},
-    {"slot": "description", "font_size": 16, "align": "center", "wrap": true}
-  ]
+    "name": "simple",
+    "elements": [
+        {"slot": "title", "font_size": 24, "align": "center"},
+        {"slot": "description", "font_size": 16, "align": "center"},
+        {"slot": "location", "font_size": 13},
+        {"slot": "tags", "font_size": 11, "wrap": true}
+    ]
 }
