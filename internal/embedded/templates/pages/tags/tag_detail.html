@@ -3,7 +3,7 @@
     <nav class="breadcrumb">
         <a href="/ui/tags" hx-get="/ui/tags" hx-target="#content">{{.T "tags.title"}}</a>
         {{ range .Data.Path }}
-        <span class="sep">/</span>
+        <span class="sep">→</span>
         <a href="/ui/tags/{{ .ID }}" hx-get="/ui/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
         {{ end }}
     </nav>
