@@ -100,7 +100,7 @@ func formatChildren(children []LabelChild) string {
 // renderSchema renders a label image from a Schema definition and LabelData.
 // Elements are laid out vertically. QR is positioned at top-right, barcode at full-width bottom.
 // Note: QR is always placed at top-right when present — vertical QR placement is not supported.
-func renderSchema(schema Schema, data LabelData, widthPx int) (image.Image, error) {
+func renderSchema(schema Schema, data LabelData, widthPx int, opts RenderOpts) (image.Image, error) {
 	pad := schema.Padding
 	qrReserved := qrSizeForSchema(schema)
 
@@ -109,7 +109,19 @@ func renderSchema(schema Schema, data LabelData, widthPx int) (image.Image, erro
 		return nil, err
 	}
 
-	totalH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad)
+	// Prepare optional print-date line.
+	var dateLine resolvedText
+	var dateLineH int
+	if opts.PrintDate {
+		var pErr error
+		dateLine, pErr = buildDateLine()
+		if pErr != nil {
+			return nil, pErr
+		}
+		dateLineH = dateLine.lineH + 2 // 2px gap above the date
+	}
+
+	totalH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
 	img := newCanvas(widthPx, totalH)
 
 	drawTextElements(img, textElems, widthPx, pad, qrSize)
@@ -117,11 +129,41 @@ func renderSchema(schema Schema, data LabelData, widthPx int) (image.Image, erro
 	if err := maybeDrawQR(img, data.QRContent, widthPx, pad, qrSize); err != nil {
 		return nil, err
 	}
-	if err := maybeDrawBarcode(img, data.BarcodeID, widthPx, pad, barcodeH, totalH); err != nil {
+	if err := maybeDrawBarcode(img, data.BarcodeID, widthPx, pad, barcodeH, totalH-dateLineH); err != nil {
 		return nil, err
 	}
 
+	// Draw date line at the very bottom.
+	if opts.PrintDate {
+		drawDateLine(img, dateLine, widthPx, pad, totalH)
+	}
+
 	return img, nil
+}
+
+// buildDateLine creates a resolvedText for the print-date footer.
+func buildDateLine() (resolvedText, error) {
+	face, err := LoadFace("basic", 13)
+	if err != nil {
+		return resolvedText{}, err
+	}
+	text := TransliteratePL("Wydrukowano: " + nowFunc().Format("2006-01-02 15:04"))
+	metrics := face.Metrics()
+	lh := (metrics.Ascent + metrics.Descent).Ceil()
+	return resolvedText{
+		lines: []string{text},
+		face:  face,
+		col:   parseHexColor("#808080"),
+		align: "left",
+		lineH: lh,
+	}, nil
+}
+
+// drawDateLine renders the print-date footer at the bottom of the label.
+func drawDateLine(img *image.RGBA, dl resolvedText, widthPx, pad, totalH int) {
+	baseline := totalH - pad
+	x := alignedX(dl.face, dl.lines[0], dl.align, widthPx, pad, 0)
+	drawTextFace(img, x, baseline, dl.lines[0], dl.col, dl.face)
 }
 
 // resolveElements processes schema elements into resolved text rows and extracted sizes.

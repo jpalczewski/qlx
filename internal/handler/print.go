@@ -135,7 +135,7 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 	// Check if this is a legacy template or designer template
 	switch req.Template {
 	case "simple", "standard", "compact", "detailed":
-		if err := h.pm.Print(req.PrinterID, data, req.Template); err != nil {
+		if err := h.pm.Print(req.PrinterID, data, req.Template, label.RenderOpts{}); err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

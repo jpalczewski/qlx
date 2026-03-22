@@ -59,7 +59,7 @@ func TestPrinterManager_Print(t *testing.T) {
 		Description: "A test label",
 	}
 
-	if err := mgr.Print(printer.ID, data, "simple"); err != nil {
+	if err := mgr.Print(printer.ID, data, "simple", label.RenderOpts{}); err != nil {
 		t.Fatalf("Print() returned unexpected error: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
 	s := store.NewMemoryStore()
 	mgr := NewPrinterManager(s)
 
-	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple")
+	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple", label.RenderOpts{})
 	if err == nil {
 		t.Fatal("expected error for unknown printer, got nil")
 	}

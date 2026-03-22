@@ -182,7 +182,7 @@ func (m *PrinterManager) AllStatuses() map[string]PrinterStatus {
 }
 
 // Print renders a label and sends it to the printer.
-func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string) error {
+func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string, opts label.RenderOpts) error {
 	cfg := m.store.GetPrinter(printerID)
 	if cfg == nil {
 		return fmt.Errorf("printer not found: %s", printerID)
@@ -198,7 +198,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
 
-	img, err := label.Render(data, templateName, modelInfo.PrintWidthPx, modelInfo.DPI)
+	img, err := label.Render(data, templateName, modelInfo.PrintWidthPx, modelInfo.DPI, opts)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}
@@ -218,12 +218,12 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 	}
 
 	webutil.LogInfo("printing on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
-	opts := encoder.PrintOpts{
+	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
 		AutoCut:  true,
 		Quantity: 1,
 	}
-	if err := session.Print(img, cfg.Model, opts); err != nil {
+	if err := session.Print(img, cfg.Model, printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
