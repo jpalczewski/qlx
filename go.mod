@@ -1,6 +1,6 @@
 module github.com/erxyi/qlx
 
-go 1.25.0
+go 1.25.8
 
 require (
 	github.com/boombuler/barcode v1.1.0
