@@ -17,6 +17,18 @@
         {{ template "fields/name-desc" dict "name" "" "description" "" "nameLabel" (.T "form.name") "descLabel" (.T "form.description") }}
         {{ end }}
 
+        {{ if .Data.Container }}
+    <div class="form-group">
+        <label>{{.T "tags.title"}}</label>
+        <div id="form-tag-chips-{{ .Data.Container.ID }}">
+            {{ if .Data.Container.TagIDs }}
+            {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Container.ID "ObjectType" "container" "Tags" (resolveTags .Data.Container.TagIDs)) }}
+            {{ end }}
+        </div>
+        <input type="text" class="tag-ac-input tag-field-input" placeholder="{{ .T "tags.search_tags" }}" data-object-id="{{ .Data.Container.ID }}" data-object-type="container">
+    </div>
+    {{ end }}
+
         <div class="actions">
             <button type="submit">{{ if .Data.Container }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
             <a href="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-get="{{ if .Data.Container }}/ui/containers/{{ .Data.Container.ID }}{{ else }}/ui{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>
