@@ -1,0 +1,8 @@
+{
+  "name": "micro",
+  "padding": 4,
+  "font_family": "basic",
+  "elements": [
+    {"slot": "title", "align": "center", "wrap": true}
+  ]
+}

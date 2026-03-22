@@ -13,9 +13,10 @@ import (
 
 // Schema defines a label template layout declaratively.
 type Schema struct {
-	Name     string    `json:"name"`
-	Padding  int       `json:"padding"`
-	Elements []Element `json:"elements"`
+	Name       string    `json:"name"`
+	Padding    int       `json:"padding"`
+	FontFamily string    `json:"font_family"` // "basic" = Go basicfont (ASCII-only); default = Terminus
+	Elements   []Element `json:"elements"`
 }
 
 // Element defines a single layout slot in a schema.
