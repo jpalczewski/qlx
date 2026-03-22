@@ -132,5 +132,12 @@ type QuickPrintData struct {
 	Schemas  []string
 }
 
+// DebugToolsData is the view model for the debug tools page.
+type DebugToolsData struct {
+	Printers []store.PrinterConfig
+	Schemas  []string
+	Fonts    []string
+}
+
 // SettingsData is the view model for the settings page.
 type SettingsData struct{}

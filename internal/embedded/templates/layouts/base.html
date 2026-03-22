@@ -60,6 +60,7 @@
                hx-get="/search" hx-trigger="input changed delay:300ms"
                hx-target="#content" name="q">
         <span id="printer-status"></span>
+        <a class="nav-settings" href="/debug/tools" hx-get="/debug/tools" hx-target="#content" title="Debug">🔧</a>
         <a class="nav-settings" href="/settings" hx-get="/settings" hx-target="#content" title="{{.T "nav.settings"}}">⚙</a>
     </nav>
     <main id="content">
