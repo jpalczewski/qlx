@@ -17,7 +17,7 @@ test.describe('Container print', () => {
 
     const tagRes = await request.post(`${app.baseURL}/tags`, {
       headers: { 'Accept': 'application/json' },
-      form: { name: 'print-test-tag', color: '#ff0000' },
+      form: { name: 'print-test-tag', color: 'red' },
     });
     expect(tagRes.ok()).toBeTruthy();
     const tag = await tagRes.json();
