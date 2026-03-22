@@ -40,3 +40,11 @@ func (s *PrinterService) DeletePrinter(id string) error {
 	}
 	return s.store.Save()
 }
+
+// UpdateOffset sets calibration offsets for a printer and persists.
+func (s *PrinterService) UpdateOffset(id string, offsetX, offsetY int) error {
+	if err := s.store.UpdatePrinterOffset(id, offsetX, offsetY); err != nil {
+		return err
+	}
+	return s.store.Save()
+}

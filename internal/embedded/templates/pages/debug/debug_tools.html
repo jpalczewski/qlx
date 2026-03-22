@@ -28,7 +28,7 @@
             </div>
             <div>
                 <label for="cal-height">Height (px)</label>
-                <input type="number" id="cal-height" value="240" min="50" max="1000" style="width:100px">
+                <input type="number" id="cal-height" value="160" min="50" max="1000" style="width:100px">
             </div>
             <div>
                 <label for="cal-wmm">Width (mm)</label>
@@ -47,6 +47,25 @@
 
         <div id="cal-preview" style="margin:1rem 0; background:#fff; display:inline-block; border:1px solid var(--color-border); border-radius:4px; padding:4px;"></div>
         <div id="cal-result"></div>
+
+        <h2 style="margin-top:2rem;">Calibration Offset</h2>
+        <p class="desc">Shift all printed images to compensate for printhead alignment. Measure the calibration grid and enter corrections.</p>
+
+        <div class="form-group" style="display:flex; gap:1rem; align-items:end;">
+            <div>
+                <label for="off-x">Offset X (px)</label>
+                <input type="number" id="off-x" value="0" min="-50" max="50" style="width:100px">
+            </div>
+            <div>
+                <label for="off-y">Offset Y (px)</label>
+                <input type="number" id="off-y" value="0" min="-50" max="50" style="width:100px">
+            </div>
+            <button class="button" id="off-save-btn">Save Offset</button>
+        </div>
+        <p class="desc" style="font-size:0.85rem; color:var(--color-text-muted);">
+            Positive X = shift right, Positive Y = shift down. Applied to all prints on this printer.
+        </p>
+        <div id="off-result"></div>
 
         {{ else }}
         <p class="empty">No printers configured. <a href="/printers" hx-get="/printers" hx-target="#content">Add a printer</a>.</p>
@@ -146,6 +165,12 @@
                 }
             }
 
+            // Load current offsets
+            var offX = document.getElementById('off-x');
+            var offY = document.getElementById('off-y');
+            if (offX) offX.value = d.offset_x || 0;
+            if (offY) offY.value = d.offset_y || 0;
+
             // Auto-preview
             updatePreview();
         }).catch(function(e) {
@@ -188,6 +213,26 @@
             result.textContent = 'Error: ' + e;
         });
     });
+
+    // Offset save
+    var offSaveBtn = document.getElementById('off-save-btn');
+    var offResult = document.getElementById('off-result');
+    if (offSaveBtn) {
+        offSaveBtn.addEventListener('click', function() {
+            var ox = parseInt(document.getElementById('off-x').value) || 0;
+            var oy = parseInt(document.getElementById('off-y').value) || 0;
+            offResult.textContent = '...';
+            fetch('/debug/calibration/offset', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+                body: JSON.stringify({printer_id: printerSelect.value, offset_x: ox, offset_y: oy})
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                offResult.textContent = d.ok ? 'Saved (' + ox + ', ' + oy + ')' : ('Error: ' + (d.error || 'unknown'));
+            }).catch(function(e) {
+                offResult.textContent = 'Error: ' + e;
+            });
+        });
+    }
 
     // Load info for first printer on page load
     loadPrinterInfo();

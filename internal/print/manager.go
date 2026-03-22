@@ -217,6 +217,8 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		m.mu.RUnlock()
 	}
 
+	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
+
 	webutil.LogInfo("printing on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
 	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
@@ -274,6 +276,8 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, modelInfo.PrintWidthPx, cfg.Model)
 	}
 
+	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
+
 	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
 	opts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
@@ -286,6 +290,49 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 
 	webutil.LogInfo("print image complete on %s", cfg.Name)
 	return nil
+}
+
+// applyCalibrationOffset shifts the image content to compensate for printhead misalignment.
+// Positive X = content moves right on paper, negative X = content moves left.
+// The output image keeps the same dimensions (printhead width × original height).
+// Content that shifts outside the canvas is clipped; exposed areas are white.
+func applyCalibrationOffset(img image.Image, cfg *store.PrinterConfig, printheadPx int) image.Image {
+	if cfg.OffsetX == 0 && cfg.OffsetY == 0 {
+		return img
+	}
+
+	bounds := img.Bounds()
+	w := bounds.Dx()
+	h := bounds.Dy()
+
+	outW := w
+	if printheadPx > 0 {
+		outW = printheadPx
+	}
+	outH := h
+
+	dst := image.NewRGBA(image.Rect(0, 0, outW, outH))
+	imagedraw.Draw(dst, dst.Bounds(), image.NewUniform(color.White), image.Point{}, imagedraw.Src)
+
+	// Source point: where in the original image to start reading.
+	// If offset is negative (shift left), we skip pixels from the left of the source.
+	srcPt := bounds.Min
+	dstX := cfg.OffsetX
+	if dstX < 0 {
+		srcPt.X -= dstX // skip -dstX pixels from source left
+		dstX = 0
+	}
+	dstY := cfg.OffsetY
+	if dstY < 0 {
+		srcPt.Y -= dstY
+		dstY = 0
+	}
+
+	dstRect := image.Rect(dstX, dstY, dstX+w, dstY+h)
+	imagedraw.Draw(dst, dstRect, img, srcPt, imagedraw.Src)
+
+	webutil.LogInfo("applied calibration offset (%+d, %+d) for %s", cfg.OffsetX, cfg.OffsetY, cfg.Name)
+	return dst
 }
 
 // SubscribeSSE returns a channel that receives status events.

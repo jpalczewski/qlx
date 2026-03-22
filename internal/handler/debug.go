@@ -37,6 +37,7 @@ func (h *DebugHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /debug/calibration.png", h.CalibrationImage)
 	mux.HandleFunc("POST /debug/calibration/print", h.PrintCalibration)
 	mux.HandleFunc("GET /debug/printer-info", h.PrinterInfo)
+	mux.HandleFunc("POST /debug/calibration/offset", h.SetOffset)
 }
 
 // Page handles GET /debug/tools.
@@ -92,6 +93,8 @@ func (h *DebugHandler) PrinterInfo(w http.ResponseWriter, r *http.Request) {
 		"dpi":             dpi,
 		"label_width_mm":  status.LabelWidthMm,
 		"label_height_mm": status.LabelHeightMm,
+		"offset_x":        cfg.OffsetX,
+		"offset_y":        cfg.OffsetY,
 	})
 }
 
@@ -119,6 +122,7 @@ func (h *DebugHandler) CalibrationImage(w http.ResponseWriter, r *http.Request) 
 }
 
 // PrintCalibration handles POST /debug/calibration/print — prints the calibration grid.
+// Always produces a 384px-wide image (B1 printhead width) with the grid centered.
 func (h *DebugHandler) PrintCalibration(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		PrinterID string `json:"printer_id"`
@@ -136,10 +140,40 @@ func (h *DebugHandler) PrintCalibration(w http.ResponseWriter, r *http.Request) 
 		req.Width = 384
 	}
 	if req.Height <= 0 {
-		req.Height = 240
+		req.Height = 160
 	}
 
-	img := renderCalibrationGrid(req.Width, req.Height, req.WidthMm, req.HeightMm)
+	// Get printhead width from printer model
+	printheadPx := 384
+	if req.PrinterID != "" {
+		for _, p := range h.printers.AllPrinters() {
+			if p.ID == req.PrinterID {
+				for _, enc := range h.pm.AvailableEncoders() {
+					for _, m := range enc.Models() {
+						if m.ID == p.Model {
+							printheadPx = m.PrintWidthPx
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Render grid at requested size
+	grid := renderCalibrationGrid(req.Width, req.Height, req.WidthMm, req.HeightMm)
+
+	// Place grid on full-printhead-width canvas (no scaling, white padding)
+	var img image.Image
+	if req.Width < printheadPx {
+		canvas := image.NewRGBA(image.Rect(0, 0, printheadPx, req.Height))
+		draw.Draw(canvas, canvas.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
+		// Center the grid horizontally
+		offsetX := (printheadPx - req.Width) / 2
+		draw.Draw(canvas, image.Rect(offsetX, 0, offsetX+req.Width, req.Height), grid, image.Point{}, draw.Src)
+		img = canvas
+	} else {
+		img = grid
+	}
 
 	if err := h.pm.PrintImage(req.PrinterID, img); err != nil {
 		webutil.LogError("calibration print failed: %v", err)
@@ -150,78 +184,109 @@ func (h *DebugHandler) PrintCalibration(w http.ResponseWriter, r *http.Request) 
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// SetOffset handles POST /debug/calibration/offset — saves calibration offsets for a printer.
+func (h *DebugHandler) SetOffset(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		PrinterID string `json:"printer_id"`
+		OffsetX   int    `json:"offset_x"`
+		OffsetY   int    `json:"offset_y"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		return
+	}
+
+	if err := h.printers.UpdateOffset(req.PrinterID, req.OffsetX, req.OffsetY); err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	webutil.LogInfo("calibration offset set for %s: (%+d, %+d)", req.PrinterID, req.OffsetX, req.OffsetY)
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 // renderCalibrationGrid produces a calibration image with grid lines, border, and dimension labels.
 func renderCalibrationGrid(widthPx, heightPx, widthMm, heightMm int) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, widthPx, heightPx))
 	draw.Draw(img, img.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
 
 	black := color.RGBA{0, 0, 0, 255}
-	gray := color.RGBA{180, 180, 180, 255}
-	lightGray := color.RGBA{220, 220, 220, 255}
+	gray := color.RGBA{0, 0, 0, 255}         // 100px lines: full black (thermal printers need high contrast)
+	lightGray := color.RGBA{80, 80, 80, 255} // 20px lines: dark gray (visible on thermal)
 
-	// Draw border (2px)
-	for x := 0; x < widthPx; x++ {
-		img.Set(x, 0, black)
-		img.Set(x, 1, black)
-		img.Set(x, heightPx-1, black)
-		img.Set(x, heightPx-2, black)
-	}
-	for y := 0; y < heightPx; y++ {
-		img.Set(0, y, black)
-		img.Set(1, y, black)
-		img.Set(widthPx-1, y, black)
-		img.Set(widthPx-2, y, black)
-	}
+	bw := 6 // border width (thick for thermal visibility)
 
-	// Draw grid lines every 10px (light) and every 50px (darker)
-	for x := 10; x < widthPx; x += 10 {
+	// Draw thick border
+	fillRect(img, 0, 0, widthPx, bw, black)                 // top
+	fillRect(img, 0, heightPx-bw, widthPx, heightPx, black) // bottom
+	fillRect(img, 0, 0, bw, heightPx, black)                // left
+	fillRect(img, widthPx-bw, 0, widthPx, heightPx, black)  // right
+
+	// Grid lines: every 20px (2px wide), every 100px (4px wide, darker)
+	for x := 20; x < widthPx-bw; x += 20 {
+		thick := x%100 == 0
 		c := lightGray
-		if x%50 == 0 {
+		lw := 2
+		if thick {
 			c = gray
+			lw = 4
 		}
-		for y := 2; y < heightPx-2; y++ {
-			img.Set(x, y, c)
-		}
+		fillRect(img, x-lw/2, bw, x-lw/2+lw, heightPx-bw, c)
 	}
-	for y := 10; y < heightPx; y += 10 {
+	for y := 20; y < heightPx-bw; y += 20 {
+		thick := y%100 == 0
 		c := lightGray
-		if y%50 == 0 {
+		lw := 2
+		if thick {
 			c = gray
+			lw = 4
 		}
-		for x := 2; x < widthPx-2; x++ {
-			img.Set(x, y, c)
-		}
+		fillRect(img, bw, y-lw/2, widthPx-bw, y-lw/2+lw, c)
 	}
 
-	// Draw crosshair at center
+	// Crosshair at center (5px thick, 40px arms)
 	cx, cy := widthPx/2, heightPx/2
-	for i := -15; i <= 15; i++ {
-		if cx+i >= 0 && cx+i < widthPx {
-			img.Set(cx+i, cy, black)
-		}
-		if cy+i >= 0 && cy+i < heightPx {
-			img.Set(cx, cy+i, black)
+	fillRect(img, cx-25, cy-2, cx+25, cy+3, black)
+	fillRect(img, cx-2, cy-25, cx+3, cy+25, black)
+
+	// Corner markers (thick L-shapes, 20px)
+	for i := 0; i < 20; i++ {
+		for t := 0; t < 3; t++ {
+			// top-left
+			img.Set(bw+i, bw+t, black)
+			img.Set(bw+t, bw+i, black)
+			// top-right
+			img.Set(widthPx-bw-1-i, bw+t, black)
+			img.Set(widthPx-bw-1-t, bw+i, black)
+			// bottom-left
+			img.Set(bw+i, heightPx-bw-1-t, black)
+			img.Set(bw+t, heightPx-bw-1-i, black)
+			// bottom-right
+			img.Set(widthPx-bw-1-i, heightPx-bw-1-t, black)
+			img.Set(widthPx-bw-1-t, heightPx-bw-1-i, black)
 		}
 	}
 
-	// Draw corner markers (10px L-shapes)
-	drawCornerMarker(img, 2, 2, 1, 1, black)
-	drawCornerMarker(img, widthPx-3, 2, -1, 1, black)
-	drawCornerMarker(img, 2, heightPx-3, 1, -1, black)
-	drawCornerMarker(img, widthPx-3, heightPx-3, -1, -1, black)
-
-	// Draw dimension text
+	// Dimension text
 	face, err := label.LoadFace("basic", 13)
 	if err == nil {
 		dimText := fmt.Sprintf("%dx%d px", widthPx, heightPx)
 		if widthMm > 0 && heightMm > 0 {
 			dimText = fmt.Sprintf("%dx%d px (%dx%d mm)", widthPx, heightPx, widthMm, heightMm)
 		}
-		drawDebugText(img, 8, 20, dimText, black, face)
-		drawDebugText(img, 8, heightPx-8, "QLX calibration", black, face)
+		drawDebugText(img, bw+6, bw+18, dimText, black, face)
+		drawDebugText(img, bw+6, heightPx-bw-6, "QLX calibration", black, face)
 	}
 
 	return img
+}
+
+func fillRect(img *image.RGBA, x0, y0, x1, y1 int, c color.RGBA) {
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			img.Set(x, y, c)
+		}
+	}
 }
 
 func drawCornerMarker(img *image.RGBA, x, y, dx, dy int, c color.RGBA) {
