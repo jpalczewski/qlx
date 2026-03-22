@@ -8,23 +8,6 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-// TagStats holds statistics for a tag detail page.
-type TagStats struct {
-	ItemCount      int
-	ContainerCount int
-	TotalQuantity  int
-}
-
-// TagDetailData is the view model for the tag detail page.
-type TagDetailData struct {
-	Tag        store.Tag
-	Path       []store.Tag
-	Items      []store.Item
-	Containers []store.Container
-	Stats      TagStats
-	Children   []store.Tag
-}
-
 // HandleTagView renders the tag detail page showing all items and containers with this tag.
 func (s *Server) HandleTagView(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")

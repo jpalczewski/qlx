@@ -113,6 +113,23 @@ type TagChipsData struct {
 	Tags       []store.Tag
 }
 
+// TagStats holds statistics for a tag detail page.
+type TagStats struct {
+	ItemCount      int
+	ContainerCount int
+	TotalQuantity  int
+}
+
+// TagDetailData is the view model for the tag detail page.
+type TagDetailData struct {
+	Tag        store.Tag
+	Path       []store.Tag
+	Items      []store.Item
+	Containers []store.Container
+	Stats      TagStats
+	Children   []store.Tag
+}
+
 type DesignerData struct {
 	TemplateID        string
 	TemplateName      string
