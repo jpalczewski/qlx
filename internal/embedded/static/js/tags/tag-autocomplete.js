@@ -26,7 +26,7 @@
     return fetch("/api/tags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name, color: "gray", icon: "" })
+      body: JSON.stringify({ name: name, color: "", icon: "" })
     }).then(function (r) {
       if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || "Error"); });
       invalidateCache();
@@ -60,6 +60,7 @@
     opt.setAttribute("role", "option");
     opt.setAttribute("data-index", String(index));
     opt.setAttribute("data-id", tag.id);
+    opt.id = "tag-ac-opt-" + tag.id;
 
     var dot = document.createElement("span");
     dot.className = "color-dot";
@@ -82,6 +83,7 @@
     opt.className = "tag-ac-option create";
     opt.setAttribute("role", "option");
     opt.setAttribute("data-index", String(index));
+    opt.id = "tag-ac-opt-create";
 
     var label = document.createElement("span");
     var promptText = qlx.t ? qlx.t("tags.create_tag_prompt") : 'Create "{0}"?';
@@ -174,7 +176,7 @@
         o.setAttribute("aria-selected", i === activeIndex ? "true" : "false");
       });
       if (input && activeIndex >= 0) {
-        input.setAttribute("aria-activedescendant", options[activeIndex].getAttribute("data-id") || "");
+        input.setAttribute("aria-activedescendant", options[activeIndex].id || "");
       }
     }
 

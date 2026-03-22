@@ -32,8 +32,10 @@
               // Refresh chips via HTMX
               htmx.ajax("GET", window.location.pathname, { target: "#content" });
             }
+            cleanup();
+          }).catch(function () {
+            cleanup();
           });
-          cleanup();
         },
         onCancel: function () {
           cleanup();
