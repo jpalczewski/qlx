@@ -100,7 +100,7 @@ test.describe('Edge cases: Tag hierarchy', () => {
     // Verify assigned
     let itemData = await (await request.get(`${app.baseURL}/items/${item.id}`, {
       headers: { 'Accept': 'application/json' },
-    });
+    })).json();
     expect(itemData.item.tag_ids).toContain(tag.id);
 
     // Delete tag
@@ -112,7 +112,7 @@ test.describe('Edge cases: Tag hierarchy', () => {
     // Verify cascade — tag_ids should no longer contain the deleted tag
     itemData = await (await request.get(`${app.baseURL}/items/${item.id}`, {
       headers: { 'Accept': 'application/json' },
-    });
+    })).json();
     expect(itemData.item.tag_ids).not.toContain(tag.id);
   });
 });
@@ -359,7 +359,7 @@ test.describe('Edge cases: Tag assignment to containers', () => {
     // Verify
     let data = await (await request.get(`${app.baseURL}/containers/${container.id}`, {
       headers: { 'Accept': 'application/json' },
-    });
+    })).json();
     expect(data.container.tag_ids).toContain(tag.id);
 
     // Remove
@@ -371,7 +371,7 @@ test.describe('Edge cases: Tag assignment to containers', () => {
     // Verify removed
     data = await (await request.get(`${app.baseURL}/containers/${container.id}`, {
       headers: { 'Accept': 'application/json' },
-    });
+    })).json();
     expect(data.container.tag_ids).not.toContain(tag.id);
   });
 
@@ -398,7 +398,7 @@ test.describe('Edge cases: Tag assignment to containers', () => {
     // Should only appear once
     const data = await (await request.get(`${app.baseURL}/containers/${container.id}`, {
       headers: { 'Accept': 'application/json' },
-    });
+    })).json();
     const count = data.container.tag_ids.filter((id: string) => id === tag.id).length;
     expect(count).toBe(1);
   });

@@ -5,6 +5,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/palette"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
 
@@ -65,6 +66,14 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Quick-entry: HX-Target is "tag-list" with beforeend swap — return single <li>
+	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "tag-list" {
+		if hr, ok := h.resp.(*HTMLResponder); ok {
+			hr.RenderPartial(w, r, "tags", "tag-list-item", tag)
+			return
+		}
+	}
+
 	h.resp.Respond(w, r, http.StatusCreated, tag, "tags", func() any {
 		return h.tagTreeVM(req.ParentID)
 	})
@@ -79,13 +88,7 @@ func (h *TagHandler) Detail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{
-		"tag":      tag,
-		"path":     h.tags.TagPath(id),
-		"children": h.tags.TagChildren(id),
-	}
-
-	h.resp.Respond(w, r, http.StatusOK, data, "tag-detail", func() any {
+	h.resp.Respond(w, r, http.StatusOK, tag, "tag-detail", func() any {
 		return TagDetailData{
 			Tag:      *tag,
 			Path:     h.tags.TagPath(id),

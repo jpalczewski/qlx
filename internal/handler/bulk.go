@@ -65,7 +65,7 @@ func (h *BulkHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	webutil.JSON(w, http.StatusOK, map[string]any{
 		"ok":      len(errs) == 0,
 		"deleted": deleted,
-		"errors":  errs,
+		"failed":  errs,
 	})
 }
 
@@ -79,7 +79,7 @@ func (h *BulkHandler) AddTag(w http.ResponseWriter, r *http.Request) {
 
 	itemIDs, containerIDs := dto.SplitBulkIDs(req.IDs)
 	if err := h.bulk.AddTag(itemIDs, containerIDs, req.TagID); err != nil {
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		webutil.WriteStoreErrorJSON(w, err)
 		return
 	}
 

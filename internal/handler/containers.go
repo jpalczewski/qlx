@@ -85,6 +85,14 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Quick-entry: HX-Target is "container-list" with beforeend swap — return single <li>
+	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "container-list" {
+		if hr, ok := h.resp.(*HTMLResponder); ok {
+			hr.RenderPartial(w, r, "containers", "container-list-item", container)
+			return
+		}
+	}
+
 	h.resp.Respond(w, r, http.StatusCreated, container, "containers", func() any {
 		return h.containerListVM(req.ParentID)
 	})

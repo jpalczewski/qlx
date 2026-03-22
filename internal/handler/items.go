@@ -5,6 +5,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
 
@@ -55,6 +56,11 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.ContainerID == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "container_id is required"})
+		return
+	}
+
 	if req.Quantity == 0 {
 		req.Quantity = 1
 	}
@@ -63,6 +69,14 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
+	}
+
+	// Quick-entry: HX-Target is "item-list" with beforeend swap — return single <li>
+	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "item-list" {
+		if hr, ok := h.resp.(*HTMLResponder); ok {
+			hr.RenderPartial(w, r, "containers", "item-list-item", item)
+			return
+		}
 	}
 
 	h.resp.Respond(w, r, http.StatusCreated, item, "containers", func() any {
