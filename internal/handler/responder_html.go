@@ -85,6 +85,25 @@ func (h *HTMLResponder) Redirect(w http.ResponseWriter, r *http.Request, url str
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
+// RenderPartial renders a named define block directly (no layout).
+// Use this for HTMX partial responses (fragments, not full pages).
+func (h *HTMLResponder) RenderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) {
+	t, ok := h.templates[tmplName]
+	if !ok {
+		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	page := PageData{
+		Lang:       langFromRequest(r),
+		translator: h.translations,
+		Data:       data,
+	}
+	if err := t.ExecuteTemplate(w, defineName, page); err != nil {
+		webutil.LogError("template execute: %v", err)
+	}
+}
+
 func langFromRequest(r *http.Request) string {
 	if v := r.Context().Value(webutil.LangKey); v != nil {
 		return v.(string)
