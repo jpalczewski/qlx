@@ -22,6 +22,18 @@
             <input type="number" id="quantity" name="quantity" value="{{ if .Data.Item }}{{ .Data.Item.Quantity }}{{ else }}1{{ end }}" min="1">
         </div>
 
+        {{ if .Data.Item }}
+    <div class="form-group">
+        <label>{{.T "tags.title"}}</label>
+        <div id="form-tag-chips-{{ .Data.Item.ID }}">
+            {{ if .Data.Item.TagIDs }}
+            {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Item.ID "ObjectType" "item" "Tags" (resolveTags .Data.Item.TagIDs)) }}
+            {{ end }}
+        </div>
+        <input type="text" class="tag-ac-input tag-field-input" placeholder="{{ .T "tags.search_tags" }}" data-object-id="{{ .Data.Item.ID }}" data-object-type="item">
+    </div>
+    {{ end }}
+
         <div class="actions">
             <button type="submit">{{ if .Data.Item }}{{.T "action.save"}}{{ else }}{{.T "inventory.create"}}{{ end }}</button>
             <a href="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-get="{{ if .Data.Item }}/ui/items/{{ .Data.Item.ID }}{{ else }}/ui/containers/{{ .Data.ContainerID }}/items{{ end }}" hx-target="#content" class="button secondary">{{.T "action.cancel"}}</a>

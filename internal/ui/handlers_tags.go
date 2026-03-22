@@ -8,6 +8,46 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
+// HandleTagView renders the tag detail page showing all items and containers with this tag.
+func (s *Server) HandleTagView(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	tag := s.tags.GetTag(id)
+	if tag == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// ItemsByTag and ContainersByTag live on *store.Store (not TagService interface).
+	// Access via s.store which is the *store.Store field on ui.Server.
+	items := s.store.ItemsByTag(id)
+	containers := s.store.ContainersByTag(id)
+
+	totalQty := 0
+	for _, item := range items {
+		totalQty += item.Quantity
+	}
+
+	path := s.tags.TagPath(id)
+	children := s.tags.TagChildren(id)
+
+	data := TagDetailData{
+		Tag:        *tag,
+		Path:       path,
+		Items:      items,
+		Containers: containers,
+		Stats: TagStats{
+			ItemCount:      len(items),
+			ContainerCount: len(containers),
+			TotalQuantity:  totalQty,
+		},
+		Children: children,
+	}
+
+	// render takes 4 args: (w, r, templateName, data)
+	// Template name "tag-detail" maps to pages/tags/tag_detail.html
+	s.render(w, r, "tag-detail", data)
+}
+
 // HandleTags renders the tag tree page. Accepts optional ?parent_id= query parameter.
 func (s *Server) HandleTags(w http.ResponseWriter, r *http.Request) {
 	parentID := r.URL.Query().Get("parent_id")

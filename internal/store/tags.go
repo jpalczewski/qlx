@@ -299,6 +299,29 @@ func (s *Store) ItemsByTag(tagID string) []Item {
 	return result
 }
 
+// ContainersByTag returns all containers whose TagIDs include tagID or any of its descendants.
+func (s *Store) ContainersByTag(tagID string) []Container {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	relevant := make(map[string]struct{})
+	relevant[tagID] = struct{}{}
+	for _, id := range s.tagDescendantsLocked(tagID) {
+		relevant[id] = struct{}{}
+	}
+
+	var result []Container
+	for _, c := range s.containers {
+		for _, tid := range c.TagIDs {
+			if _, ok := relevant[tid]; ok {
+				result = append(result, *c)
+				break
+			}
+		}
+	}
+	return result
+}
+
 // removeFromSlice returns a new slice with val removed (first occurrence only).
 func removeFromSlice(slice []string, val string) []string {
 	result := make([]string, 0, len(slice))
