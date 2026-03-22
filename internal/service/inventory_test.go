@@ -74,6 +74,9 @@ func (m *mockInventoryStore) ContainerPath(id string) []store.Container {
 	}
 	return nil
 }
+func (m *mockInventoryStore) AllContainers() []store.Container {
+	return nil
+}
 func (m *mockInventoryStore) GetItem(id string) *store.Item {
 	if m.getItem != nil {
 		return m.getItem(id)

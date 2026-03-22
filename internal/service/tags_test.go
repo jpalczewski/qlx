@@ -197,6 +197,9 @@ func (m *mockTagStore) ContainerPath(id string) []store.Container {
 	}
 	return nil
 }
+func (m *mockTagStore) AllContainers() []store.Container {
+	return nil
+}
 func (m *mockTagStore) Save() error {
 	if m.save != nil {
 		return m.save()

@@ -1,6 +1,13 @@
 package service
 
-import "github.com/erxyi/qlx/internal/store"
+import (
+	"errors"
+
+	"github.com/erxyi/qlx/internal/store"
+)
+
+// ErrNotFound is a generic "not found" error for use in handlers.
+var ErrNotFound = errors.New("not found")
 
 // Saveable describes a store that can persist its state to disk.
 type Saveable interface {
@@ -26,6 +33,7 @@ type ContainerStore interface {
 	ContainerChildren(parentID string) []store.Container
 	ContainerItems(containerID string) []store.Item
 	ContainerPath(id string) []store.Container
+	AllContainers() []store.Container
 }
 
 // TagStore defines tag-related store operations.
@@ -64,4 +72,27 @@ type PrinterStore interface {
 	AllPrinters() []store.PrinterConfig
 	AddPrinter(name, encoder, model, transport, address string) *store.PrinterConfig
 	DeletePrinter(id string) error
+}
+
+// TemplateStore defines template-related store operations.
+type TemplateStore interface {
+	AllTemplates() []store.Template
+	GetTemplate(id string) *store.Template
+	CreateTemplate(name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements string) *store.Template
+	SaveTemplate(t store.Template)
+	DeleteTemplate(id string)
+}
+
+// AssetStore defines asset-related store operations.
+type AssetStore interface {
+	SaveAsset(name, mimeType string, data []byte) (*store.Asset, error)
+	GetAsset(id string) *store.Asset
+	AssetData(id string) ([]byte, error)
+}
+
+// ExportStore defines export-related store operations.
+type ExportStore interface {
+	ExportData() (map[string]*store.Container, map[string]*store.Item)
+	AllItems() []store.Item
+	AllContainers() []store.Container
 }
