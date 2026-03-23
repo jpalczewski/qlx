@@ -1,0 +1,4 @@
+[
+  {"id":"i1","container_id":"c1","name":"Resistor","description":"10k","quantity":50,"color":"yellow","icon":"","tag_ids":["t1"]},
+  {"id":"i2","container_id":"c2","name":"LED","description":"","quantity":10,"color":"","icon":"","tag_ids":[]}
+]

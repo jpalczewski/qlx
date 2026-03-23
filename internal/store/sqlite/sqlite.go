@@ -43,7 +43,14 @@ func New(dataDir string) (*SQLiteStore, error) {
 		return nil, fmt.Errorf("run migrations: %w", err)
 	}
 
-	return &SQLiteStore{db: db, dataDir: dataDir}, nil
+	s := &SQLiteStore{db: db, dataDir: dataDir}
+
+	if err := s.migrateJSON(); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("migrate json: %w", err)
+	}
+
+	return s, nil
 }
 
 // Close closes the database connection.
