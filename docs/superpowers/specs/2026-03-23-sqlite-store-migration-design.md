@@ -14,14 +14,14 @@ Replace the JSON file store with SQLite, adding FTS5 full-text search, proper FK
 | `Save()` / `Saveable` | Remove entirely | SQLite mutations are atomic; no dirty-flag pattern needed |
 | Package structure | Split: `store/` (models/errors) + `store/sqlite/` (impl) | Future backend swap possible (Postgres, etc.) |
 | Full-text search | FTS5 from day one | Issue requires it; triggers are trivial in migration SQL |
-| Asset storage | Binary files on disk, metadata in SQLite | Large images don't belong in DB; simpler backup |
+| Asset support | Removed entirely | Not in use; re-add via goose migration when needed |
 | Pagination/sorting | Follow-up PR | Scope is already large; SQLite makes it trivial later |
 
 ## Package Structure
 
 ```
 internal/store/
-  models.go            # Container, Item, Tag, PrinterConfig, Template, Asset
+  models.go            # Container, Item, Tag, PrinterConfig, Template
   errors.go            # ErrContainerNotFound, ErrItemNotFound, etc.
   store.go             # Store interface (aggregate of all sub-interfaces)
   sqlite/
@@ -33,7 +33,6 @@ internal/store/
     tags.go            # TagStore implementation
     printers.go        # PrinterStore implementation
     templates.go       # TemplateStore implementation
-    assets.go          # AssetStore implementation
     bulk.go            # BulkStore implementation (transactions)
     search.go          # SearchStore implementation (FTS5)
     export.go          # ExportStore implementation
@@ -54,7 +53,6 @@ type Store interface {
     SearchStore
     PrinterStore
     TemplateStore
-    AssetStore
     ExportStore
     Close() error
 }
@@ -135,13 +133,6 @@ CREATE TABLE templates (
     elements   TEXT NOT NULL DEFAULT '[]',
     created_at DATETIME NOT NULL DEFAULT (datetime('now')),
     updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE assets (
-    id         TEXT PRIMARY KEY,
-    name       TEXT NOT NULL,
-    mime_type  TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX idx_containers_parent  ON containers(parent_id);
@@ -230,7 +221,7 @@ Tags searched via simple `LIKE` — small dataset, FTS overkill.
 2. `containers` — topological sort, parents before children
 3. `items` — after containers
 4. `item_tags`, `container_tags` — after items/containers/tags (from TagIDs on models)
-5. `printer_configs`, `templates`, `assets` — independent
+5. `printer_configs`, `templates` — independent
 
 ### Legacy data.json support
 
@@ -364,11 +355,11 @@ func (s *Server) Shutdown() error {
 Before:                     After:
 data/                       data/
   meta.json                   qlx.db
-  containers.json             assets/
-  items.json                    {id}.bin
-  tags.json                   containers.json.migrated
-  printers.json               items.json.migrated
-  templates.json               ...
+  containers.json             containers.json.migrated
+  items.json                  items.json.migrated
+  tags.json                   ...
+  printers.json
+  templates.json
   assets.json
   assets/
     {id}.bin
@@ -416,7 +407,6 @@ internal/store/sqlite/testdata/
     tags.json
     printers.json
     templates.json
-    assets.json
 ```
 
 ### Service tests
@@ -456,10 +446,6 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- safe rowid-preserving alternative to VACUU
 
 ## Implementation Notes
 
-### Asset storage atomicity
-
-`SaveAsset` writes metadata to SQLite and binary to `{dataDir}/assets/{id}.bin`. Order: write file first, then INSERT metadata. On file write failure, no DB row is created. On DB insert failure after file write, the orphan file is cleaned up. `GetAsset` returns metadata; `AssetData` reads from disk.
-
 ### ExportData stays unchanged
 
 `ExportData() (map[string]*Container, map[string]*Item)` loads everything into memory. Acceptable for current scale (single-user appliance). Streaming export is out of scope.
@@ -470,3 +456,19 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- safe rowid-preserving alternative to VACUU
 - HTML error partials (replacing `http.Error` in HTMX flows) — follow-up PR
 - `PrintContext` embedded struct for view models — nice-to-have
 - Dual-backend abstraction — not needed (MIPS build has no store)
+
+## Removals
+
+### Asset system — removed entirely
+
+Delete the following:
+- `store.Asset` model
+- `AssetStore` interface in `service/interfaces.go`
+- `AssetService` in `service/assets.go`
+- `AssetHandler` in `handler/assets.go`
+- Asset routes (`/assets/*`)
+- `assets.json` partition (not migrated to SQLite)
+- `assets/` directory handling in store
+- No `assets` table in schema
+
+Assets can be re-added in a future PR via a new goose migration + handler.
