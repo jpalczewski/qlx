@@ -17,3 +17,7 @@ qlx-e2e-test
 *.png
 test-results/.last-run.json
 qlx-test
+*.migrated
+qlx.db
+qlx.db-wal
+qlx.db-shm
