@@ -17,7 +17,6 @@ import (
 	"github.com/erxyi/qlx/internal/print/encoder/brother"
 	"github.com/erxyi/qlx/internal/print/encoder/niimbot"
 	"github.com/erxyi/qlx/internal/shared/webutil"
-	"github.com/erxyi/qlx/internal/store"
 	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
@@ -59,23 +58,19 @@ func run(device, port, host, dataDir string, trace bool) error {
 	}
 
 	// Initialize SQLite database (runs migrations)
-	sqlDB, err := sqlite.New(dataDir)
+	db, err := sqlite.New(dataDir)
 	if err != nil {
 		return fmt.Errorf("failed to open store: %w", err)
 	}
-	defer func() { _ = sqlDB.Close() }()
+	defer func() { _ = db.Close() }()
 
-	// TODO(Task 12): Wire SQLiteStore as store.Store once all interfaces are implemented.
-	// Using MemoryStore as temporary placeholder until Tasks 5-9 complete.
-	s := store.NewMemoryStore()
-
-	pm := qlprint.NewPrinterManager(s)
+	pm := qlprint.NewPrinterManager(db)
 	pm.RegisterEncoder(&brother.BrotherEncoder{})
 	pm.RegisterEncoder(&niimbot.NiimbotEncoder{})
 	pm.Start()
 	defer pm.Stop()
 
-	server := app.NewServer(s, pm)
+	server := app.NewServer(db, pm)
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	srv := &http.Server{

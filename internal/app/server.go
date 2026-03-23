@@ -37,16 +37,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 	export := service.NewExportService(s)
 
 	// Build responder with template rendering
-	resolveTagsFn := func(ids []string) []store.Tag {
-		result := make([]store.Tag, 0, len(ids))
-		for _, id := range ids {
-			if t := tags.GetTag(id); t != nil {
-				result = append(result, *t)
-			}
-		}
-		return result
-	}
-	tmplMap := handler.LoadTemplates(resolveTagsFn)
+	tmplMap := handler.LoadTemplates(tags.ResolveTagIDs)
 	resp := handler.NewHTMLResponder(tmplMap, translations)
 
 	// Create domain handlers
