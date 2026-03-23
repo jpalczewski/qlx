@@ -7,11 +7,21 @@ import (
 	"testing"
 
 	qlprint "github.com/erxyi/qlx/internal/print"
-	"github.com/erxyi/qlx/internal/store"
+	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
+func newAppTestStore(t *testing.T) *sqlite.SQLiteStore {
+	t.Helper()
+	db, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db
+}
+
 func TestRoot_RenderModes(t *testing.T) {
-	mem := store.NewMemoryStore()
+	mem := newAppTestStore(t)
 	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 
 	fullReq := httptest.NewRequest("GET", "/", nil)
@@ -39,7 +49,7 @@ func TestRoot_RenderModes(t *testing.T) {
 }
 
 func TestAddItemInContainer(t *testing.T) {
-	mem := store.NewMemoryStore()
+	mem := newAppTestStore(t)
 	container := mem.CreateContainer("", "Box", "", "", "")
 	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
 

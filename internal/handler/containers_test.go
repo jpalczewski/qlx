@@ -9,17 +9,19 @@ import (
 
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/store"
+	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
-func newTestContainerHandler() (*ContainerHandler, *service.InventoryService) {
-	s := store.NewMemoryStore()
+func newTestContainerHandler(t *testing.T) (*ContainerHandler, *service.InventoryService) {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	inv := service.NewInventoryService(s)
 	h := NewContainerHandler(inv, nil, nil, &JSONResponder{})
 	return h, inv
 }
 
 func TestContainerHandler_List_JSON(t *testing.T) {
-	h, inv := newTestContainerHandler()
+	h, inv := newTestContainerHandler(t)
 
 	c, err := inv.CreateContainer("", "TestBox", "A box", "", "")
 	if err != nil {
@@ -54,7 +56,7 @@ func TestContainerHandler_List_JSON(t *testing.T) {
 }
 
 func TestContainerHandler_List_WithParentID(t *testing.T) {
-	h, inv := newTestContainerHandler()
+	h, inv := newTestContainerHandler(t)
 
 	parent, err := inv.CreateContainer("", "Parent", "", "", "")
 	if err != nil {
@@ -90,7 +92,7 @@ func TestContainerHandler_List_WithParentID(t *testing.T) {
 }
 
 func TestContainerHandler_Create_JSON(t *testing.T) {
-	h, _ := newTestContainerHandler()
+	h, _ := newTestContainerHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -127,7 +129,7 @@ func TestContainerHandler_Create_JSON(t *testing.T) {
 }
 
 func TestContainerHandler_Delete_JSON(t *testing.T) {
-	h, inv := newTestContainerHandler()
+	h, inv := newTestContainerHandler(t)
 
 	c, err := inv.CreateContainer("", "ToDelete", "", "", "")
 	if err != nil {
@@ -152,7 +154,7 @@ func TestContainerHandler_Delete_JSON(t *testing.T) {
 }
 
 func TestContainerHandler_Detail_NotFound(t *testing.T) {
-	h, _ := newTestContainerHandler()
+	h, _ := newTestContainerHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -164,4 +166,15 @@ func TestContainerHandler_Detail_NotFound(t *testing.T) {
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
+}
+
+// newHandlerTestStore creates an in-memory SQLite store for handler tests.
+func newHandlerTestStore(t *testing.T) *sqlite.SQLiteStore {
+	t.Helper()
+	db, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db
 }

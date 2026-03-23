@@ -13,8 +13,9 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-func newTestTagHandler() (*TagHandler, *service.TagService, *service.InventoryService) {
-	s := store.NewMemoryStore()
+func newTestTagHandler(t *testing.T) (*TagHandler, *service.TagService, *service.InventoryService) {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	tags := service.NewTagService(s)
 	inv := service.NewInventoryService(s)
 	h := NewTagHandler(tags, inv, &JSONResponder{})
@@ -22,7 +23,7 @@ func newTestTagHandler() (*TagHandler, *service.TagService, *service.InventorySe
 }
 
 func TestTagHandler_Create_JSON(t *testing.T) {
-	h, _, _ := newTestTagHandler()
+	h, _, _ := newTestTagHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -55,7 +56,7 @@ func TestTagHandler_Create_JSON(t *testing.T) {
 }
 
 func TestTagHandler_AddItemTag_JSON(t *testing.T) {
-	h, tags, inv := newTestTagHandler()
+	h, tags, inv := newTestTagHandler(t)
 
 	// Create a container, item, and tag
 	container, err := inv.CreateContainer("", "Box", "", "", "")

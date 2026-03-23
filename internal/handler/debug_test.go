@@ -7,18 +7,18 @@ import (
 
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/service"
-	"github.com/erxyi/qlx/internal/store"
 )
 
-func newTestDebugHandler() *DebugHandler {
-	s := store.NewMemoryStore()
+func newTestDebugHandler(t *testing.T) *DebugHandler {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	pm := print.NewPrinterManager(s)
 	prn := service.NewPrinterService(s)
 	return NewDebugHandler(pm, prn, &JSONResponder{})
 }
 
 func TestDebugHandler_CalibrationImage_ReturnsPNG(t *testing.T) {
-	h := newTestDebugHandler()
+	h := newTestDebugHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -47,7 +47,7 @@ func TestDebugHandler_CalibrationImage_ReturnsPNG(t *testing.T) {
 }
 
 func TestDebugHandler_CalibrationImage_DefaultSize(t *testing.T) {
-	h := newTestDebugHandler()
+	h := newTestDebugHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -62,7 +62,7 @@ func TestDebugHandler_CalibrationImage_DefaultSize(t *testing.T) {
 }
 
 func TestDebugHandler_CalibrationImage_InvalidSizeFallback(t *testing.T) {
-	h := newTestDebugHandler()
+	h := newTestDebugHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -78,7 +78,7 @@ func TestDebugHandler_CalibrationImage_InvalidSizeFallback(t *testing.T) {
 }
 
 func TestDebugHandler_PrinterInfo_MissingID(t *testing.T) {
-	h := newTestDebugHandler()
+	h := newTestDebugHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -93,7 +93,7 @@ func TestDebugHandler_PrinterInfo_MissingID(t *testing.T) {
 }
 
 func TestDebugHandler_PrinterInfo_NotFound(t *testing.T) {
-	h := newTestDebugHandler()
+	h := newTestDebugHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
