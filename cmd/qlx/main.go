@@ -76,6 +76,7 @@ func run(device, port, host, dataDir string, trace bool) error {
 		Addr:              addr,
 		Handler:           server,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
 	}
 
 	go func() {

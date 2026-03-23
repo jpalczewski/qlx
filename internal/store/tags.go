@@ -213,7 +213,7 @@ func (s *Store) AddItemTag(itemID, tagID string) error {
 		return ErrTagNotFound
 	}
 
-	if containsString(item.TagIDs, tagID) {
+	if slices.Contains(item.TagIDs, tagID) {
 		return nil
 	}
 
@@ -251,7 +251,7 @@ func (s *Store) AddContainerTag(containerID, tagID string) error {
 		return ErrTagNotFound
 	}
 
-	if containsString(c.TagIDs, tagID) {
+	if slices.Contains(c.TagIDs, tagID) {
 		return nil
 	}
 
@@ -331,9 +331,4 @@ func removeFromSlice(slice []string, val string) []string {
 		}
 	}
 	return result
-}
-
-// containsString reports whether slice contains val.
-func containsString(sl []string, val string) bool {
-	return slices.Contains(sl, val)
 }

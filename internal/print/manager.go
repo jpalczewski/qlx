@@ -64,12 +64,22 @@ func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
 	return nil
 }
 
+// RegisterEncoder adds an encoder. Must be called before Start().
 func (m *PrinterManager) RegisterEncoder(enc encoder.Encoder) {
+	m.mu.Lock()
 	m.encoders[enc.Name()] = enc
+	m.mu.Unlock()
 }
 
+// AvailableEncoders returns a snapshot of registered encoders.
 func (m *PrinterManager) AvailableEncoders() map[string]encoder.Encoder {
-	return m.encoders
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	cp := make(map[string]encoder.Encoder, len(m.encoders))
+	for k, v := range m.encoders {
+		cp[k] = v
+	}
+	return cp
 }
 
 // Start connects to all configured printers.
@@ -109,7 +119,9 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 		return fmt.Errorf("printer not found: %s", printerID)
 	}
 
+	m.mu.RLock()
 	enc, ok := m.encoders[cfg.Encoder]
+	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
@@ -129,18 +141,15 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 
 	session := NewSession(*cfg, tr, enc, modelInfo, m.onStatusUpdate)
 
+	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
+	if err := session.Start(); err != nil {
+		return fmt.Errorf("connect %s: %w", cfg.Name, err)
+	}
+
+	// Only insert into map after successful Start to prevent leaked sessions
 	m.mu.Lock()
 	m.sessions[printerID] = session
 	m.mu.Unlock()
-
-	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
-	if err := session.Start(); err != nil {
-		// Remove failed session from map so Stop() doesn't hang on it
-		m.mu.Lock()
-		delete(m.sessions, printerID)
-		m.mu.Unlock()
-		return fmt.Errorf("connect %s: %w", cfg.Name, err)
-	}
 
 	return nil
 }
@@ -188,7 +197,9 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("printer not found: %s", printerID)
 	}
 
+	m.mu.RLock()
 	enc, ok := m.encoders[cfg.Encoder]
+	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
@@ -240,7 +251,9 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		return fmt.Errorf("printer not found: %s", printerID)
 	}
 
+	m.mu.RLock()
 	enc, ok := m.encoders[cfg.Encoder]
+	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}

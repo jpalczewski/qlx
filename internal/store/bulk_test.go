@@ -1,6 +1,7 @@
 package store
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -239,13 +240,13 @@ func TestBulkAddTag(t *testing.T) {
 
 	for _, id := range []string{item1.ID, item2.ID} {
 		got := s.GetItem(id)
-		if !containsString(got.TagIDs, tag.ID) {
+		if !slices.Contains(got.TagIDs, tag.ID) {
 			t.Errorf("item %s missing tag", id)
 		}
 	}
 	for _, id := range []string{c1.ID, c2.ID} {
 		got := s.GetContainer(id)
-		if !containsString(got.TagIDs, tag.ID) {
+		if !slices.Contains(got.TagIDs, tag.ID) {
 			t.Errorf("container %s missing tag", id)
 		}
 	}
