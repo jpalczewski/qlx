@@ -638,7 +638,7 @@ git commit -m "refactor(service): use store.* interfaces, remove Save() calls, d
 
 ---
 
-## Task 6: SQLite Container Store
+## Task 5: SQLite Container Store
 
 **Files:**
 - Create: `internal/store/sqlite/containers.go`
@@ -695,7 +695,7 @@ git commit -m "feat(store): SQLite ContainerStore implementation with tests"
 
 ---
 
-## Task 7: SQLite Item Store
+## Task 6: SQLite Item Store
 
 **Files:**
 - Create: `internal/store/sqlite/items.go`
@@ -737,7 +737,7 @@ git commit -m "feat(store): SQLite ItemStore implementation with tests"
 
 ---
 
-## Task 8: SQLite Tag Store
+## Task 7: SQLite Tag Store
 
 **Files:**
 - Create: `internal/store/sqlite/tags.go`
@@ -789,7 +789,7 @@ git commit -m "feat(store): SQLite TagStore implementation with ResolveTagIDs, T
 
 ---
 
-## Task 9: SQLite Printer and Template Stores
+## Task 8: SQLite Printer and Template Stores
 
 **Files:**
 - Create: `internal/store/sqlite/printers.go`
@@ -843,7 +843,7 @@ git commit -m "feat(store): SQLite PrinterStore and TemplateStore with tests"
 
 ---
 
-## Task 10: SQLite Bulk, Search, and Export Stores
+## Task 9: SQLite Bulk, Search, and Export Stores
 
 **Files:**
 - Create: `internal/store/sqlite/bulk.go`
@@ -924,7 +924,7 @@ git commit -m "feat(store): SQLite BulkStore, SearchStore (FTS5), ExportStore wi
 
 ---
 
-## Task 11: JSON → SQLite Auto-Migration
+## Task 10: JSON → SQLite Auto-Migration
 
 **Files:**
 - Create: `internal/store/sqlite/migrate_json.go`
@@ -1001,7 +1001,7 @@ git commit -m "feat(store): auto-migrate JSON to SQLite at startup with test fix
 
 ---
 
-## Task 12: Handler & API Cleanup
+## Task 11: Handler & API Cleanup
 
 **Files:**
 - Modify: `internal/handler/responder.go` — add `RenderPartial` to interface
@@ -1136,11 +1136,10 @@ git commit -m "refactor(handler): RenderPartial interface, 204 on DELETE, remove
 
 ---
 
-## Task 13: Wire Everything — Composition Root and Main
+## Task 12: Wire Everything — Composition Root and Main
 
 **Files:**
 - Modify: `internal/app/server.go`
-- Modify: `internal/handler/templates_load.go`
 - Modify: `cmd/qlx/main.go`
 
 - [ ] **Step 1: Update server.go**
@@ -1185,13 +1184,13 @@ Expected: compiles. MIPS build uses `-tags minimal` which excludes BLE. Verify t
 - [ ] **Step 5: Commit**
 
 ```bash
-git add internal/app/server.go internal/handler/templates_load.go cmd/qlx/main.go
+git add internal/app/server.go cmd/qlx/main.go
 git commit -m "feat: wire SQLite store into composition root, update main.go"
 ```
 
 ---
 
-## Task 14: Update Service, App, and Print Tests
+## Task 13: Update Service, App, and Print Tests
 
 **Files:**
 - Modify: `internal/service/inventory_test.go`
@@ -1259,7 +1258,7 @@ git commit -m "test(service): update tests for SQLite store — remove Save(), u
 
 ---
 
-## Task 15: Update Handler Tests
+## Task 14: Update Handler Tests
 
 **Files:**
 - Modify: `internal/handler/containers_test.go`
@@ -1304,7 +1303,7 @@ git commit -m "test(handler): update tests for SQLite store, 204 DELETEs, remove
 
 ---
 
-## Task 16: Full Build and Test Suite
+## Task 15: Full Build and Test Suite
 
 **Files:** None (verification only)
 
@@ -1367,7 +1366,7 @@ If any tests needed fixing, commit.
 
 ---
 
-## Task 17: Cleanup and Final Commit
+## Task 16: Cleanup and Final Commit
 
 **Files:**
 - Update: `.gitignore` — add `*.db`, `*.db-wal`, `*.db-shm`
