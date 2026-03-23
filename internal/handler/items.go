@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/print/label"
@@ -57,7 +58,7 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.ContainerID == "" {
-		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "container_id is required"})
+		h.resp.RespondError(w, r, fmt.Errorf("%w: container_id is required", store.ErrInvalidContainer))
 		return
 	}
 

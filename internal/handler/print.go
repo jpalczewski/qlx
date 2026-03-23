@@ -152,7 +152,7 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 		Name:        item.Name,
 		Description: item.Description,
 		Location:    webutil.FormatContainerPath(path, " \u2192 "),
-		QRContent:   "/item/" + item.ID,
+		QRContent:   "/items/" + item.ID,
 		BarcodeID:   item.ID,
 		Icon:        item.Icon,
 		Tags:        h.resolveTags(item.TagIDs),
@@ -346,13 +346,16 @@ func (h *PrintHandler) ScanUSB(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Deduplicate by serial number, keeping first occurrence.
+	// Devices with empty serial are always kept (no dedup key).
 	seen := make(map[string]bool)
 	unique := make([]transport.USBScanResult, 0, len(results))
 	for _, res := range results {
-		if res.Serial != "" && seen[res.Serial] {
-			continue
+		if res.Serial != "" {
+			if seen[res.Serial] {
+				continue
+			}
+			seen[res.Serial] = true
 		}
-		seen[res.Serial] = true
 		unique = append(unique, res)
 	}
 

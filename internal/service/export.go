@@ -4,13 +4,12 @@ import "github.com/erxyi/qlx/internal/store"
 
 // ExportService handles data export operations.
 type ExportService struct {
-	store     ExportStore
-	inventory *InventoryService
+	store ExportStore
 }
 
 // NewExportService creates a new ExportService.
-func NewExportService(s ExportStore, inventory *InventoryService) *ExportService {
-	return &ExportService{store: s, inventory: inventory}
+func NewExportService(s ExportStore) *ExportService {
+	return &ExportService{store: s}
 }
 
 func (s *ExportService) ExportJSON() (map[string]*store.Container, map[string]*store.Item) {

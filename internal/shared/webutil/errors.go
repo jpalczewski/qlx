@@ -39,8 +39,3 @@ func StoreHTTPStatus(err error) int {
 func WriteStoreErrorJSON(w http.ResponseWriter, err error) {
 	JSON(w, StoreHTTPStatus(err), map[string]string{"error": err.Error()})
 }
-
-// WriteStoreErrorText writes a plain text error response with the mapped status code.
-func WriteStoreErrorText(w http.ResponseWriter, err error) {
-	http.Error(w, err.Error(), StoreHTTPStatus(err))
-}

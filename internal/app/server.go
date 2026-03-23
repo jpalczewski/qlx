@@ -35,7 +35,7 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 	printers := service.NewPrinterService(s)
 	templates := service.NewTemplateService(s)
 	assets := service.NewAssetService(s)
-	export := service.NewExportService(s, inventory)
+	export := service.NewExportService(s)
 
 	// Build responder with template rendering
 	resolveTagsFn := func(ids []string) []store.Tag {

@@ -175,7 +175,7 @@ test.describe('BindRequest edge cases', () => {
     });
     expect(res.status()).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe('container_id is required');
+    expect(body.error).toContain('container_id is required');
   });
 });
 

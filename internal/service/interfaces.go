@@ -1,13 +1,6 @@
 package service
 
-import (
-	"errors"
-
-	"github.com/erxyi/qlx/internal/store"
-)
-
-// ErrNotFound is a generic "not found" error for use in handlers.
-var ErrNotFound = errors.New("not found")
+import "github.com/erxyi/qlx/internal/store"
 
 // Saveable describes a store that can persist its state to disk.
 type Saveable interface {
