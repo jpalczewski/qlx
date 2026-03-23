@@ -745,9 +745,10 @@ func (s *Store) GetAsset(id string) *Asset {
 
 func (s *Store) AssetData(id string) ([]byte, error) {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	_, ok := s.assets[id]
+	s.mu.RUnlock()
 
-	if _, ok := s.assets[id]; !ok {
+	if !ok {
 		return nil, errors.New("asset not found")
 	}
 
