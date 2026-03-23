@@ -74,8 +74,7 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Quick-entry: HX-Target is "item-list" with beforeend swap — return single <li>
 	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "item-list" {
-		if hr, ok := h.resp.(*HTMLResponder); ok {
-			hr.RenderPartial(w, r, "containers", "item-list-item", item)
+		if h.resp.RenderPartial(w, r, "containers", "item-list-item", item) {
 			return
 		}
 	}
@@ -121,7 +120,7 @@ func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, map[string]any{"ok": true}, "containers", func() any {
+	h.resp.Respond(w, r, http.StatusNoContent, nil, "containers", func() any {
 		return ContainerListData{
 			Children: h.inventory.ContainerChildren(containerID),
 			Items:    h.inventory.ContainerItems(containerID),

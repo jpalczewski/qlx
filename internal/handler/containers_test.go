@@ -141,17 +141,8 @@ func TestContainerHandler_Delete_JSON(t *testing.T) {
 	r := httptest.NewRequest("DELETE", "/containers/"+c.ID, nil)
 	mux.ServeHTTP(w, r)
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
-	}
-
-	var result map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&result); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-
-	if result["ok"] != true {
-		t.Errorf("expected ok=true, got %v", result["ok"])
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d; body: %s", w.Code, w.Body.String())
 	}
 
 	// Verify container is actually deleted

@@ -180,10 +180,13 @@ func (h *TemplateHandler) Save(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// Create new
-		if _, err := h.templates.CreateTemplate(req.Name, req.Tags, req.Target, req.WidthMM, req.HeightMM, req.WidthPx, req.HeightPx, req.Elements); err != nil {
+		created, err := h.templates.CreateTemplate(req.Name, req.Tags, req.Target, req.WidthMM, req.HeightMM, req.WidthPx, req.HeightPx, req.Elements)
+		if err != nil {
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
+		webutil.JSON(w, http.StatusCreated, created)
+		return
 	}
 
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
@@ -199,7 +202,7 @@ func (h *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	all := h.templates.AllTemplates()
-	h.resp.Respond(w, r, http.StatusOK, map[string]any{"ok": true}, "templates", func() any {
+	h.resp.Respond(w, r, http.StatusNoContent, nil, "templates", func() any {
 		return TemplateListData{
 			Templates: all,
 		}
