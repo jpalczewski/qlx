@@ -108,7 +108,7 @@ type legacyTag struct {
 // readJSONFile reads a JSON array from path into a slice of T.
 // Returns nil, nil if the file does not exist.
 func readJSONFile[T any](path string) ([]T, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: path is constructed from trusted dataDir
 	if os.IsNotExist(err) {
 		return nil, nil // file not present is OK
 	}

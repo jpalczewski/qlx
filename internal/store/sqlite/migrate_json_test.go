@@ -14,11 +14,11 @@ func TestMigrateJSON_Partitioned(t *testing.T) {
 	for _, name := range []string{"containers.json", "items.json", "tags.json", "printers.json", "templates.json"} {
 		src := filepath.Join(fixtureDir, name)
 		dst := filepath.Join(dataDir, name)
-		data, err := os.ReadFile(src)
+		data, err := os.ReadFile(src) //nolint:gosec // G304: test fixture path
 		if err != nil {
 			t.Fatalf("read fixture %s: %v", name, err)
 		}
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		if err := os.WriteFile(dst, data, 0600); err != nil { //nolint:gosec // G306: test temp file
 			t.Fatal(err)
 		}
 	}
@@ -84,8 +84,13 @@ func TestMigrateJSON_AlreadyMigrated(t *testing.T) {
 	for _, name := range []string{"containers.json", "items.json", "tags.json"} {
 		src := filepath.Join(fixtureDir, name)
 		dst := filepath.Join(dataDir, name)
-		data, _ := os.ReadFile(src)
-		os.WriteFile(dst, data, 0644)
+		data, err := os.ReadFile(src) //nolint:gosec // G304: test fixture path
+		if err != nil {
+			t.Fatalf("read fixture %s: %v", name, err)
+		}
+		if err := os.WriteFile(dst, data, 0600); err != nil { //nolint:gosec // G306: test temp file
+			t.Fatalf("write fixture %s: %v", name, err)
+		}
 	}
 
 	// Open once (imports data)
@@ -93,7 +98,7 @@ func TestMigrateJSON_AlreadyMigrated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db1.Close()
+	_ = db1.Close()
 
 	// Open again — should NOT duplicate data
 	db2, err := New(dataDir)

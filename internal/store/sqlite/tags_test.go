@@ -124,7 +124,7 @@ func TestTagStore_DeleteCascades(t *testing.T) {
 	container := db.CreateContainer("", "Box", "", "", "")
 	item := db.CreateItem(container.ID, "Widget", "", 1, "", "")
 	tag := db.CreateTag("", "Tag", "", "")
-	db.AddItemTag(item.ID, tag.ID)
+	_ = db.AddItemTag(item.ID, tag.ID) //nolint:gosec // G104: test helper, error not relevant here
 
 	_, err := db.DeleteTag(tag.ID)
 	if err != nil {
@@ -162,8 +162,8 @@ func TestTagStore_TagItemStats(t *testing.T) {
 
 	item1 := db.CreateItem(container.ID, "Widget1", "", 5, "", "")
 	item2 := db.CreateItem(container.ID, "Widget2", "", 3, "", "")
-	db.AddItemTag(item1.ID, tag.ID)
-	db.AddItemTag(item2.ID, tag.ID)
+	_ = db.AddItemTag(item1.ID, tag.ID) //nolint:gosec // G104: test helper
+	_ = db.AddItemTag(item2.ID, tag.ID) //nolint:gosec // G104: test helper
 
 	count, qty, err := db.TagItemStats(tag.ID)
 	if err != nil {

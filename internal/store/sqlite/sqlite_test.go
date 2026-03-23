@@ -12,7 +12,7 @@ func testStore(t *testing.T) *SQLiteStore {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	return db
 }
 
