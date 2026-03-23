@@ -40,6 +40,11 @@ func (h *HTMLResponder) Respond(w http.ResponseWriter, r *http.Request, status i
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// HTMX ignores 204 No Content (no swap), so use 200 for HTML responses
+	// that actually render content.
+	if status == http.StatusNoContent {
+		status = http.StatusOK
+	}
 	w.WriteHeader(status)
 
 	page := PageData{
@@ -87,11 +92,12 @@ func (h *HTMLResponder) Redirect(w http.ResponseWriter, r *http.Request, url str
 
 // RenderPartial renders a named define block directly (no layout).
 // Use this for HTMX partial responses (fragments, not full pages).
-func (h *HTMLResponder) RenderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) {
+// Returns true on success, false if the template was not found.
+func (h *HTMLResponder) RenderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) bool {
 	t, ok := h.templates[tmplName]
 	if !ok {
 		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)
-		return
+		return false
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	page := PageData{
@@ -101,7 +107,9 @@ func (h *HTMLResponder) RenderPartial(w http.ResponseWriter, r *http.Request, tm
 	}
 	if err := t.ExecuteTemplate(w, defineName, page); err != nil {
 		webutil.LogError("template execute: %v", err)
+		return false
 	}
+	return true
 }
 
 func langFromRequest(r *http.Request) string {

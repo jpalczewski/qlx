@@ -8,23 +8,20 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-// TagService handles tag CRUD and tag assignment operations,
-// calling Save() after each mutation.
+// TagService handles tag CRUD and tag assignment operations.
 type TagService struct {
 	store interface {
-		TagStore
-		ItemStore
-		ContainerStore
-		Saveable
+		store.TagStore
+		store.ItemStore
+		store.ContainerStore
 	}
 }
 
 // NewTagService creates a new TagService backed by the given store.
 func NewTagService(s interface {
-	TagStore
-	ItemStore
-	ContainerStore
-	Saveable
+	store.TagStore
+	store.ItemStore
+	store.ContainerStore
 }) *TagService {
 	return &TagService{store: s}
 }
@@ -66,6 +63,16 @@ func (s *TagService) ContainersByTag(tagID string) []store.Container {
 	return s.store.ContainersByTag(tagID)
 }
 
+// ResolveTagIDs returns tag objects for the given IDs.
+func (s *TagService) ResolveTagIDs(ids []string) []store.Tag {
+	return s.store.ResolveTagIDs(ids)
+}
+
+// TagItemStats returns the number of items and containers tagged with the given tag.
+func (s *TagService) TagItemStats(id string) (int, int, error) {
+	return s.store.TagItemStats(id)
+}
+
 // --- Mutation methods ---
 
 // CreateTag creates a new tag and persists.
@@ -80,9 +87,6 @@ func (s *TagService) CreateTag(parentID, name, color, icon string) (*store.Tag, 
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	t := s.store.CreateTag(parentID, name, color, icon)
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
 	return t, nil
 }
 
@@ -97,60 +101,35 @@ func (s *TagService) UpdateTag(id, name, color, icon string) (*store.Tag, error)
 	if icon != "" && !palette.ValidIcon(icon) {
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
-	t, err := s.store.UpdateTag(id, name, color, icon)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
-	return t, nil
+	return s.store.UpdateTag(id, name, color, icon)
 }
 
-// DeleteTag deletes a tag and persists.
-func (s *TagService) DeleteTag(id string) error {
-	if err := s.store.DeleteTag(id); err != nil {
-		return err
-	}
-	return s.store.Save()
+// DeleteTag deletes a tag and returns the parent ID.
+func (s *TagService) DeleteTag(id string) (string, error) {
+	return s.store.DeleteTag(id)
 }
 
-// MoveTag moves a tag to a new parent and persists.
+// MoveTag moves a tag to a new parent.
 func (s *TagService) MoveTag(id, newParentID string) error {
-	if err := s.store.MoveTag(id, newParentID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.MoveTag(id, newParentID)
 }
 
-// AddItemTag adds a tag to an item and persists.
+// AddItemTag adds a tag to an item.
 func (s *TagService) AddItemTag(itemID, tagID string) error {
-	if err := s.store.AddItemTag(itemID, tagID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.AddItemTag(itemID, tagID)
 }
 
-// RemoveItemTag removes a tag from an item and persists.
+// RemoveItemTag removes a tag from an item.
 func (s *TagService) RemoveItemTag(itemID, tagID string) error {
-	if err := s.store.RemoveItemTag(itemID, tagID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.RemoveItemTag(itemID, tagID)
 }
 
-// AddContainerTag adds a tag to a container and persists.
+// AddContainerTag adds a tag to a container.
 func (s *TagService) AddContainerTag(containerID, tagID string) error {
-	if err := s.store.AddContainerTag(containerID, tagID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.AddContainerTag(containerID, tagID)
 }
 
-// RemoveContainerTag removes a tag from a container and persists.
+// RemoveContainerTag removes a tag from a container.
 func (s *TagService) RemoveContainerTag(containerID, tagID string) error {
-	if err := s.store.RemoveContainerTag(containerID, tagID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.RemoveContainerTag(containerID, tagID)
 }

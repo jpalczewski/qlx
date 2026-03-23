@@ -68,8 +68,7 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Quick-entry: HX-Target is "tag-list" with beforeend swap — return single <li>
 	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "tag-list" {
-		if hr, ok := h.resp.(*HTMLResponder); ok {
-			hr.RenderPartial(w, r, "tags", "tag-list-item", tag)
+		if h.resp.RenderPartial(w, r, "tags", "tag-list-item", tag) {
 			return
 		}
 	}
@@ -135,14 +134,8 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	tag := h.tags.GetTag(id)
-	if tag == nil {
-		h.resp.RespondError(w, r, store.ErrTagNotFound)
-		return
-	}
-	parentID := tag.ParentID
-
-	if err := h.tags.DeleteTag(id); err != nil {
+	parentID, err := h.tags.DeleteTag(id)
+	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}
@@ -296,8 +289,7 @@ func (h *TagHandler) respondTagChips(w http.ResponseWriter, r *http.Request, chi
 	}
 	// For HTMX and plain fetch: render the tag-chips partial.
 	// Any page template works since all include the partial via layout.
-	if hr, ok := h.resp.(*HTMLResponder); ok {
-		hr.RenderPartial(w, r, "containers", "tag-chips", chips)
+	if h.resp.RenderPartial(w, r, "containers", "tag-chips", chips) {
 		return
 	}
 	webutil.JSON(w, http.StatusOK, chips)

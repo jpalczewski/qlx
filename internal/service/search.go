@@ -4,11 +4,11 @@ import "github.com/erxyi/qlx/internal/store"
 
 // SearchService provides search functionality (thin passthrough, no mutations).
 type SearchService struct {
-	store SearchStore
+	store store.SearchStore
 }
 
 // NewSearchService creates a new SearchService backed by the given store.
-func NewSearchService(s SearchStore) *SearchService {
+func NewSearchService(s store.SearchStore) *SearchService {
 	return &SearchService{store: s}
 }
 

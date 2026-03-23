@@ -2,20 +2,13 @@ package service
 
 import "github.com/erxyi/qlx/internal/store"
 
-// PrinterService handles printer CRUD operations,
-// calling Save() after each mutation.
+// PrinterService handles printer CRUD operations.
 type PrinterService struct {
-	store interface {
-		PrinterStore
-		Saveable
-	}
+	store store.PrinterStore
 }
 
 // NewPrinterService creates a new PrinterService backed by the given store.
-func NewPrinterService(s interface {
-	PrinterStore
-	Saveable
-}) *PrinterService {
+func NewPrinterService(s store.PrinterStore) *PrinterService {
 	return &PrinterService{store: s}
 }
 
@@ -24,27 +17,23 @@ func (s *PrinterService) AllPrinters() []store.PrinterConfig {
 	return s.store.AllPrinters()
 }
 
-// AddPrinter adds a new printer configuration and persists.
+// GetPrinter returns the printer with the given ID, or nil.
+func (s *PrinterService) GetPrinter(id string) *store.PrinterConfig {
+	return s.store.GetPrinter(id)
+}
+
+// AddPrinter adds a new printer configuration.
 func (s *PrinterService) AddPrinter(name, encoder, model, transport, address string) (*store.PrinterConfig, error) {
 	p := s.store.AddPrinter(name, encoder, model, transport, address)
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
 	return p, nil
 }
 
-// DeletePrinter deletes a printer configuration and persists.
+// DeletePrinter deletes a printer configuration.
 func (s *PrinterService) DeletePrinter(id string) error {
-	if err := s.store.DeletePrinter(id); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.DeletePrinter(id)
 }
 
-// UpdateOffset sets calibration offsets for a printer and persists.
+// UpdateOffset sets calibration offsets for a printer.
 func (s *PrinterService) UpdateOffset(id string, offsetX, offsetY int) error {
-	if err := s.store.UpdatePrinterOffset(id, offsetX, offsetY); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.UpdatePrinterOffset(id, offsetX, offsetY)
 }

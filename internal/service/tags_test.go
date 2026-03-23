@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -12,7 +11,7 @@ type mockTagStore struct {
 	getTag             func(id string) *store.Tag
 	createTag          func(parentID, name, color, icon string) *store.Tag
 	updateTag          func(id, name, color, icon string) (*store.Tag, error)
-	deleteTag          func(id string) error
+	deleteTag          func(id string) (string, error)
 	moveTag            func(id, newParentID string) error
 	allTags            func() []store.Tag
 	tagChildren        func(parentID string) []store.Tag
@@ -27,18 +26,16 @@ type mockTagStore struct {
 	getItem           func(id string) *store.Item
 	createItem        func(containerID, name, desc string, qty int, color, icon string) *store.Item
 	updateItem        func(id, name, desc string, qty int, color, icon string) (*store.Item, error)
-	deleteItem        func(id string) error
+	deleteItem        func(id string) (string, error)
 	moveItem          func(id, containerID string) error
 	getContainer      func(id string) *store.Container
 	createContainer   func(parentID, name, desc, color, icon string) *store.Container
 	updateContainer   func(id, name, desc, color, icon string) (*store.Container, error)
-	deleteContainer   func(id string) error
+	deleteContainer   func(id string) (string, error)
 	moveContainer     func(id, newParentID string) error
 	containerChildren func(parentID string) []store.Container
 	containerItems    func(containerID string) []store.Item
 	containerPath     func(id string) []store.Container
-
-	save func() error
 }
 
 func (m *mockTagStore) GetTag(id string) *store.Tag {
@@ -59,11 +56,11 @@ func (m *mockTagStore) UpdateTag(id, name, color, icon string) (*store.Tag, erro
 	}
 	return &store.Tag{ID: id, Name: name}, nil
 }
-func (m *mockTagStore) DeleteTag(id string) error {
+func (m *mockTagStore) DeleteTag(id string) (string, error) {
 	if m.deleteTag != nil {
 		return m.deleteTag(id)
 	}
-	return nil
+	return "", nil
 }
 func (m *mockTagStore) MoveTag(id, newParentID string) error {
 	if m.moveTag != nil {
@@ -125,6 +122,12 @@ func (m *mockTagStore) ItemsByTag(tagID string) []store.Item {
 func (m *mockTagStore) ContainersByTag(tagID string) []store.Container {
 	return nil
 }
+func (m *mockTagStore) ResolveTagIDs(ids []string) []store.Tag {
+	return nil
+}
+func (m *mockTagStore) TagItemStats(id string) (int, int, error) {
+	return 0, 0, nil
+}
 func (m *mockTagStore) GetItem(id string) *store.Item {
 	if m.getItem != nil {
 		return m.getItem(id)
@@ -143,11 +146,11 @@ func (m *mockTagStore) UpdateItem(id, name, desc string, qty int, color, icon st
 	}
 	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
-func (m *mockTagStore) DeleteItem(id string) error {
+func (m *mockTagStore) DeleteItem(id string) (string, error) {
 	if m.deleteItem != nil {
 		return m.deleteItem(id)
 	}
-	return nil
+	return "", nil
 }
 func (m *mockTagStore) MoveItem(id, containerID string) error {
 	if m.moveItem != nil {
@@ -173,11 +176,11 @@ func (m *mockTagStore) UpdateContainer(id, name, desc, color, icon string) (*sto
 	}
 	return &store.Container{ID: id, Name: name}, nil
 }
-func (m *mockTagStore) DeleteContainer(id string) error {
+func (m *mockTagStore) DeleteContainer(id string) (string, error) {
 	if m.deleteContainer != nil {
 		return m.deleteContainer(id)
 	}
-	return nil
+	return "", nil
 }
 func (m *mockTagStore) MoveContainer(id, newParentID string) error {
 	if m.moveContainer != nil {
@@ -206,12 +209,6 @@ func (m *mockTagStore) ContainerPath(id string) []store.Container {
 func (m *mockTagStore) AllContainers() []store.Container {
 	return nil
 }
-func (m *mockTagStore) Save() error {
-	if m.save != nil {
-		return m.save()
-	}
-	return nil
-}
 
 func TestTagService_CreateTag(t *testing.T) {
 	tests := []struct {
@@ -222,13 +219,6 @@ func TestTagService_CreateTag(t *testing.T) {
 		{
 			name: "success",
 			mock: &mockTagStore{},
-		},
-		{
-			name: "save error",
-			mock: &mockTagStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
 		},
 	}
 
@@ -350,13 +340,6 @@ func TestTagService_UpdateTag(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "save error",
-			mock: &mockTagStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -386,7 +369,7 @@ func TestTagService_DeleteTag(t *testing.T) {
 		{
 			name: "has children",
 			mock: &mockTagStore{
-				deleteTag: func(_ string) error { return store.ErrTagHasChildren },
+				deleteTag: func(_ string) (string, error) { return "", store.ErrTagHasChildren },
 			},
 			wantErr: true,
 		},
@@ -395,7 +378,7 @@ func TestTagService_DeleteTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewTagService(tt.mock)
-			err := svc.DeleteTag("t1")
+			_, err := svc.DeleteTag("t1")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -453,13 +436,6 @@ func TestTagService_AddItemTag(t *testing.T) {
 			name: "item not found",
 			mock: &mockTagStore{
 				addItemTag: func(_, _ string) error { return store.ErrItemNotFound },
-			},
-			wantErr: true,
-		},
-		{
-			name: "save error",
-			mock: &mockTagStore{
-				save: func() error { return errors.New("disk full") },
 			},
 			wantErr: true,
 		},

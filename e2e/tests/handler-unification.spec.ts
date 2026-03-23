@@ -399,7 +399,7 @@ test.describe('Redirect behavior', () => {
     expect(body.ok).toBe(true);
   });
 
-  test('DELETE container with JSON Accept returns ok', async ({ request, app }) => {
+  test('DELETE container with JSON Accept returns 204', async ({ request, app }) => {
     const c = await (await request.post(`${app.baseURL}/containers`, {
       headers: { 'Accept': 'application/json' },
       data: { name: 'DeleteC' },
@@ -408,12 +408,10 @@ test.describe('Redirect behavior', () => {
     const res = await request.delete(`${app.baseURL}/containers/${c.id}`, {
       headers: { 'Accept': 'application/json' },
     });
-    expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
+    expect(res.status()).toBe(204);
   });
 
-  test('DELETE item with JSON Accept returns ok', async ({ request, app }) => {
+  test('DELETE item with JSON Accept returns 204', async ({ request, app }) => {
     const c = await (await request.post(`${app.baseURL}/containers`, {
       headers: { 'Accept': 'application/json' },
       data: { name: 'DeleteItemBox' },
@@ -426,9 +424,7 @@ test.describe('Redirect behavior', () => {
     const res = await request.delete(`${app.baseURL}/items/${item.id}`, {
       headers: { 'Accept': 'application/json' },
     });
-    expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
+    expect(res.status()).toBe(204);
   });
 });
 
@@ -758,7 +754,7 @@ test.describe('Rapid sequential operations', () => {
     const delRes = await request.delete(`${app.baseURL}/containers/${c.id}`, {
       headers: { 'Accept': 'application/json' },
     });
-    expect(delRes.status()).toBe(200);
+    expect(delRes.status()).toBe(204);
 
     // Verify 404
     const getRes = await request.get(`${app.baseURL}/containers/${c.id}`, {
@@ -768,20 +764,20 @@ test.describe('Rapid sequential operations', () => {
   });
 });
 
-// ─── Container items-json endpoint ──────────────────────────────────────────
-test.describe('Container items-json endpoint', () => {
+// ─── Container items via content negotiation ────────────────────────────────
+test.describe('Container items via content negotiation', () => {
 
-  test('items-json returns items for existing container', async ({ request, app }) => {
+  test('GET /containers/{id}/items returns items as JSON', async ({ request, app }) => {
     const c = await (await request.post(`${app.baseURL}/containers`, {
       headers: { 'Accept': 'application/json' },
       data: { name: 'ItemsJsonBox' },
     })).json();
-    const item = await (await request.post(`${app.baseURL}/items`, {
+    await request.post(`${app.baseURL}/items`, {
       headers: { 'Accept': 'application/json' },
       data: { name: 'IJ1', container_id: c.id },
-    })).json();
+    });
 
-    const res = await request.get(`${app.baseURL}/containers/${c.id}/items-json`, {
+    const res = await request.get(`${app.baseURL}/containers/${c.id}/items`, {
       headers: { 'Accept': 'application/json' },
     });
     expect(res.status()).toBe(200);
@@ -790,8 +786,8 @@ test.describe('Container items-json endpoint', () => {
     expect(data.items[0].name).toBe('IJ1');
   });
 
-  test('items-json for non-existent container returns 404', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/containers/nonexistent/items-json`, {
+  test('items for non-existent container returns 404', async ({ request, app }) => {
+    const res = await request.get(`${app.baseURL}/containers/nonexistent/items`, {
       headers: { 'Accept': 'application/json' },
     });
     expect(res.status()).toBe(404);

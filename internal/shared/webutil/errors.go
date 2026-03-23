@@ -1,6 +1,7 @@
 package webutil
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -38,4 +39,11 @@ func StoreHTTPStatus(err error) int {
 // WriteStoreErrorJSON writes a JSON error response with the mapped status code.
 func WriteStoreErrorJSON(w http.ResponseWriter, err error) {
 	JSON(w, StoreHTTPStatus(err), map[string]string{"error": err.Error()})
+}
+
+// WriteError writes a JSON error response with the given status code.
+func WriteError(w http.ResponseWriter, status int, err error) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()}) //nolint:errcheck,gosec
 }

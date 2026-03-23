@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/erxyi/qlx/internal/store"
@@ -11,7 +10,6 @@ type mockBulkStore struct {
 	bulkMove   func(itemIDs, containerIDs []string, targetID string) []store.BulkError
 	bulkDelete func(itemIDs, containerIDs []string) ([]string, []store.BulkError)
 	bulkAddTag func(itemIDs, containerIDs []string, tagID string) error
-	save       func() error
 }
 
 func (m *mockBulkStore) BulkMove(itemIDs, containerIDs []string, targetID string) []store.BulkError {
@@ -29,12 +27,6 @@ func (m *mockBulkStore) BulkDelete(itemIDs, containerIDs []string) ([]string, []
 func (m *mockBulkStore) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
 	if m.bulkAddTag != nil {
 		return m.bulkAddTag(itemIDs, containerIDs, tagID)
-	}
-	return nil
-}
-func (m *mockBulkStore) Save() error {
-	if m.save != nil {
-		return m.save()
 	}
 	return nil
 }
@@ -58,13 +50,6 @@ func TestBulkService_Move(t *testing.T) {
 				},
 			},
 			wantBulkN: 1,
-		},
-		{
-			name: "save error",
-			mock: &mockBulkStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
 		},
 	}
 
@@ -99,13 +84,6 @@ func TestBulkService_Delete(t *testing.T) {
 			name:     "success",
 			mock:     &mockBulkStore{},
 			wantDelN: 2,
-		},
-		{
-			name: "save error",
-			mock: &mockBulkStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
 		},
 	}
 
@@ -145,13 +123,6 @@ func TestBulkService_AddTag(t *testing.T) {
 				bulkAddTag: func(_, _ []string, _ string) error {
 					return store.ErrTagNotFound
 				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "save error",
-			mock: &mockBulkStore{
-				save: func() error { return errors.New("disk full") },
 			},
 			wantErr: true,
 		},

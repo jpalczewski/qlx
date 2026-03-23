@@ -1,0 +1,4 @@
+[
+  {"id":"c1","parent_id":"","name":"Box A","description":"First box","color":"red","icon":"box","tag_ids":["t1"]},
+  {"id":"c2","parent_id":"c1","name":"Sub Box","description":"","color":"","icon":"","tag_ids":[]}
+]

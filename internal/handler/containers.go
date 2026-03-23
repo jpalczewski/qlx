@@ -30,7 +30,6 @@ func (h *ContainerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /containers/{id}", h.Update)
 	mux.HandleFunc("DELETE /containers/{id}", h.Delete)
 	mux.HandleFunc("GET /containers/{id}/items", h.Items)
-	mux.HandleFunc("GET /containers/{id}/items-json", h.ItemsJSON)
 	mux.HandleFunc("PATCH /containers/{id}/move", h.Move)
 	mux.HandleFunc("GET /containers/{id}/edit", h.Edit)
 }
@@ -87,8 +86,7 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Quick-entry: HX-Target is "container-list" with beforeend swap — return single <li>
 	if webutil.IsHTMX(r) && r.Header.Get("HX-Target") == "container-list" {
-		if hr, ok := h.resp.(*HTMLResponder); ok {
-			hr.RenderPartial(w, r, "containers", "container-list-item", container)
+		if h.resp.RenderPartial(w, r, "containers", "container-list-item", container) {
 			return
 		}
 	}
@@ -123,19 +121,13 @@ func (h *ContainerHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *ContainerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	container := h.inventory.GetContainer(id)
-	if container == nil {
-		h.resp.RespondError(w, r, store.ErrContainerNotFound)
-		return
-	}
-	parentID := container.ParentID
-
-	if err := h.inventory.DeleteContainer(id); err != nil {
+	parentID, err := h.inventory.DeleteContainer(id)
+	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, map[string]any{"ok": true}, "containers", func() any {
+	h.resp.Respond(w, r, http.StatusNoContent, nil, "containers", func() any {
 		return h.containerListVM(parentID)
 	})
 }
@@ -156,21 +148,6 @@ func (h *ContainerHandler) Items(w http.ResponseWriter, r *http.Request) {
 
 	h.resp.Respond(w, r, http.StatusOK, data, "containers", func() any {
 		return h.containerListVM(id)
-	})
-}
-
-// ItemsJSON handles GET /containers/{id}/items-json (always JSON, used by print batch UI).
-func (h *ContainerHandler) ItemsJSON(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	container := h.inventory.GetContainer(id)
-	if container == nil {
-		webutil.WriteStoreErrorJSON(w, store.ErrContainerNotFound)
-		return
-	}
-
-	webutil.JSON(w, http.StatusOK, map[string]any{
-		"items": h.inventory.ContainerItems(id),
-		"path":  h.inventory.ContainerPath(id),
 	})
 }
 

@@ -12,8 +12,9 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-func newTestPrintHandler() (*PrintHandler, *service.InventoryService) {
-	s := store.NewMemoryStore()
+func newTestPrintHandler(t *testing.T) (*PrintHandler, *service.InventoryService) {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	pm := print.NewPrinterManager(s)
 	inv := service.NewInventoryService(s)
 	prn := service.NewPrinterService(s)
@@ -24,7 +25,7 @@ func newTestPrintHandler() (*PrintHandler, *service.InventoryService) {
 }
 
 func TestPrintHandler_PrintContainer_NotFound(t *testing.T) {
-	h, _ := newTestPrintHandler()
+	h, _ := newTestPrintHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -44,7 +45,7 @@ func TestPrintHandler_PrintContainer_NotFound(t *testing.T) {
 }
 
 func TestPrintHandler_PrintContainer_InvalidJSON(t *testing.T) {
-	h, _ := newTestPrintHandler()
+	h, _ := newTestPrintHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -60,7 +61,7 @@ func TestPrintHandler_PrintContainer_InvalidJSON(t *testing.T) {
 }
 
 func TestPrintHandler_PrintContainer_NoTemplates(t *testing.T) {
-	h, inv := newTestPrintHandler()
+	h, inv := newTestPrintHandler(t)
 
 	c, err := inv.CreateContainer("", "Box", "desc", "", "")
 	if err != nil {
@@ -85,7 +86,7 @@ func TestPrintHandler_PrintContainer_NoTemplates(t *testing.T) {
 }
 
 func TestPrintHandler_PrintItem_NotFound(t *testing.T) {
-	h, _ := newTestPrintHandler()
+	h, _ := newTestPrintHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -105,7 +106,7 @@ func TestPrintHandler_PrintItem_NotFound(t *testing.T) {
 }
 
 func TestPrintHandler_ListPrinters_Empty(t *testing.T) {
-	h, _ := newTestPrintHandler()
+	h, _ := newTestPrintHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)

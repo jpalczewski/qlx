@@ -11,15 +11,16 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-func newTestItemHandler() (*ItemHandler, *service.InventoryService) {
-	s := store.NewMemoryStore()
+func newTestItemHandler(t *testing.T) (*ItemHandler, *service.InventoryService) {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	inv := service.NewInventoryService(s)
 	h := NewItemHandler(inv, nil, nil, &JSONResponder{})
 	return h, inv
 }
 
 func TestItemHandler_Create_JSON(t *testing.T) {
-	h, inv := newTestItemHandler()
+	h, inv := newTestItemHandler(t)
 
 	// Create a container first (items need a container)
 	container, err := inv.CreateContainer("", "TestBox", "", "", "")
@@ -67,7 +68,7 @@ func TestItemHandler_Create_JSON(t *testing.T) {
 }
 
 func TestItemHandler_Detail_NotFound(t *testing.T) {
-	h, _ := newTestItemHandler()
+	h, _ := newTestItemHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)

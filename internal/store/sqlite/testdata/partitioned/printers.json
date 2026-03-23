@@ -1,0 +1,3 @@
+[
+  {"id":"p1","name":"Niimbot B1","encoder":"niimbot","model":"b1","transport":"ble","address":"AA:BB:CC:DD:EE:FF","offset_x":0,"offset_y":0}
+]

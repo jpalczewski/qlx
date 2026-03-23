@@ -46,6 +46,12 @@ type PrinterConfig struct {
 	OffsetY   int    `json:"offset_y"` // calibration: shift image down (px)
 }
 
+// BulkError records a failure for a single ID within a bulk operation.
+type BulkError struct {
+	ID     string `json:"id"`
+	Reason string `json:"reason"`
+}
+
 // Template defines a reusable label layout.
 type Template struct {
 	ID        string    `json:"id"`
@@ -59,12 +65,4 @@ type Template struct {
 	Elements  string    `json:"elements"`  // JSON array of QLX elements
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// Asset holds metadata for an uploaded image. Binary data stored on disk.
-type Asset struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	MimeType  string    `json:"mime_type"`
-	CreatedAt time.Time `json:"created_at"`
 }

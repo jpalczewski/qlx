@@ -8,21 +8,18 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
-// InventoryService handles container and item CRUD operations,
-// calling Save() after each mutation.
+// InventoryService handles container and item CRUD operations.
 type InventoryService struct {
 	store interface {
-		ContainerStore
-		ItemStore
-		Saveable
+		store.ContainerStore
+		store.ItemStore
 	}
 }
 
 // NewInventoryService creates a new InventoryService backed by the given store.
 func NewInventoryService(s interface {
-	ContainerStore
-	ItemStore
-	Saveable
+	store.ContainerStore
+	store.ItemStore
 }) *InventoryService {
 	return &InventoryService{store: s}
 }
@@ -66,9 +63,6 @@ func (s *InventoryService) CreateContainer(parentID, name, desc, color, icon str
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	c := s.store.CreateContainer(parentID, name, desc, color, icon)
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
 	return c, nil
 }
 
@@ -86,30 +80,17 @@ func (s *InventoryService) UpdateContainer(id, name, desc, color, icon string) (
 	if icon != "" && !palette.ValidIcon(icon) {
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
-	c, err := s.store.UpdateContainer(id, name, desc, color, icon)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
-	return c, nil
+	return s.store.UpdateContainer(id, name, desc, color, icon)
 }
 
-// DeleteContainer deletes a container and persists the change.
-func (s *InventoryService) DeleteContainer(id string) error {
-	if err := s.store.DeleteContainer(id); err != nil {
-		return err
-	}
-	return s.store.Save()
+// DeleteContainer deletes a container and returns the parent ID.
+func (s *InventoryService) DeleteContainer(id string) (string, error) {
+	return s.store.DeleteContainer(id)
 }
 
-// MoveContainer moves a container to a new parent and persists.
+// MoveContainer moves a container to a new parent.
 func (s *InventoryService) MoveContainer(id, newParentID string) error {
-	if err := s.store.MoveContainer(id, newParentID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.MoveContainer(id, newParentID)
 }
 
 // AllContainers returns all containers without filtering.
@@ -141,9 +122,6 @@ func (s *InventoryService) CreateItem(containerID, name, desc string, qty int, c
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
 	item := s.store.CreateItem(containerID, name, desc, qty, color, icon)
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
 	return item, nil
 }
 
@@ -162,28 +140,15 @@ func (s *InventoryService) UpdateItem(id, name, desc string, qty int, color, ico
 	if icon != "" && !palette.ValidIcon(icon) {
 		return nil, fmt.Errorf("invalid icon: %s", icon)
 	}
-	item, err := s.store.UpdateItem(id, name, desc, qty, color, icon)
-	if err != nil {
-		return nil, err
-	}
-	if err := s.store.Save(); err != nil {
-		return nil, err
-	}
-	return item, nil
+	return s.store.UpdateItem(id, name, desc, qty, color, icon)
 }
 
-// DeleteItem deletes an item and persists the change.
-func (s *InventoryService) DeleteItem(id string) error {
-	if err := s.store.DeleteItem(id); err != nil {
-		return err
-	}
-	return s.store.Save()
+// DeleteItem deletes an item and returns the container ID.
+func (s *InventoryService) DeleteItem(id string) (string, error) {
+	return s.store.DeleteItem(id)
 }
 
-// MoveItem moves an item to a new container and persists.
+// MoveItem moves an item to a new container.
 func (s *InventoryService) MoveItem(id, containerID string) error {
-	if err := s.store.MoveItem(id, containerID); err != nil {
-		return err
-	}
-	return s.store.Save()
+	return s.store.MoveItem(id, containerID)
 }

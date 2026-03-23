@@ -9,11 +9,11 @@ import (
 
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/service"
-	"github.com/erxyi/qlx/internal/store"
 )
 
-func newTestAdhocHandler() *AdhocHandler {
-	s := store.NewMemoryStore()
+func newTestAdhocHandler(t *testing.T) *AdhocHandler {
+	t.Helper()
+	s := newHandlerTestStore(t)
 	pm := print.NewPrinterManager(s)
 	prn := service.NewPrinterService(s)
 	tmpl := service.NewTemplateService(s)
@@ -21,7 +21,7 @@ func newTestAdhocHandler() *AdhocHandler {
 }
 
 func TestAdhocHandler_Print_EmptyText(t *testing.T) {
-	h := newTestAdhocHandler()
+	h := newTestAdhocHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -38,7 +38,7 @@ func TestAdhocHandler_Print_EmptyText(t *testing.T) {
 }
 
 func TestAdhocHandler_Print_InvalidJSON(t *testing.T) {
-	h := newTestAdhocHandler()
+	h := newTestAdhocHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -54,7 +54,7 @@ func TestAdhocHandler_Print_InvalidJSON(t *testing.T) {
 }
 
 func TestAdhocHandler_Page(t *testing.T) {
-	h := newTestAdhocHandler()
+	h := newTestAdhocHandler(t)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)

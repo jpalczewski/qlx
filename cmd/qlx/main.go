@@ -17,7 +17,7 @@ import (
 	"github.com/erxyi/qlx/internal/print/encoder/brother"
 	"github.com/erxyi/qlx/internal/print/encoder/niimbot"
 	"github.com/erxyi/qlx/internal/shared/webutil"
-	"github.com/erxyi/qlx/internal/store"
+	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
 func init() {
@@ -57,19 +57,20 @@ func run(device, port, host, dataDir string, trace bool) error {
 		webutil.SetTraceFile(traceFile)
 	}
 
-	storePath := filepath.Join(dataDir, "data.json")
-	s, err := store.NewStore(storePath)
+	// Initialize SQLite database (runs migrations)
+	db, err := sqlite.New(dataDir)
 	if err != nil {
-		return fmt.Errorf("failed to load store: %w", err)
+		return fmt.Errorf("failed to open store: %w", err)
 	}
+	defer func() { _ = db.Close() }()
 
-	pm := qlprint.NewPrinterManager(s)
+	pm := qlprint.NewPrinterManager(db)
 	pm.RegisterEncoder(&brother.BrotherEncoder{})
 	pm.RegisterEncoder(&niimbot.NiimbotEncoder{})
 	pm.Start()
 	defer pm.Stop()
 
-	server := app.NewServer(s, pm)
+	server := app.NewServer(db, pm)
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	srv := &http.Server{

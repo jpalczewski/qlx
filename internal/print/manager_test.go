@@ -8,6 +8,7 @@ import (
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/store"
+	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
 // mockEncoder is a minimal Encoder implementation for tests.
@@ -33,9 +34,19 @@ func (m *mockEncoder) Encode(img image.Image, model string, opts encoder.PrintOp
 	return err
 }
 
-func newManagerWithMock(t *testing.T) (*PrinterManager, *store.Store, *transport.MockTransport) {
+func newTestPrintStore(t *testing.T) *sqlite.SQLiteStore {
 	t.Helper()
-	s := store.NewMemoryStore()
+	db, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return db
+}
+
+func newManagerWithMock(t *testing.T) (*PrinterManager, *sqlite.SQLiteStore, *transport.MockTransport) {
+	t.Helper()
+	s := newTestPrintStore(t)
 	mgr := NewPrinterManager(s)
 	mgr.RegisterEncoder(&mockEncoder{})
 
@@ -69,7 +80,7 @@ func TestPrinterManager_Print(t *testing.T) {
 }
 
 func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
-	s := store.NewMemoryStore()
+	s := newTestPrintStore(t)
 	mgr := NewPrinterManager(s)
 
 	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple", label.RenderOpts{})
@@ -117,7 +128,7 @@ func TestPrinterManager_PrintImage(t *testing.T) {
 }
 
 func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
-	s := store.NewMemoryStore()
+	s := newTestPrintStore(t)
 	mgr := NewPrinterManager(s)
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
@@ -128,7 +139,7 @@ func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
 }
 
 func TestPrinterManager_AvailableEncoders(t *testing.T) {
-	s := store.NewMemoryStore()
+	s := newTestPrintStore(t)
 	mgr := NewPrinterManager(s)
 	mgr.RegisterEncoder(&mockEncoder{})
 

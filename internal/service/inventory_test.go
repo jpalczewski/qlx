@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -13,7 +12,7 @@ type mockInventoryStore struct {
 	getContainer      func(id string) *store.Container
 	createContainer   func(parentID, name, desc, color, icon string) *store.Container
 	updateContainer   func(id, name, desc, color, icon string) (*store.Container, error)
-	deleteContainer   func(id string) error
+	deleteContainer   func(id string) (string, error)
 	moveContainer     func(id, newParentID string) error
 	containerChildren func(parentID string) []store.Container
 	containerItems    func(containerID string) []store.Item
@@ -21,9 +20,8 @@ type mockInventoryStore struct {
 	getItem           func(id string) *store.Item
 	createItem        func(containerID, name, desc string, qty int, color, icon string) *store.Item
 	updateItem        func(id, name, desc string, qty int, color, icon string) (*store.Item, error)
-	deleteItem        func(id string) error
+	deleteItem        func(id string) (string, error)
 	moveItem          func(id, containerID string) error
-	save              func() error
 }
 
 func (m *mockInventoryStore) GetContainer(id string) *store.Container {
@@ -44,11 +42,11 @@ func (m *mockInventoryStore) UpdateContainer(id, name, desc, color, icon string)
 	}
 	return &store.Container{ID: id, Name: name}, nil
 }
-func (m *mockInventoryStore) DeleteContainer(id string) error {
+func (m *mockInventoryStore) DeleteContainer(id string) (string, error) {
 	if m.deleteContainer != nil {
 		return m.deleteContainer(id)
 	}
-	return nil
+	return "", nil
 }
 func (m *mockInventoryStore) MoveContainer(id, newParentID string) error {
 	if m.moveContainer != nil {
@@ -95,21 +93,15 @@ func (m *mockInventoryStore) UpdateItem(id, name, desc string, qty int, color, i
 	}
 	return &store.Item{ID: id, Name: name, Quantity: qty}, nil
 }
-func (m *mockInventoryStore) DeleteItem(id string) error {
+func (m *mockInventoryStore) DeleteItem(id string) (string, error) {
 	if m.deleteItem != nil {
 		return m.deleteItem(id)
 	}
-	return nil
+	return "", nil
 }
 func (m *mockInventoryStore) MoveItem(id, containerID string) error {
 	if m.moveItem != nil {
 		return m.moveItem(id, containerID)
-	}
-	return nil
-}
-func (m *mockInventoryStore) Save() error {
-	if m.save != nil {
-		return m.save()
 	}
 	return nil
 }
@@ -129,13 +121,6 @@ func TestInventoryService_CreateContainer(t *testing.T) {
 				},
 			},
 			wantName: "Box A",
-		},
-		{
-			name: "save error",
-			mock: &mockInventoryStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
 		},
 	}
 
@@ -261,13 +246,6 @@ func TestInventoryService_UpdateContainer(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "save error",
-			mock: &mockInventoryStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -297,14 +275,7 @@ func TestInventoryService_DeleteContainer(t *testing.T) {
 		{
 			name: "has children",
 			mock: &mockInventoryStore{
-				deleteContainer: func(_ string) error { return store.ErrContainerHasChildren },
-			},
-			wantErr: true,
-		},
-		{
-			name: "save error",
-			mock: &mockInventoryStore{
-				save: func() error { return errors.New("disk full") },
+				deleteContainer: func(_ string) (string, error) { return "", store.ErrContainerHasChildren },
 			},
 			wantErr: true,
 		},
@@ -313,7 +284,7 @@ func TestInventoryService_DeleteContainer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewInventoryService(tt.mock)
-			err := svc.DeleteContainer("c1")
+			_, err := svc.DeleteContainer("c1")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -333,13 +304,6 @@ func TestInventoryService_CreateItem(t *testing.T) {
 		{
 			name: "success",
 			mock: &mockInventoryStore{},
-		},
-		{
-			name: "save error",
-			mock: &mockInventoryStore{
-				save: func() error { return errors.New("disk full") },
-			},
-			wantErr: true,
 		},
 	}
 
@@ -370,7 +334,7 @@ func TestInventoryService_DeleteItem(t *testing.T) {
 		{
 			name: "not found",
 			mock: &mockInventoryStore{
-				deleteItem: func(_ string) error { return store.ErrItemNotFound },
+				deleteItem: func(_ string) (string, error) { return "", store.ErrItemNotFound },
 			},
 			wantErr: true,
 		},
@@ -379,7 +343,7 @@ func TestInventoryService_DeleteItem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewInventoryService(tt.mock)
-			err := svc.DeleteItem("i1")
+			_, err := svc.DeleteItem("i1")
 			if tt.wantErr && err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -404,13 +368,6 @@ func TestInventoryService_MoveItem(t *testing.T) {
 			name: "invalid container",
 			mock: &mockInventoryStore{
 				moveItem: func(_, _ string) error { return store.ErrInvalidContainer },
-			},
-			wantErr: true,
-		},
-		{
-			name: "save error",
-			mock: &mockInventoryStore{
-				save: func() error { return errors.New("disk full") },
 			},
 			wantErr: true,
 		},
