@@ -20,7 +20,7 @@ type Server struct {
 }
 
 // NewServer creates the composition root: services, handlers, routes, middleware.
-func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
+func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 	// Load translations
 	translations := webutil.NewTranslations()
 	if err := translations.LoadFromFS(embedded.Static, "static/i18n"); err != nil {
@@ -34,7 +34,6 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 	search := service.NewSearchService(s)
 	printers := service.NewPrinterService(s)
 	templates := service.NewTemplateService(s)
-	assets := service.NewAssetService(s)
 	export := service.NewExportService(s)
 
 	// Build responder with template rendering
@@ -61,7 +60,6 @@ func NewServer(s *store.Store, pm *qlprint.PrinterManager) *Server {
 		handler.NewSearchHandler(search, resp),
 		handler.NewPrintHandler(pm, inventory, printers, templates, tags, resp),
 		handler.NewTemplateHandler(templates, pm, resp),
-		handler.NewAssetHandler(assets),
 		handler.NewExportHandler(export, inventory),
 		handler.NewPartialsHandler(inventory, search, tags, resp),
 		handler.NewSettingsHandler(resp),

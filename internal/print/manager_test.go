@@ -33,7 +33,7 @@ func (m *mockEncoder) Encode(img image.Image, model string, opts encoder.PrintOp
 	return err
 }
 
-func newManagerWithMock(t *testing.T) (*PrinterManager, *store.Store, *transport.MockTransport) {
+func newManagerWithMock(t *testing.T) (*PrinterManager, *store.MemoryStore, *transport.MockTransport) {
 	t.Helper()
 	s := store.NewMemoryStore()
 	mgr := NewPrinterManager(s)

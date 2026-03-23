@@ -4,11 +4,11 @@ import "github.com/erxyi/qlx/internal/store"
 
 // ExportService handles data export operations.
 type ExportService struct {
-	store ExportStore
+	store store.ExportStore
 }
 
 // NewExportService creates a new ExportService.
-func NewExportService(s ExportStore) *ExportService {
+func NewExportService(s store.ExportStore) *ExportService {
 	return &ExportService{store: s}
 }
 

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
@@ -168,28 +167,14 @@ func (h *TemplateHandler) Save(w http.ResponseWriter, r *http.Request) {
 
 	if id != "" {
 		// Update existing
-		tmpl := h.templates.GetTemplate(id)
-		if tmpl == nil {
-			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
-			return
-		}
-		tmpl.Name = req.Name
-		tmpl.Tags = req.Tags
-		tmpl.Target = req.Target
+		widthMM, heightMM := req.WidthMM, req.HeightMM
+		widthPx, heightPx := req.WidthPx, req.HeightPx
 		if strings.HasPrefix(req.Target, "printer:") {
-			tmpl.WidthPx = req.WidthPx
-			tmpl.HeightPx = req.HeightPx
-			tmpl.WidthMM = 0
-			tmpl.HeightMM = 0
+			widthMM, heightMM = 0, 0
 		} else {
-			tmpl.WidthMM = req.WidthMM
-			tmpl.HeightMM = req.HeightMM
-			tmpl.WidthPx = 0
-			tmpl.HeightPx = 0
+			widthPx, heightPx = 0, 0
 		}
-		tmpl.Elements = req.Elements
-		tmpl.UpdatedAt = time.Now()
-		if err := h.templates.SaveTemplate(*tmpl); err != nil {
+		if _, err := h.templates.UpdateTemplate(id, req.Name, req.Tags, req.Target, widthMM, heightMM, widthPx, heightPx, req.Elements); err != nil {
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}

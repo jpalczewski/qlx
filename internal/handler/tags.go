@@ -135,14 +135,8 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	tag := h.tags.GetTag(id)
-	if tag == nil {
-		h.resp.RespondError(w, r, store.ErrTagNotFound)
-		return
-	}
-	parentID := tag.ParentID
-
-	if err := h.tags.DeleteTag(id); err != nil {
+	parentID, err := h.tags.DeleteTag(id)
+	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}

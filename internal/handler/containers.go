@@ -123,14 +123,8 @@ func (h *ContainerHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *ContainerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	container := h.inventory.GetContainer(id)
-	if container == nil {
-		h.resp.RespondError(w, r, store.ErrContainerNotFound)
-		return
-	}
-	parentID := container.ParentID
-
-	if err := h.inventory.DeleteContainer(id); err != nil {
+	parentID, err := h.inventory.DeleteContainer(id)
+	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}
