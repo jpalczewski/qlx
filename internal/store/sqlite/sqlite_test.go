@@ -47,13 +47,17 @@ func TestNew_SetsPragmas(t *testing.T) {
 	db := testStore(t)
 
 	var journalMode string
-	db.db.QueryRow("PRAGMA journal_mode").Scan(&journalMode)
+	if err := db.db.QueryRow("PRAGMA journal_mode").Scan(&journalMode); err != nil {
+		t.Fatalf("query journal_mode: %v", err)
+	}
 	if journalMode != "wal" {
 		t.Fatalf("expected WAL journal mode, got %s", journalMode)
 	}
 
 	var fk int
-	db.db.QueryRow("PRAGMA foreign_keys").Scan(&fk)
+	if err := db.db.QueryRow("PRAGMA foreign_keys").Scan(&fk); err != nil {
+		t.Fatalf("query foreign_keys: %v", err)
+	}
 	if fk != 1 {
 		t.Fatal("expected foreign_keys ON")
 	}

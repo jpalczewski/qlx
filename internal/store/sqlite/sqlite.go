@@ -69,10 +69,13 @@ func setPragmas(db *sql.DB) error {
 	return nil
 }
 
-func runMigrations(db *sql.DB) error {
+func init() {
 	goose.SetBaseFS(migrationFS)
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return err
+		panic("goose sqlite3 dialect: " + err.Error())
 	}
+}
+
+func runMigrations(db *sql.DB) error {
 	return goose.Up(db, "migrations")
 }
