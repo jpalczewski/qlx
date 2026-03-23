@@ -105,8 +105,8 @@ type legacyTag struct {
 	Icon     string `json:"icon"`
 }
 
-// readJSONFile reads a JSON array from path into a slice of T.
-// Returns nil, nil if the file does not exist.
+// readJSONFile reads a JSON file that is either a map (map[string]T) or an array ([]T)
+// and returns the values as a slice. Returns nil, nil if the file does not exist.
 func readJSONFile[T any](path string) ([]T, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // G304: path is constructed from trusted dataDir
 	if os.IsNotExist(err) {
@@ -115,8 +115,25 @@ func readJSONFile[T any](path string) ([]T, error) {
 	if err != nil {
 		return nil, err
 	}
-	var items []T
-	return items, json.Unmarshal(data, &items)
+	// Detect format by first non-whitespace byte.
+	for _, b := range data {
+		if b == '[' {
+			var items []T
+			return items, json.Unmarshal(data, &items)
+		}
+		if b == '{' {
+			var m map[string]T
+			if err := json.Unmarshal(data, &m); err != nil {
+				return nil, err
+			}
+			items := make([]T, 0, len(m))
+			for _, v := range m {
+				items = append(items, v)
+			}
+			return items, nil
+		}
+	}
+	return nil, nil
 }
 
 func importTags(tx *sql.Tx, dataDir string) error {
