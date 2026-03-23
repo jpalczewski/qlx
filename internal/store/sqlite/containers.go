@@ -65,11 +65,29 @@ func (s *SQLiteStore) UpdateContainer(id, name, desc, color, icon string) (*stor
 
 // DeleteContainer removes a container by ID and returns its parent ID (empty string for root).
 // Returns store.ErrContainerNotFound if no row matched.
+// Returns store.ErrContainerHasChildren if the container has child containers.
+// Returns store.ErrContainerHasItems if the container has items.
 func (s *SQLiteStore) DeleteContainer(id string) (string, error) {
 	c := s.GetContainer(id)
 	if c == nil {
 		return "", store.ErrContainerNotFound
 	}
+
+	var count int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM containers WHERE parent_id = ?`, id).Scan(&count); err != nil {
+		return "", err
+	}
+	if count > 0 {
+		return "", store.ErrContainerHasChildren
+	}
+
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM items WHERE container_id = ?`, id).Scan(&count); err != nil {
+		return "", err
+	}
+	if count > 0 {
+		return "", store.ErrContainerHasItems
+	}
+
 	parentID := c.ParentID
 	_, err := s.db.Exec(`DELETE FROM containers WHERE id = ?`, id)
 	if err != nil {
@@ -81,7 +99,20 @@ func (s *SQLiteStore) DeleteContainer(id string) (string, error) {
 // MoveContainer sets a new parent for the given container.
 // Pass an empty string for newParentID to move the container to root.
 // Returns store.ErrContainerNotFound if no row matched.
+// Returns store.ErrCycleDetected if the move would create a cycle.
 func (s *SQLiteStore) MoveContainer(id, newParentID string) error {
+	if newParentID != "" {
+		if newParentID == id {
+			return store.ErrCycleDetected
+		}
+		descendants := s.containerDescendants(id)
+		for _, d := range descendants {
+			if d == newParentID {
+				return store.ErrCycleDetected
+			}
+		}
+	}
+
 	var pid *string
 	if newParentID != "" {
 		pid = &newParentID
@@ -96,6 +127,22 @@ func (s *SQLiteStore) MoveContainer(id, newParentID string) error {
 		return store.ErrContainerNotFound
 	}
 	return nil
+}
+
+// containerDescendants returns all descendant container IDs of the given container using BFS.
+func (s *SQLiteStore) containerDescendants(id string) []string {
+	var result []string
+	queue := []string{id}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		children := s.ContainerChildren(current)
+		for _, c := range children {
+			result = append(result, c.ID)
+			queue = append(queue, c.ID)
+		}
+	}
+	return result
 }
 
 // ContainerChildren returns the direct children of the container with the given parentID.
@@ -199,10 +246,10 @@ func (s *SQLiteStore) scanContainers(rows *sql.Rows) []store.Container {
 func (s *SQLiteStore) containerTagIDs(containerID string) []string {
 	rows, err := s.db.Query(`SELECT tag_id FROM container_tags WHERE container_id = ?`, containerID)
 	if err != nil {
-		return nil
+		return []string{}
 	}
 	defer func() { _ = rows.Close() }()
-	var ids []string
+	ids := make([]string, 0)
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err == nil {
@@ -216,10 +263,10 @@ func (s *SQLiteStore) containerTagIDs(containerID string) []string {
 func (s *SQLiteStore) itemTagIDs(itemID string) []string {
 	rows, err := s.db.Query(`SELECT tag_id FROM item_tags WHERE item_id = ?`, itemID)
 	if err != nil {
-		return nil
+		return []string{}
 	}
 	defer func() { _ = rows.Close() }()
-	var ids []string
+	ids := make([]string, 0)
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err == nil {

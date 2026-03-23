@@ -1,11 +1,31 @@
 package sqlite
 
-import "github.com/erxyi/qlx/internal/store"
+import (
+	"strings"
+
+	"github.com/erxyi/qlx/internal/store"
+)
+
+// fts5Query prepares a query string for FTS5 MATCH.
+// It trims whitespace and appends '*' for prefix matching.
+// If the query contains FTS5 special characters, it falls back to quoting.
+func fts5Query(q string) string {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return ""
+	}
+	// If the query contains special FTS5 operators, wrap in double quotes for literal match.
+	if strings.ContainsAny(q, `"*^(){}[]+-:~<>&|!'\/`) {
+		return `"` + strings.ReplaceAll(q, `"`, `""`) + `"`
+	}
+	return q + "*"
+}
 
 // SearchItems performs a full-text search over items using the FTS5 index.
 // Returns nil for an empty query.
 func (s *SQLiteStore) SearchItems(query string) []store.Item {
-	if query == "" {
+	fq := fts5Query(query)
+	if fq == "" {
 		return nil
 	}
 	rows, err := s.db.Query(`
@@ -13,7 +33,7 @@ func (s *SQLiteStore) SearchItems(query string) []store.Item {
 		FROM items i
 		JOIN items_fts ON items_fts.rowid = i.rowid
 		WHERE items_fts MATCH ?
-		ORDER BY rank`, query)
+		ORDER BY rank`, fq)
 	if err != nil {
 		return nil
 	}
@@ -39,7 +59,8 @@ func (s *SQLiteStore) SearchItems(query string) []store.Item {
 // SearchContainers performs a full-text search over containers using the FTS5 index.
 // Returns nil for an empty query.
 func (s *SQLiteStore) SearchContainers(query string) []store.Container {
-	if query == "" {
+	fq := fts5Query(query)
+	if fq == "" {
 		return nil
 	}
 	rows, err := s.db.Query(`
@@ -47,7 +68,7 @@ func (s *SQLiteStore) SearchContainers(query string) []store.Container {
 		FROM containers c
 		JOIN containers_fts ON containers_fts.rowid = c.rowid
 		WHERE containers_fts MATCH ?
-		ORDER BY rank`, query)
+		ORDER BY rank`, fq)
 	if err != nil {
 		return nil
 	}

@@ -70,12 +70,22 @@ func (s *SQLiteStore) UpdateTag(id, name, color, icon string) (*store.Tag, error
 
 // DeleteTag removes a tag by ID and returns its parent ID (empty string for root tags).
 // Returns store.ErrTagNotFound if no row matched.
+// Returns store.ErrTagHasChildren if the tag has child tags.
 // The ON DELETE CASCADE on item_tags and container_tags handles junction cleanup automatically.
 func (s *SQLiteStore) DeleteTag(id string) (string, error) {
 	t := s.GetTag(id)
 	if t == nil {
 		return "", store.ErrTagNotFound
 	}
+
+	var count int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM tags WHERE parent_id = ?`, id).Scan(&count); err != nil {
+		return "", err
+	}
+	if count > 0 {
+		return "", store.ErrTagHasChildren
+	}
+
 	parentID := t.ParentID
 	_, err := s.db.Exec(`DELETE FROM tags WHERE id = ?`, id)
 	if err != nil {
@@ -87,7 +97,20 @@ func (s *SQLiteStore) DeleteTag(id string) (string, error) {
 // MoveTag sets a new parent for the given tag.
 // Pass an empty string for newParentID to move the tag to the root.
 // Returns store.ErrTagNotFound if no row matched.
+// Returns store.ErrCycleDetected if the move would create a cycle.
 func (s *SQLiteStore) MoveTag(id, newParentID string) error {
+	if newParentID != "" {
+		if newParentID == id {
+			return store.ErrCycleDetected
+		}
+		descendants := s.TagDescendants(id)
+		for _, d := range descendants {
+			if d == newParentID {
+				return store.ErrCycleDetected
+			}
+		}
+	}
+
 	var pid *string
 	if newParentID != "" {
 		pid = &newParentID
@@ -166,7 +189,15 @@ func (s *SQLiteStore) TagDescendants(id string) []string {
 }
 
 // AddItemTag associates a tag with an item.
+// Returns store.ErrItemNotFound if the item does not exist.
+// Returns store.ErrTagNotFound if the tag does not exist.
 func (s *SQLiteStore) AddItemTag(itemID, tagID string) error {
+	if s.GetItem(itemID) == nil {
+		return store.ErrItemNotFound
+	}
+	if s.GetTag(tagID) == nil {
+		return store.ErrTagNotFound
+	}
 	_, err := s.db.Exec(
 		`INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)`, itemID, tagID)
 	return err
@@ -180,7 +211,15 @@ func (s *SQLiteStore) RemoveItemTag(itemID, tagID string) error {
 }
 
 // AddContainerTag associates a tag with a container.
+// Returns store.ErrContainerNotFound if the container does not exist.
+// Returns store.ErrTagNotFound if the tag does not exist.
 func (s *SQLiteStore) AddContainerTag(containerID, tagID string) error {
+	if s.GetContainer(containerID) == nil {
+		return store.ErrContainerNotFound
+	}
+	if s.GetTag(tagID) == nil {
+		return store.ErrTagNotFound
+	}
 	_, err := s.db.Exec(
 		`INSERT OR IGNORE INTO container_tags (container_id, tag_id) VALUES (?, ?)`, containerID, tagID)
 	return err

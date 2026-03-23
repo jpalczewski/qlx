@@ -4,8 +4,40 @@ import "github.com/erxyi/qlx/internal/store"
 
 // BulkMove moves items and containers to a new target container/parent in a single transaction.
 // It collects errors per ID rather than aborting on the first failure.
+// For containers, cycle detection is performed before the move.
 func (s *SQLiteStore) BulkMove(itemIDs, containerIDs []string, targetID string) []store.BulkError {
 	var errs []store.BulkError
+
+	// Build set of containers being moved for intra-batch checks.
+	moveSet := make(map[string]bool, len(containerIDs))
+	for _, id := range containerIDs {
+		moveSet[id] = true
+	}
+
+	// Cycle detection for containers before starting the transaction.
+	for _, id := range containerIDs {
+		if targetID == id {
+			errs = append(errs, store.BulkError{ID: id, Reason: store.ErrCycleDetected.Error()})
+			continue
+		}
+		descendants := s.containerDescendants(id)
+		for _, d := range descendants {
+			if d == targetID {
+				errs = append(errs, store.BulkError{ID: id, Reason: store.ErrCycleDetected.Error()})
+				break
+			}
+			// Intra-batch ancestor conflict: if a descendant of this container
+			// is also being moved, flag it as a conflict.
+			if moveSet[d] {
+				errs = append(errs, store.BulkError{ID: id, Reason: "intra-batch ancestor conflict"})
+				break
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return errs
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return []store.BulkError{{ID: "tx", Reason: err.Error()}}
@@ -78,7 +110,12 @@ func (s *SQLiteStore) BulkDelete(itemIDs, containerIDs []string) ([]string, []st
 
 // BulkAddTag associates the given tag with all specified items and containers.
 // Uses INSERT OR IGNORE to silently skip already-existing associations.
+// Returns store.ErrTagNotFound if the tag does not exist.
 func (s *SQLiteStore) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
+	if s.GetTag(tagID) == nil {
+		return store.ErrTagNotFound
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err

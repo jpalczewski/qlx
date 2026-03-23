@@ -40,6 +40,11 @@ func (h *HTMLResponder) Respond(w http.ResponseWriter, r *http.Request, status i
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// HTMX ignores 204 No Content (no swap), so use 200 for HTML responses
+	// that actually render content.
+	if status == http.StatusNoContent {
+		status = http.StatusOK
+	}
 	w.WriteHeader(status)
 
 	page := PageData{

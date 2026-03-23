@@ -73,7 +73,11 @@ func (s *SQLiteStore) DeleteItem(id string) (string, error) {
 
 // MoveItem sets a new container for the given item.
 // Returns store.ErrItemNotFound if no row matched.
+// Returns store.ErrInvalidContainer if the target container does not exist.
 func (s *SQLiteStore) MoveItem(id, containerID string) error {
+	if s.GetContainer(containerID) == nil {
+		return store.ErrInvalidContainer
+	}
 	res, err := s.db.Exec(
 		`UPDATE items SET container_id=?, updated_at=datetime('now') WHERE id=?`, containerID, id)
 	if err != nil {
