@@ -73,7 +73,8 @@ CREATE TABLE tags (
     name        TEXT NOT NULL,
     color       TEXT NOT NULL DEFAULT '',
     icon        TEXT NOT NULL DEFAULT '',
-    created_at  DATETIME NOT NULL DEFAULT (datetime('now'))
+    created_at  DATETIME NOT NULL DEFAULT (datetime('now')),
+    updated_at  DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE containers (
@@ -83,7 +84,8 @@ CREATE TABLE containers (
     description TEXT NOT NULL DEFAULT '',
     color       TEXT NOT NULL DEFAULT '',
     icon        TEXT NOT NULL DEFAULT '',
-    created_at  DATETIME NOT NULL DEFAULT (datetime('now'))
+    created_at  DATETIME NOT NULL DEFAULT (datetime('now')),
+    updated_at  DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE items (
@@ -94,7 +96,8 @@ CREATE TABLE items (
     quantity     INTEGER NOT NULL DEFAULT 1,
     color        TEXT NOT NULL DEFAULT '',
     icon         TEXT NOT NULL DEFAULT '',
-    created_at   DATETIME NOT NULL DEFAULT (datetime('now'))
+    created_at   DATETIME NOT NULL DEFAULT (datetime('now')),
+    updated_at   DATETIME NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE item_tags (
@@ -196,7 +199,7 @@ CREATE TRIGGER containers_au AFTER UPDATE ON containers BEGIN
 END;
 ```
 
-External content FTS — no data duplication. Queries join via `rowid`:
+External content FTS — no data duplication. Queries join via implicit `rowid`:
 
 ```sql
 SELECT i.* FROM items i
@@ -204,6 +207,8 @@ JOIN items_fts ON items_fts.rowid = i.rowid
 WHERE items_fts MATCH ?
 ORDER BY rank;
 ```
+
+**Important**: Tables with TEXT PRIMARY KEY still have an implicit integer `rowid`. Do NOT use `WITHOUT ROWID` on `items` or `containers` — it would break the FTS join. Avoid `VACUUM` (which can renumber rowids and desync external-content FTS) — use `PRAGMA auto_vacuum = INCREMENTAL` instead.
 
 Tags searched via simple `LIKE` — small dataset, FTS overkill.
 
@@ -268,13 +273,14 @@ TagItemStats(id string) (itemCount int, totalQty int, err error)
 GetPrinter(id string) *PrinterConfig
 
 // TemplateStore — separates create from update, handler stops mutating domain objects
-CreateTemplate(name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements json.RawMessage) (*Template, error)
-UpdateTemplate(id string, name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements json.RawMessage) (*Template, error)
+CreateTemplate(name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements string) (*Template, error)
+UpdateTemplate(id string, name string, tags []string, target string, widthMM, heightMM float64, widthPx, heightPx int, elements string) (*Template, error)
+DeleteTemplate(id string) error  // now returns error (SQLite deletes can fail)
 ```
 
-### TagIDs removal from models
+### TagIDs on models — computed field
 
-`TagIDs []string` removed from `Container` and `Item` structs. Tags resolved via junction table queries. Handlers that need tags call `ResolveTagIDs` or query through the tag service.
+`TagIDs []string` stays on `Container` and `Item` structs to preserve JSON API contract (`tag_ids` in responses). It is no longer stored — instead, it is populated at query time via a LEFT JOIN on the junction table. Store methods that return `Container` or `Item` always populate `TagIDs`. The field is ignored on write (tags are managed via `AddItemTag`/`RemoveItemTag`).
 
 ## Handler & API Cleanup
 
@@ -442,10 +448,21 @@ None — existing deps stay.
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 PRAGMA busy_timeout = 5000;
-PRAGMA cache_size = -16384;  -- 16MB
+PRAGMA cache_size = -4096;   -- 4MB (conservative for potential embedded use)
 PRAGMA foreign_keys = ON;
 PRAGMA temp_store = MEMORY;
+PRAGMA auto_vacuum = INCREMENTAL;  -- safe rowid-preserving alternative to VACUUM
 ```
+
+## Implementation Notes
+
+### Asset storage atomicity
+
+`SaveAsset` writes metadata to SQLite and binary to `{dataDir}/assets/{id}.bin`. Order: write file first, then INSERT metadata. On file write failure, no DB row is created. On DB insert failure after file write, the orphan file is cleaned up. `GetAsset` returns metadata; `AssetData` reads from disk.
+
+### ExportData stays unchanged
+
+`ExportData() (map[string]*Container, map[string]*Item)` loads everything into memory. Acceptable for current scale (single-user appliance). Streaming export is out of scope.
 
 ## Out of Scope
 
