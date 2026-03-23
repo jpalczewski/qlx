@@ -583,7 +583,6 @@ func (s *Store) UpdatePrinterOffset(id string, offsetX, offsetY int) error {
 
 	p.OffsetX = offsetX
 	p.OffsetY = offsetY
-	s.printers[id] = p
 	s.dirty |= dirtyPrinters
 	return nil
 }

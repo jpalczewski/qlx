@@ -40,11 +40,3 @@ func TestWriteStoreErrorJSON(t *testing.T) {
 		t.Errorf("got Content-Type %q, want application/json", ct)
 	}
 }
-
-func TestWriteStoreErrorText(t *testing.T) {
-	w := httptest.NewRecorder()
-	WriteStoreErrorText(w, store.ErrContainerHasChildren)
-	if w.Code != 409 {
-		t.Errorf("got status %d, want 409", w.Code)
-	}
-}

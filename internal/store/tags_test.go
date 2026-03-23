@@ -2,6 +2,7 @@ package store
 
 import (
 	"errors"
+	"slices"
 	"testing"
 )
 
@@ -385,7 +386,7 @@ func TestTagAssignmentItems(t *testing.T) {
 	}
 
 	got := s.GetItem(item.ID)
-	if !containsString(got.TagIDs, tag.ID) {
+	if !slices.Contains(got.TagIDs, tag.ID) {
 		t.Error("AddItemTag should add tag to item")
 	}
 
@@ -408,7 +409,7 @@ func TestTagAssignmentItems(t *testing.T) {
 		t.Fatalf("RemoveItemTag error = %v", err)
 	}
 	got = s.GetItem(item.ID)
-	if containsString(got.TagIDs, tag.ID) {
+	if slices.Contains(got.TagIDs, tag.ID) {
 		t.Error("RemoveItemTag should remove tag from item")
 	}
 }
@@ -424,7 +425,7 @@ func TestTagAssignmentContainers(t *testing.T) {
 	}
 
 	got := s.GetContainer(container.ID)
-	if !containsString(got.TagIDs, tag.ID) {
+	if !slices.Contains(got.TagIDs, tag.ID) {
 		t.Error("AddContainerTag should add tag to container")
 	}
 
@@ -447,7 +448,7 @@ func TestTagAssignmentContainers(t *testing.T) {
 		t.Fatalf("RemoveContainerTag error = %v", err)
 	}
 	got = s.GetContainer(container.ID)
-	if containsString(got.TagIDs, tag.ID) {
+	if slices.Contains(got.TagIDs, tag.ID) {
 		t.Error("RemoveContainerTag should remove tag from container")
 	}
 }

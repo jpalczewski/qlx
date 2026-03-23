@@ -1,5 +1,7 @@
 package store
 
+import "slices"
+
 // BulkError records a failure for a single ID within a bulk operation.
 type BulkError struct {
 	ID     string `json:"id"`
@@ -276,7 +278,7 @@ func (s *Store) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
 		if !ok {
 			continue
 		}
-		if !containsString(item.TagIDs, tagID) {
+		if !slices.Contains(item.TagIDs, tagID) {
 			item.TagIDs = append(item.TagIDs, tagID)
 			s.dirty |= dirtyItems
 		}
@@ -287,7 +289,7 @@ func (s *Store) BulkAddTag(itemIDs, containerIDs []string, tagID string) error {
 		if !ok {
 			continue
 		}
-		if !containsString(c.TagIDs, tagID) {
+		if !slices.Contains(c.TagIDs, tagID) {
 			c.TagIDs = append(c.TagIDs, tagID)
 			s.dirty |= dirtyContainers
 		}
