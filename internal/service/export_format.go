@@ -227,36 +227,54 @@ func FormatMarkdownTable(w io.Writer, items []store.ExportItem, paths map[string
 	return nil
 }
 
-// FormatMarkdownDocument writes a hierarchical Markdown document to w, using container
-// names as headers (## Name) and items as bullet points.
-// Format: `- **ItemName** (x3) — description [tag1, tag2]`
-// Quantity is only shown if > 1.
-func FormatMarkdownDocument(w io.Writer, containers []store.Container, items []store.ExportItem) error {
-	// Index items by container ID.
-	itemsByContainer := make(map[string][]store.ExportItem)
-	for _, item := range items {
-		itemsByContainer[item.ContainerID] = append(itemsByContainer[item.ContainerID], item)
+// formatItemBullet formats a single export item as a Markdown bullet line.
+func formatItemBullet(item store.ExportItem) string {
+	var sb strings.Builder
+	sb.WriteString("- **")
+	sb.WriteString(item.Name)
+	sb.WriteString("**")
+	if item.Quantity > 1 {
+		fmt.Fprintf(&sb, " (x%d)", item.Quantity)
 	}
+	if item.Description != "" {
+		sb.WriteString(" — ")
+		sb.WriteString(item.Description)
+	}
+	if len(item.TagNames) > 0 {
+		sb.WriteString(" [")
+		sb.WriteString(strings.Join(item.TagNames, ", "))
+		sb.WriteString("]")
+	}
+	return sb.String()
+}
 
-	// Build set of all container IDs.
+// containerTree groups containers by parent and identifies roots within the given set.
+func containerTree(containers []store.Container) (roots []store.Container, byParent map[string][]store.Container) {
 	containerSet := make(map[string]bool, len(containers))
 	for _, c := range containers {
 		containerSet[c.ID] = true
 	}
-
-	// Index containers by parent.
-	byParent := make(map[string][]store.Container)
+	byParent = make(map[string][]store.Container)
 	for _, c := range containers {
 		byParent[c.ParentID] = append(byParent[c.ParentID], c)
 	}
-
-	// Find roots.
-	var roots []store.Container
 	for _, c := range containers {
 		if c.ParentID == "" || !containerSet[c.ParentID] {
 			roots = append(roots, c)
 		}
 	}
+	return roots, byParent
+}
+
+// FormatMarkdownDocument writes a hierarchical Markdown document to w, using container
+// names as headers (## Name) and items as bullet points.
+func FormatMarkdownDocument(w io.Writer, containers []store.Container, items []store.ExportItem) error {
+	itemsByContainer := make(map[string][]store.ExportItem)
+	for _, item := range items {
+		itemsByContainer[item.ContainerID] = append(itemsByContainer[item.ContainerID], item)
+	}
+
+	roots, byParent := containerTree(containers)
 
 	var writeNode func(c store.Container) error
 	writeNode = func(c store.Container) error {
@@ -264,23 +282,7 @@ func FormatMarkdownDocument(w io.Writer, containers []store.Container, items []s
 			return err
 		}
 		for _, item := range itemsByContainer[c.ID] {
-			var sb strings.Builder
-			sb.WriteString("- **")
-			sb.WriteString(item.Name)
-			sb.WriteString("**")
-			if item.Quantity > 1 {
-				fmt.Fprintf(&sb, " (x%d)", item.Quantity)
-			}
-			if item.Description != "" {
-				sb.WriteString(" — ")
-				sb.WriteString(item.Description)
-			}
-			if len(item.TagNames) > 0 {
-				sb.WriteString(" [")
-				sb.WriteString(strings.Join(item.TagNames, ", "))
-				sb.WriteString("]")
-			}
-			if _, err := fmt.Fprintln(w, sb.String()); err != nil {
+			if _, err := fmt.Fprintln(w, formatItemBullet(item)); err != nil {
 				return err
 			}
 		}

@@ -64,7 +64,9 @@ func TestExportStore_ExportItems_SingleContainer(t *testing.T) {
 	tag := db.CreateTag("", "Electronics", "", "")
 	c := db.CreateContainer("", "Box", "", "", "")
 	item := db.CreateItem(c.ID, "Widget", "A small widget", 3, "", "")
-	db.AddItemTag(item.ID, tag.ID)
+	if err := db.AddItemTag(item.ID, tag.ID); err != nil {
+		t.Fatal(err)
+	}
 
 	items, err := db.ExportItems(c.ID, false)
 	if err != nil {
