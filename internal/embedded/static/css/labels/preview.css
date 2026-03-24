@@ -134,6 +134,12 @@
   margin-top: var(--space-md);
 }
 
+.item-detail .print-section h3 {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  margin-bottom: var(--space-sm);
+}
+
 /* Compact inline row for printer + template selects */
 .print-section .print-row {
   display: flex;

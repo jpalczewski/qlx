@@ -48,12 +48,13 @@
             "AddPrinterText" (.T "inventory.add_printer")
         }}
 
-        <section class="item-actions">
-            <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="button secondary">{{.T "inventory.edit"}}</a>
-            <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="danger">{{.T "action.delete"}}</button>
-        </section>
-
-        <a class="item-back" href="/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
+        <footer class="item-footer">
+            <div class="item-footer-actions">
+                <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="btn-action">{{.T "inventory.edit"}}</a>
+                <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="btn-action btn-action-danger">{{.T "action.delete"}}</button>
+            </div>
+            <a class="item-back" href="/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
+        </footer>
     </article>
 </div>
 {{ if .Data.Templates }}
