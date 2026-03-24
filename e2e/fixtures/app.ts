@@ -20,12 +20,10 @@ async function getAvailablePort(): Promise<number> {
 }
 
 function buildBinary() {
-  if (!fs.existsSync(BINARY_PATH)) {
-    execFileSync('go', ['build', '-o', BINARY_PATH, './cmd/qlx/'], {
-      cwd: PROJECT_ROOT,
-      stdio: 'inherit',
-    });
-  }
+  execFileSync('go', ['build', '-o', BINARY_PATH, './cmd/qlx/'], {
+    cwd: PROJECT_ROOT,
+    stdio: 'inherit',
+  });
 }
 
 type AppFixtures = {
