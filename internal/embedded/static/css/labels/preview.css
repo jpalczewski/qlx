@@ -158,6 +158,37 @@
   margin-top: var(--space-sm);
 }
 
+.print-actions button {
+  padding: 0.5rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.print-actions button[data-print-btn] {
+  background: var(--color-accent);
+  color: white;
+  border: 1px solid var(--color-accent);
+}
+
+.print-actions button[data-print-btn]:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.print-actions button[data-print-preview] {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.print-actions button[data-print-preview]:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 /* ---- Print panel (tabbed, container page) ---- */
 
 .print-panel {

@@ -51,7 +51,7 @@ test.describe('Data persistence across page reloads', () => {
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await page.click(`.container-item:has-text("${containerName}")`);
     await page.click(`.item-item:has-text("${itemName}")`);
-    await expect(page.locator('.description')).toContainText('persist item desc');
+    await expect(page.locator('.item-desc')).toContainText('persist item desc');
   });
 });
 
