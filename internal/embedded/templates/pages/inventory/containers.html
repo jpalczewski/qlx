@@ -7,15 +7,19 @@
     {{ end }}
 
     {{ if .Data.Container }}
-    <div class="container-header" {{ if .Data.Container.Color }}style="border-left: 3px solid {{ paletteHex .Data.Container.Color }}"{{ end }}>
-        <span class="entity-icon large">{{ if .Data.Container.Icon }}{{ icon .Data.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>
-        <h2>{{ .Data.Container.Name }}</h2>
-        <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
+    <div class="container-detail" {{ if .Data.Container.Color }}style="border-left: 3px solid {{ paletteHex .Data.Container.Color }}"{{ end }}>
+        <div class="container-detail-header">
+            <span class="entity-icon large">{{ if .Data.Container.Icon }}{{ icon .Data.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>
+            <div class="container-detail-text">
+                <h2>{{ .Data.Container.Name }}</h2>
+                {{ if .Data.Container.Description }}<p class="container-desc">{{ .Data.Container.Description }}</p>{{ end }}
+            </div>
+            <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
+        </div>
+        <section class="container-tags">
+            {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Container.ID "ObjectType" "container" "Tags" (resolveTags .Data.Container.TagIDs)) }}
+        </section>
     </div>
-    {{ if .Data.Container.Description }}<p class="description">{{ .Data.Container.Description }}</p>{{ end }}
-    <section class="container-tags">
-        {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Container.ID "ObjectType" "container" "Tags" (resolveTags .Data.Container.TagIDs)) }}
-    </section>
     {{ end }}
 
     <section class="containers">
