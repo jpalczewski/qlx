@@ -77,7 +77,6 @@ type TemplateStore interface {
 
 // ExportStore defines export-related store operations.
 type ExportStore interface {
-	ExportData() (map[string]*Container, map[string]*Item)
 	AllItems() []Item
 	AllContainers() []Container
 	ExportItems(containerID string, recursive bool) ([]ExportItem, error)

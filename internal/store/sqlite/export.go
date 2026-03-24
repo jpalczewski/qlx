@@ -32,28 +32,6 @@ func (s *SQLiteStore) AllItems() []store.Item {
 	return items
 }
 
-// ExportData returns maps of all containers and items keyed by their IDs.
-// It satisfies the store.ExportStore interface.
-// AllContainers is already implemented in containers.go.
-func (s *SQLiteStore) ExportData() (map[string]*store.Container, map[string]*store.Item) {
-	containers := s.AllContainers()
-	items := s.AllItems()
-
-	cMap := make(map[string]*store.Container, len(containers))
-	for i := range containers {
-		c := containers[i]
-		cMap[c.ID] = &c
-	}
-
-	iMap := make(map[string]*store.Item, len(items))
-	for i := range items {
-		item := items[i]
-		iMap[item.ID] = &item
-	}
-
-	return cMap, iMap
-}
-
 // ExportContainerTree returns a container and all its descendants using a recursive CTE.
 func (s *SQLiteStore) ExportContainerTree(containerID string) ([]store.Container, error) {
 	rows, err := s.db.Query(`
