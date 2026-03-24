@@ -75,6 +75,35 @@ func (s *SQLiteStore) SearchContainers(query string) []store.Container {
 	return s.scanContainers(rows)
 }
 
+// SearchNotes performs a full-text search over notes using the FTS5 index.
+// Returns nil for an empty query.
+func (s *SQLiteStore) SearchNotes(query string) []store.Note {
+	fq := fts5Query(query)
+	if fq == "" {
+		return nil
+	}
+	rows, err := s.db.Query(`
+		SELECT n.`+noteSelectCols+`
+		FROM notes n
+		JOIN notes_fts ON notes_fts.rowid = n.rowid
+		WHERE notes_fts MATCH ?
+		ORDER BY rank`, fq)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = rows.Close() }()
+
+	var notes []store.Note
+	for rows.Next() {
+		note, err := scanNote(rows)
+		if err != nil {
+			continue
+		}
+		notes = append(notes, note)
+	}
+	return notes
+}
+
 // SearchTags searches tag names using a LIKE pattern match.
 // Returns nil for an empty query.
 func (s *SQLiteStore) SearchTags(query string) []store.Tag {
