@@ -94,7 +94,8 @@
 
   // ---- client-side rendering for designer templates ----
 
-  function renderDesigner(response, printerId, resultEl) {
+  /** Build a Fabric.js canvas from a designer template response. Returns {canvas, fabricCanvas, cleanup}. */
+  function buildDesignerCanvas(response, canvasEl) {
     var elements = [];
     try { elements = JSON.parse(response.template.elements || "[]"); } catch (e) { /* empty */ }
     var itemData = response.item_data || {};
@@ -114,22 +115,32 @@
     var w = t.width_mm > 0 ? Math.round(t.width_mm * 203 / 25.4) : (t.width_px || 384);
     var h = t.height_mm > 0 ? Math.round(t.height_mm * 203 / 25.4) : (t.height_px || 240);
 
+    canvasEl.width = w;
+    canvasEl.height = h;
+
+    var fc = new fabric.StaticCanvas(canvasEl, { width: w, height: h, backgroundColor: "#ffffff" });
+    var promise = window.QlxFormat.qlxToCanvas(fc, elements, params).then(function () {
+      fc.renderAll();
+      return fc;
+    });
+
+    return { fabricCanvas: fc, promise: promise };
+  }
+
+  function renderDesigner(response, printerId, resultEl) {
     var tmpCanvas = document.createElement("canvas");
-    tmpCanvas.width = w;
-    tmpCanvas.height = h;
     tmpCanvas.style.display = "none";
     document.body.appendChild(tmpCanvas);
 
-    var fc = new fabric.StaticCanvas(tmpCanvas, { width: w, height: h, backgroundColor: "#ffffff" });
-    return window.QlxFormat.qlxToCanvas(fc, elements, params).then(function () {
-      fc.renderAll();
+    var ctx = buildDesignerCanvas(response, tmpCanvas);
+    return ctx.promise.then(function (fc) {
       return window.LabelPrint.print(fc, printerId, 2);
     }).then(function () {
       if (resultEl) resultEl.textContent = qlx.t("inventory.printed");
     }).catch(function (e) {
       if (resultEl) resultEl.textContent = qlx.t("error.status") + ": " + e;
     }).finally(function () {
-      fc.dispose();
+      ctx.fabricCanvas.dispose();
       if (tmpCanvas.parentNode) tmpCanvas.parentNode.removeChild(tmpCanvas);
     });
   }
@@ -255,37 +266,16 @@
   }
 
   function renderDesignerPreview(response, contentEl, dialog) {
-    var elements = [];
-    try { elements = JSON.parse(response.template.elements || "[]"); } catch (e) { /* empty */ }
-    var itemData = response.item_data || {};
-    var params = {
-      name: itemData.Name || "",
-      description: itemData.Description || "",
-      location: itemData.Location || "",
-      id: itemData.BarcodeID || "",
-      qr_url: itemData.QRContent || "",
-      date: new Date().toISOString().slice(0, 10),
-      time: new Date().toTimeString().slice(0, 5),
-      printer: ""
-    };
-
-    var t = response.template;
-    var w = t.width_mm > 0 ? Math.round(t.width_mm * 203 / 25.4) : (t.width_px || 384);
-    var h = t.height_mm > 0 ? Math.round(t.height_mm * 203 / 25.4) : (t.height_px || 240);
-
     var canvasEl = document.createElement("canvas");
-    canvasEl.width = w;
-    canvasEl.height = h;
     canvasEl.className = "preview-canvas";
     contentEl.appendChild(canvasEl);
 
-    var fc = new fabric.StaticCanvas(canvasEl, { width: w, height: h, backgroundColor: "#ffffff" });
-    window.QlxFormat.qlxToCanvas(fc, elements, params).then(function () {
-      fc.renderAll();
+    var ctx = buildDesignerCanvas(response, canvasEl);
+    ctx.promise.then(function () {
       dialog._previewState = {
         type: "canvas",
         canvas: canvasEl,
-        fabricCanvas: fc,
+        fabricCanvas: ctx.fabricCanvas,
         response: response
       };
     });
@@ -455,9 +445,8 @@
 
   // ---- template filtering ----
 
-  function filterTemplates(form) {
-    var printerSel = qs(form, "[data-print-printer]");
-    var templateSel = qs(form, "[data-print-template]");
+  /** Core filter: hide template options that don't match the selected printer model. */
+  function applyTemplateFilter(printerSel, templateSel) {
     if (!printerSel || !templateSel) return;
 
     var selected = printerSel.options[printerSel.selectedIndex];
@@ -482,6 +471,10 @@
     if (currentHidden && firstVisible) {
       firstVisible.selected = true;
     }
+  }
+
+  function filterTemplates(form) {
+    applyTemplateFilter(qs(form, "[data-print-printer]"), qs(form, "[data-print-template]"));
   }
 
   // ---- initialization ----
@@ -591,30 +584,7 @@
   }
 
   function filterTemplatesInPanel(form, printerSel) {
-    var templateSel = qs(form, "[data-print-template]");
-    if (!printerSel || !templateSel) return;
-
-    var selected = printerSel.options[printerSel.selectedIndex];
-    var model = selected ? selected.getAttribute("data-model") : "";
-    var firstVisible = null;
-    var currentHidden = false;
-
-    Array.from(templateSel.options).forEach(function (opt) {
-      var target = opt.getAttribute("data-target");
-      if (!target || target === "universal" || target === "printer:" + model) {
-        opt.hidden = false;
-        opt.disabled = false;
-        if (!firstVisible) firstVisible = opt;
-      } else {
-        opt.hidden = true;
-        opt.disabled = true;
-        if (opt.selected) currentHidden = true;
-      }
-    });
-
-    if (currentHidden && firstVisible) {
-      firstVisible.selected = true;
-    }
+    applyTemplateFilter(printerSel, qs(form, "[data-print-template]"));
   }
 
   function initAll(root) {
@@ -641,6 +611,15 @@
   document.body.addEventListener("htmx:afterSwap", function (e) {
     initAll(e.detail.target);
   });
+
+  // Backward compatibility: ID-based template filtering used by legacy code
+  qlx.filterTemplates = function (printerSelectId, templateSelectId) {
+    applyTemplateFilter(
+      document.getElementById(printerSelectId),
+      document.getElementById(templateSelectId)
+    );
+  };
+  window.filterTemplates = qlx.filterTemplates;
 
   // Public API
   qlx.PrintForm = {

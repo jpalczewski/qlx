@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"bytes"
 	"encoding/json"
-	"image/png"
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/print"
@@ -58,13 +56,9 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := label.LabelData{
-		Name: req.Text,
-	}
-
+	data := label.LabelData{Name: req.Text}
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
 
-	// Check if this is a built-in schema or designer template
 	if _, ok := label.GetSchema(req.Template); ok {
 		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
 			webutil.LogError("adhoc print failed: %v", err)
@@ -72,19 +66,10 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-	} else {
-		tmpl := h.templates.GetTemplate(req.Template)
-		if tmpl == nil {
-			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
-			return
-		}
-		webutil.JSON(w, http.StatusOK, map[string]any{
-			"ok":        true,
-			"render":    "client",
-			"template":  tmpl,
-			"item_data": data,
-		})
+		return
 	}
+
+	respondClientRender(w, h.templates, req.Template, data)
 }
 
 // Preview handles GET /adhoc/preview — returns a label preview image for ad-hoc text.
@@ -103,36 +88,5 @@ func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
 
 	data := label.LabelData{Name: text}
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-
-	if _, ok := label.GetSchema(templateName); ok {
-		img, err := label.Render(data, templateName, previewWidth(r), 203, opts)
-		if err != nil {
-			webutil.LogError("adhoc preview render failed: %v", err)
-			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": "png encode: " + err.Error()})
-			return
-		}
-		w.Header().Set("Content-Type", "image/png")
-		w.Header().Set("Cache-Control", "no-cache")
-		if _, err := w.Write(buf.Bytes()); err != nil {
-			webutil.LogError("adhoc preview write failed: %v", err)
-		}
-		return
-	}
-
-	tmpl := h.templates.GetTemplate(templateName)
-	if tmpl == nil {
-		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
-		return
-	}
-	webutil.JSON(w, http.StatusOK, map[string]any{
-		"ok":        true,
-		"render":    "client",
-		"template":  tmpl,
-		"item_data": data,
-	})
+	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
 	"image/png"
 	"net/http"
 	"strconv"
@@ -136,6 +137,68 @@ func (h *PrintHandler) ListEncoders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// buildItemLabelData builds LabelData for the given item.
+func (h *PrintHandler) buildItemLabelData(itemID string) (label.LabelData, bool) {
+	item := h.inventory.GetItem(itemID)
+	if item == nil {
+		return label.LabelData{}, false
+	}
+	path := h.inventory.ContainerPath(item.ContainerID)
+	return label.LabelData{
+		Name:        item.Name,
+		Description: item.Description,
+		Location:    webutil.FormatContainerPath(path, " → "),
+		QRContent:   "/items/" + item.ID,
+		BarcodeID:   item.ID,
+		Icon:        item.Icon,
+		Tags:        h.resolveTags(item.TagIDs),
+	}, true
+}
+
+// buildContainerLabelData builds LabelData for the given container.
+func (h *PrintHandler) buildContainerLabelData(containerID string, showChildren bool) (label.LabelData, bool) {
+	container := h.inventory.GetContainer(containerID)
+	if container == nil {
+		return label.LabelData{}, false
+	}
+	path := h.inventory.ContainerPath(container.ParentID)
+	data := label.LabelData{
+		Name:        container.Name,
+		Description: container.Description,
+		Location:    webutil.FormatContainerPath(path, " → "),
+		QRContent:   "/containers/" + container.ID,
+		BarcodeID:   container.ID,
+		Icon:        container.Icon,
+		Tags:        h.resolveTags(container.TagIDs),
+	}
+	if showChildren {
+		for _, child := range h.inventory.ContainerChildren(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
+		}
+		for _, item := range h.inventory.ContainerItems(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
+		}
+	}
+	return data, true
+}
+
+// printOrClientRender prints a built-in schema or returns JSON for client-side designer rendering.
+func (h *PrintHandler) printOrClientRender(w http.ResponseWriter, data label.LabelData,
+	printerID, templateName string, opts label.RenderOpts) {
+
+	if _, ok := label.GetSchema(templateName); ok {
+		if err := h.pm.Print(printerID, data, templateName, opts); err != nil {
+			webutil.LogError("print failed: %v", err)
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+		return
+	}
+
+	respondClientRender(w, h.templates, templateName, data)
+}
+
 // PrintItem handles POST /items/{id}/print.
 func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 	var req PrintRequest
@@ -144,46 +207,13 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := h.inventory.GetItem(r.PathValue("id"))
-	if item == nil {
+	data, ok := h.buildItemLabelData(r.PathValue("id"))
+	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 
-	path := h.inventory.ContainerPath(item.ContainerID)
-	data := label.LabelData{
-		Name:        item.Name,
-		Description: item.Description,
-		Location:    webutil.FormatContainerPath(path, " \u2192 "),
-		QRContent:   "/items/" + item.ID,
-		BarcodeID:   item.ID,
-		Icon:        item.Icon,
-		Tags:        h.resolveTags(item.TagIDs),
-	}
-
-	opts := label.RenderOpts{PrintDate: req.PrintDate}
-
-	// Check if this is a built-in schema or designer template
-	if _, ok := label.GetSchema(req.Template); ok {
-		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
-			webutil.LogError("print failed: %v", err)
-			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-	} else {
-		tmpl := h.templates.GetTemplate(req.Template)
-		if tmpl == nil {
-			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
-			return
-		}
-		webutil.JSON(w, http.StatusOK, map[string]any{
-			"ok":        true,
-			"render":    "client",
-			"template":  tmpl,
-			"item_data": data,
-		})
-	}
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate})
 }
 
 // previewWidth extracts the width query parameter, defaulting to 384 (Niimbot B1).
@@ -196,10 +226,8 @@ func previewWidth(r *http.Request) int {
 
 // renderPreview renders a label preview and writes the response.
 // For built-in schemas it returns a PNG image; for designer templates it returns JSON.
-func (h *PrintHandler) renderPreview(w http.ResponseWriter, r *http.Request,
-	data label.LabelData, templateName string, widthPx int) {
-
-	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+func renderPreview(w http.ResponseWriter, templates *service.TemplateService,
+	data label.LabelData, templateName string, widthPx int, opts label.RenderOpts) {
 
 	if _, ok := label.GetSchema(templateName); ok {
 		img, err := label.Render(data, templateName, widthPx, 203, opts)
@@ -208,20 +236,32 @@ func (h *PrintHandler) renderPreview(w http.ResponseWriter, r *http.Request,
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": "png encode: " + err.Error()})
-			return
-		}
-		w.Header().Set("Content-Type", "image/png")
-		w.Header().Set("Cache-Control", "no-cache")
-		if _, err := w.Write(buf.Bytes()); err != nil {
-			webutil.LogError("preview write failed: %v", err)
-		}
+		writePNG(w, img)
 		return
 	}
 
-	tmpl := h.templates.GetTemplate(templateName)
+	respondClientRender(w, templates, templateName, data)
+}
+
+// writePNG encodes an image as PNG and writes it to the response.
+func writePNG(w http.ResponseWriter, img image.Image) {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": "png encode: " + err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "no-cache")
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		webutil.LogError("preview write failed: %v", err)
+	}
+}
+
+// respondClientRender looks up a designer template and returns it as JSON for client-side rendering.
+func respondClientRender(w http.ResponseWriter, templates *service.TemplateService,
+	templateName string, data label.LabelData) {
+
+	tmpl := templates.GetTemplate(templateName)
 	if tmpl == nil {
 		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
 		return
@@ -236,21 +276,10 @@ func (h *PrintHandler) renderPreview(w http.ResponseWriter, r *http.Request,
 
 // PreviewItem handles GET /items/{id}/preview — returns a label preview image.
 func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
-	item := h.inventory.GetItem(r.PathValue("id"))
-	if item == nil {
+	data, ok := h.buildItemLabelData(r.PathValue("id"))
+	if !ok {
 		http.NotFound(w, r)
 		return
-	}
-
-	path := h.inventory.ContainerPath(item.ContainerID)
-	data := label.LabelData{
-		Name:        item.Name,
-		Description: item.Description,
-		Location:    webutil.FormatContainerPath(path, " → "),
-		QRContent:   "/items/" + item.ID,
-		BarcodeID:   item.ID,
-		Icon:        item.Icon,
-		Tags:        h.resolveTags(item.TagIDs),
 	}
 
 	templateName := r.URL.Query().Get("template")
@@ -259,35 +288,17 @@ func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPreview(w, r, data, templateName, previewWidth(r))
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
 }
 
 // PreviewContainer handles GET /containers/{id}/preview — returns a label preview image.
 func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) {
-	container := h.inventory.GetContainer(r.PathValue("id"))
-	if container == nil {
+	showChildren := r.URL.Query().Get("show_children") == "true"
+	data, ok := h.buildContainerLabelData(r.PathValue("id"), showChildren)
+	if !ok {
 		http.NotFound(w, r)
 		return
-	}
-
-	path := h.inventory.ContainerPath(container.ParentID)
-	data := label.LabelData{
-		Name:        container.Name,
-		Description: container.Description,
-		Location:    webutil.FormatContainerPath(path, " → "),
-		QRContent:   "/containers/" + container.ID,
-		BarcodeID:   container.ID,
-		Icon:        container.Icon,
-		Tags:        h.resolveTags(container.TagIDs),
-	}
-
-	if r.URL.Query().Get("show_children") == "true" {
-		for _, child := range h.inventory.ContainerChildren(container.ID) {
-			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
-		}
-		for _, item := range h.inventory.ContainerItems(container.ID) {
-			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
-		}
 	}
 
 	templateName := r.URL.Query().Get("template")
@@ -296,7 +307,8 @@ func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	h.renderPreview(w, r, data, templateName, previewWidth(r))
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
 }
 
 // PrintImage handles POST /print-image.
@@ -396,30 +408,10 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container := h.inventory.GetContainer(r.PathValue("id"))
-	if container == nil {
+	data, ok := h.buildContainerLabelData(r.PathValue("id"), req.ShowChildren)
+	if !ok {
 		http.NotFound(w, r)
 		return
-	}
-
-	path := h.inventory.ContainerPath(container.ParentID)
-	data := label.LabelData{
-		Name:        container.Name,
-		Description: container.Description,
-		Location:    webutil.FormatContainerPath(path, " \u2192 "),
-		QRContent:   "/containers/" + container.ID,
-		BarcodeID:   container.ID,
-		Icon:        container.Icon,
-		Tags:        h.resolveTags(container.TagIDs),
-	}
-
-	if req.ShowChildren {
-		for _, child := range h.inventory.ContainerChildren(container.ID) {
-			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
-		}
-		for _, item := range h.inventory.ContainerItems(container.ID) {
-			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
-		}
 	}
 
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
