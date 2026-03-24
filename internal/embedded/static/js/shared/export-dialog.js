@@ -126,6 +126,13 @@
     var prevFooter = document.createElement("div");
     prevFooter.className = "tree-picker-footer";
 
+    var prevCancelBtn = document.createElement("button");
+    prevCancelBtn.className = "btn btn-secondary btn-small";
+    prevCancelBtn.textContent = qlx.t("action.cancel");
+    prevCancelBtn.type = "button";
+    prevCancelBtn.addEventListener("click", function () { /** @type {HTMLDialogElement} */ (dlg).close(); });
+    prevFooter.appendChild(prevCancelBtn);
+
     var backBtn = document.createElement("button");
     backBtn.className = "btn btn-secondary btn-small";
     backBtn.textContent = qlx.t("export.back");
@@ -210,7 +217,14 @@
         });
     });
 
-    // --- Reset on close ---
+    // --- Close on backdrop click ---
+    dlg.addEventListener("click", function (e) {
+      if (e.target === dlg) {
+        /** @type {HTMLDialogElement} */ (dlg).close();
+      }
+    });
+
+    // --- Close on Escape is native, but reset on close ---
     dlg.addEventListener("close", function () {
       options.hidden = false;
       preview.hidden = true;
