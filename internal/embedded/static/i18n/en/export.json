@@ -1,0 +1,18 @@
+{
+  "export.title": "Export",
+  "export.format": "Format",
+  "export.format_csv": "CSV",
+  "export.format_json": "JSON",
+  "export.format_md": "Markdown",
+  "export.md_style": "Markdown style",
+  "export.md_table": "Table",
+  "export.md_document": "Document",
+  "export.md_both": "Both",
+  "export.recursive": "Include sub-containers",
+  "export.preview": "Preview",
+  "export.download": "Download",
+  "export.copy": "Copy to clipboard",
+  "export.copied": "Copied!",
+  "export.back": "Back",
+  "export.filename": "File"
+}

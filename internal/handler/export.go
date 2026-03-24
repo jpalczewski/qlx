@@ -1,15 +1,13 @@
 package handler
 
 import (
-	"encoding/csv"
 	"net/http"
-	"time"
 
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
-// ExportHandler handles HTTP requests for data export operations.
+// ExportHandler handles HTTP requests for data export.
 type ExportHandler struct {
 	export    *service.ExportService
 	inventory *service.InventoryService
@@ -22,39 +20,99 @@ func NewExportHandler(export *service.ExportService, inv *service.InventoryServi
 
 // RegisterRoutes registers export routes on the given mux.
 func (h *ExportHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /export/json", h.ExportJSON)
-	mux.HandleFunc("GET /export/csv", h.ExportCSV)
+	mux.HandleFunc("GET /export", h.Export)
 }
 
-// ExportJSON handles GET /export/json.
-func (h *ExportHandler) ExportJSON(w http.ResponseWriter, _ *http.Request) {
-	containers, items := h.export.ExportJSON()
-	webutil.JSON(w, http.StatusOK, map[string]any{
-		"containers": containers,
-		"items":      items,
-	})
+// validExportFormat returns true if format is one of csv, json, md.
+func validExportFormat(format string) bool {
+	return format == "csv" || format == "json" || format == "md"
 }
 
-// ExportCSV handles GET /export/csv.
-func (h *ExportHandler) ExportCSV(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+// validMDStyle returns true if style is one of table, document, both.
+func validMDStyle(style string) bool {
+	return style == "table" || style == "document" || style == "both"
+}
 
-	cw := csv.NewWriter(w)
-	defer cw.Flush()
+// exportContentType returns the MIME type for the given export format.
+func exportContentType(format string) string {
+	switch format {
+	case "csv":
+		return "text/csv; charset=utf-8"
+	case "json":
+		return "application/json"
+	default: // md
+		return "text/markdown; charset=utf-8"
+	}
+}
 
-	_ = cw.Write([]string{"item_id", "item_name", "item_description", "container_path", "created_at"})
+// Export handles GET /export with query params: format, container, recursive, md_style, download.
+func (h *ExportHandler) Export(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	format := q.Get("format")
+	containerID := q.Get("container")
+	recursive := q.Get("recursive") == "true"
+	mdStyle := q.Get("md_style")
+	download := q.Get("download") == "true"
 
-	items := h.export.AllItems()
-	for _, item := range items {
-		path := h.inventory.ContainerPath(item.ContainerID)
-		pathStr := webutil.FormatContainerPath(path, " -> ")
+	if !validExportFormat(format) {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid or missing format parameter (csv, json, md)"})
+		return
+	}
 
-		_ = cw.Write([]string{
-			item.ID,
-			item.Name,
-			item.Description,
-			pathStr,
-			item.CreatedAt.Format(time.RFC3339),
-		})
+	if mdStyle == "" {
+		mdStyle = "table"
+	}
+	if !validMDStyle(mdStyle) {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid md_style parameter (table, document, both)"})
+		return
+	}
+
+	containerName, ok := h.resolveContainer(w, containerID)
+	if !ok {
+		return
+	}
+
+	filename := buildExportFilename(format, containerID, containerName)
+
+	w.Header().Set("Content-Type", exportContentType(format))
+	if download {
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	}
+
+	if err := h.writeExport(w, format, containerID, recursive, mdStyle); err != nil {
+		webutil.LogError("export %s: %v", format, err)
+	}
+}
+
+// resolveContainer validates containerID and returns its name. Returns ("", true) when containerID is empty.
+func (h *ExportHandler) resolveContainer(w http.ResponseWriter, containerID string) (string, bool) {
+	if containerID == "" {
+		return "", true
+	}
+	c := h.inventory.GetContainer(containerID)
+	if c == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "container not found"})
+		return "", false
+	}
+	return c.Name, true
+}
+
+// buildExportFilename constructs the suggested download filename.
+func buildExportFilename(format, containerID, containerName string) string {
+	if containerID != "" {
+		return "qlx-" + service.SanitizeFilename(containerName) + "-export." + format
+	}
+	return "qlx-export." + format
+}
+
+// writeExport dispatches to the appropriate ExportService method.
+func (h *ExportHandler) writeExport(w http.ResponseWriter, format, containerID string, recursive bool, mdStyle string) error {
+	switch format {
+	case "csv":
+		return h.export.ExportCSV(w, containerID, recursive)
+	case "json":
+		return h.export.ExportJSON(w, containerID, recursive)
+	default: // md
+		return h.export.ExportMarkdown(w, containerID, recursive, mdStyle)
 	}
 }

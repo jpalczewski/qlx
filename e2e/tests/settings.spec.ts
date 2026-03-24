@@ -9,10 +9,9 @@ test.describe('Settings page', () => {
     await expect(page.getByRole('button', { name: /English/ })).toBeVisible();
   });
 
-  test('settings page has data export links', async ({ page, app }) => {
+  test('settings page has data export button', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/settings`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Eksportuj JSON/ })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Eksportuj CSV/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Eksportuj dane/ })).toBeVisible();
   });
 
   test('settings accessible via HTMX navigation', async ({ page, app }) => {
