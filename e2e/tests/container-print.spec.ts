@@ -53,30 +53,35 @@ test.describe('Container print', () => {
   test('print section visible on container detail', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
-    // Container label print section elements
-    await expect(page.locator('#cprint-printer')).toBeVisible();
-    await expect(page.locator('#cprint-templates')).toBeVisible();
-    await expect(page.locator('#cprint-btn')).toBeVisible();
-    await expect(page.locator('#cprint-date')).toBeVisible();
-    await expect(page.locator('#cprint-children')).toBeVisible();
+    // Container label print section
+    const labelForm = page.locator('[data-print-form][data-print-mode="container-label"]');
+    await expect(labelForm).toBeVisible();
+    await expect(labelForm.locator('[data-print-printer]')).toBeVisible();
+    await expect(labelForm.locator('[data-print-checkboxes]')).toBeVisible();
+    await expect(labelForm.locator('[data-print-btn]')).toBeVisible();
+    await expect(labelForm.locator('[data-print-date]')).toBeVisible();
+    await expect(labelForm.locator('[data-print-children]')).toBeVisible();
+    await expect(labelForm.locator('[data-print-preview]')).toBeVisible();
   });
 
   test('container print sends request with correct body', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
+    const labelForm = page.locator('[data-print-form][data-print-mode="container-label"]');
+
     // Uncheck default-checked boxes for this test
-    await page.uncheck('#cprint-date');
-    await page.uncheck('#cprint-children');
+    await labelForm.locator('[data-print-date]').uncheck();
+    await labelForm.locator('[data-print-children]').uncheck();
 
     // Select the first schema checkbox
-    const firstCheckbox = page.locator('input[name="cprint-schema"]').first();
+    const firstCheckbox = labelForm.locator('input[name="print-schema"]').first();
     await firstCheckbox.check();
     const schemaValue = await firstCheckbox.getAttribute('value');
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
     );
-    await page.click('#cprint-btn');
+    await labelForm.locator('[data-print-btn]').click();
     const response = await responsePromise;
 
     const body = response.request().postDataJSON();
@@ -89,14 +94,16 @@ test.describe('Container print', () => {
   test('print_date checkbox is included in request when checked', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
+    const labelForm = page.locator('[data-print-form][data-print-mode="container-label"]');
+
     // Select a schema
-    await page.locator('input[name="cprint-schema"]').first().check();
-    // print_date is checked by default now
+    await labelForm.locator('input[name="print-schema"]').first().check();
+    // print_date is checked by default
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
     );
-    await page.click('#cprint-btn');
+    await labelForm.locator('[data-print-btn]').click();
     const response = await responsePromise;
 
     const body = response.request().postDataJSON();
@@ -106,13 +113,15 @@ test.describe('Container print', () => {
   test('show_children checkbox is included in request when checked', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
+    const labelForm = page.locator('[data-print-form][data-print-mode="container-label"]');
+
     // Select a schema — show_children is checked by default
-    await page.locator('input[name="cprint-schema"]').first().check();
+    await labelForm.locator('input[name="print-schema"]').first().check();
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
     );
-    await page.click('#cprint-btn');
+    await labelForm.locator('[data-print-btn]').click();
     const response = await responsePromise;
 
     const body = response.request().postDataJSON();
@@ -122,9 +131,11 @@ test.describe('Container print', () => {
   test('batch print all items section is visible', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
-    // Batch item print section elements
-    await expect(page.locator('#container-print-printer')).toBeVisible();
-    await expect(page.locator('#container-print-template')).toBeVisible();
-    await expect(page.locator('#container-print-all-btn')).toBeVisible();
+    const bulkForm = page.locator('[data-print-form][data-print-mode="bulk-items"]');
+    await expect(bulkForm).toBeVisible();
+    await expect(bulkForm.locator('[data-print-printer]')).toBeVisible();
+    await expect(bulkForm.locator('[data-print-template]')).toBeVisible();
+    await expect(bulkForm.locator('[data-print-btn]')).toBeVisible();
+    await expect(bulkForm.locator('[data-print-preview]')).toBeVisible();
   });
 });

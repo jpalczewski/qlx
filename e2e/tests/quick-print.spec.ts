@@ -22,22 +22,25 @@ test.describe('Quick Print', () => {
     await page.click('a[href="/quick-print"]');
     await page.waitForResponse(r => r.url().includes('/quick-print'));
 
-    await expect(page.locator('#adhoc-text')).toBeVisible();
-    await expect(page.locator('#adhoc-printer')).toBeVisible();
-    await expect(page.locator('#adhoc-template')).toBeVisible();
-    await expect(page.locator('#adhoc-print-btn')).toBeVisible();
+    const form = page.locator('[data-print-form][data-print-mode="adhoc"]');
+    await expect(form.locator('[data-print-text]')).toBeVisible();
+    await expect(form.locator('[data-print-printer]')).toBeVisible();
+    await expect(form.locator('[data-print-template]')).toBeVisible();
+    await expect(form.locator('[data-print-btn]')).toBeVisible();
+    await expect(form.locator('[data-print-preview]')).toBeVisible();
   });
 
   test('print sends request with correct body', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/quick-print`, { waitUntil: 'domcontentloaded' });
 
-    await page.fill('#adhoc-text', 'Test label text');
-    await page.selectOption('#adhoc-printer', printerId);
+    const form = page.locator('[data-print-form][data-print-mode="adhoc"]');
+    await form.locator('[data-print-text]').fill('Test label text');
+    await form.locator('[data-print-printer]').selectOption(printerId);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/adhoc/print') && r.request().method() === 'POST'
     );
-    await page.click('#adhoc-print-btn');
+    await form.locator('[data-print-btn]').click();
     const response = await responsePromise;
 
     const body = response.request().postDataJSON();
@@ -50,13 +53,14 @@ test.describe('Quick Print', () => {
   test('print with print_date sends correct flag', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/quick-print`, { waitUntil: 'domcontentloaded' });
 
-    await page.fill('#adhoc-text', 'Dated label');
-    await page.check('#adhoc-print-date');
+    const form = page.locator('[data-print-form][data-print-mode="adhoc"]');
+    await form.locator('[data-print-text]').fill('Dated label');
+    await form.locator('[data-print-date]').check();
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/adhoc/print') && r.request().method() === 'POST'
     );
-    await page.click('#adhoc-print-btn');
+    await form.locator('[data-print-btn]').click();
     const response = await responsePromise;
 
     const body = response.request().postDataJSON();
@@ -64,14 +68,13 @@ test.describe('Quick Print', () => {
     expect(body.print_date).toBe(true);
   });
 
-  test('empty text shows validation error', async ({ page, app }) => {
+  test('empty text shows validation message', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/quick-print`, { waitUntil: 'domcontentloaded' });
 
-    // Leave textarea empty and click print
-    await page.click('#adhoc-print-btn');
+    const form = page.locator('[data-print-form][data-print-mode="adhoc"]');
+    await form.locator('[data-print-btn]').click();
 
-    // The JS handler sets result text client-side for empty text (i18n rendered server-side)
-    const result = page.locator('#adhoc-result');
+    const result = form.locator('[data-print-result]');
     await expect(result).not.toHaveText('');
   });
 });

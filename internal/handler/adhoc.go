@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"image/png"
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/print"
@@ -28,6 +30,7 @@ func NewAdhocHandler(pm *print.PrinterManager, prn *service.PrinterService,
 func (h *AdhocHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /quick-print", h.Page)
 	mux.HandleFunc("POST /adhoc/print", h.Print)
+	mux.HandleFunc("GET /adhoc/preview", h.Preview)
 }
 
 // Page renders the quick print page with printers and schema names.
@@ -82,4 +85,54 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 			"item_data": data,
 		})
 	}
+}
+
+// Preview handles GET /adhoc/preview — returns a label preview image for ad-hoc text.
+func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
+	text := r.URL.Query().Get("text")
+	if text == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "text parameter required"})
+		return
+	}
+
+	templateName := r.URL.Query().Get("template")
+	if templateName == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "template parameter required"})
+		return
+	}
+
+	data := label.LabelData{Name: text}
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+
+	if _, ok := label.GetSchema(templateName); ok {
+		img, err := label.Render(data, templateName, previewWidth(r), 203, opts)
+		if err != nil {
+			webutil.LogError("adhoc preview render failed: %v", err)
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, img); err != nil {
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": "png encode: " + err.Error()})
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "no-cache")
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			webutil.LogError("adhoc preview write failed: %v", err)
+		}
+		return
+	}
+
+	tmpl := h.templates.GetTemplate(templateName)
+	if tmpl == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]any{
+		"ok":        true,
+		"render":    "client",
+		"template":  tmpl,
+		"item_data": data,
+	})
 }

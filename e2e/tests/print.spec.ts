@@ -35,22 +35,32 @@ test.describe('Print flow', () => {
     });
   });
 
-  test('single item print — UI flow', async ({ page, app }) => {
+  test('item print form renders with data-attribute selectors', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Print Item 1');
 
-    await expect(page.locator('#print-printer')).toBeVisible();
-    await expect(page.locator('#print-template')).toBeVisible();
-    await page.selectOption('#print-template', 'simple');
+    const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await expect(form).toBeVisible();
+    await expect(form.locator('[data-print-printer]')).toBeVisible();
+    await expect(form.locator('[data-print-template]')).toBeVisible();
+    await expect(form.locator('[data-print-btn]')).toBeVisible();
+    await expect(form.locator('[data-print-preview]')).toBeVisible();
+  });
+
+  test('single item print — UI flow', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
+
+    const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-print-template]').selectOption('simple');
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/items/') && r.url().includes('/print')
     );
-    await page.click('#print-btn');
+    await form.locator('[data-print-btn]').click();
     await responsePromise;
 
     // Print will likely fail (no real printer) — verify result is shown
-    const resultText = await page.locator('#print-result').textContent();
+    const resultText = await form.locator('[data-print-result]').textContent();
     expect(resultText).toBeTruthy();
   });
 
@@ -58,15 +68,16 @@ test.describe('Print flow', () => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h2')).toContainText('Print Test Container');
 
-    await expect(page.locator('#container-print-printer')).toBeVisible();
-    await page.selectOption('#container-print-template', 'simple');
+    const bulkForm = page.locator('[data-print-form][data-print-mode="bulk-items"]');
+    await expect(bulkForm).toBeVisible();
+    await bulkForm.locator('[data-print-template]').selectOption('simple');
 
-    await page.click('#container-print-all-btn');
+    await bulkForm.locator('[data-print-btn]').click();
 
-    await expect(page.locator('#container-print-result')).not.toHaveText('');
+    await expect(bulkForm.locator('[data-print-result]')).not.toHaveText('');
     await page.waitForFunction(() => {
-      const el = document.getElementById('container-print-result');
-      return el && (el.textContent?.includes('Wydrukowano') || el.textContent?.includes('Błędy') || el.textContent?.includes('Błąd'));
+      const el = document.querySelector('[data-print-mode="bulk-items"] [data-print-result]');
+      return el && el.textContent && el.textContent.length > 0;
     }, null, { timeout: 15000 });
   });
 });

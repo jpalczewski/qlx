@@ -94,138 +94,45 @@
     </section>
 
     {{ if .Data.Container }}
-    <section class="print-section">
-        <h3>{{.T "inventory.print_container_label"}}</h3>
-        {{ if .Data.Printers }}
-        <div class="form-group">
-            <label for="cprint-printer">{{.T "inventory.printer"}}</label>
-            <select id="cprint-printer">
-                {{ range .Data.Printers }}
-                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
-                {{ end }}
-            </select>
-        </div>
-        <div class="form-group">
-            <label>{{.T "inventory.template"}}</label>
-            <div id="cprint-templates">
-                {{ range .Data.Schemas }}
-                <label class="checkbox-label"><input type="checkbox" name="cprint-schema" value="{{ . }}"> {{ . }}</label>
-                {{ end }}
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="checkbox-label"><input type="checkbox" id="cprint-date" checked> {{.T "inventory.print_date"}}</label>
-        </div>
-        <div class="form-group">
-            <label class="checkbox-label"><input type="checkbox" id="cprint-children" checked> {{.T "inventory.show_children"}}</label>
-        </div>
-        <button id="cprint-btn">{{.T "inventory.print_label"}}</button>
-        <div id="cprint-result"></div>
-        <script>
-        (function() {
-            var btn = document.getElementById('cprint-btn');
-            btn.addEventListener('click', function() {
-                var printer = document.getElementById('cprint-printer').value;
-                var checkboxes = document.querySelectorAll('input[name="cprint-schema"]:checked');
-                var templates = [];
-                for (var i = 0; i < checkboxes.length; i++) {
-                    templates.push(checkboxes[i].value);
-                }
-                if (templates.length === 0) {
-                    var result = document.getElementById('cprint-result');
-                    result.textContent = '{{.T "inventory.select_template"}}';
-                    return;
-                }
-                var printDate = document.getElementById('cprint-date').checked;
-                var showChildren = document.getElementById('cprint-children').checked;
-                var result = document.getElementById('cprint-result');
-                result.textContent = '...';
-                fetch('/containers/{{ .Data.Container.ID }}/print', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-                    body: JSON.stringify({printer_id: printer, templates: templates, print_date: printDate, show_children: showChildren})
-                }).then(function(r) { return r.json(); }).then(function(d) {
-                    if (d.ok) {
-                        result.textContent = '{{.T "inventory.printed"}}';
-                    } else {
-                        result.textContent = 'B\u0142\u0105d: ' + (d.error || 'unknown');
-                    }
-                }).catch(function(e) {
-                    result.textContent = 'B\u0142\u0105d: ' + e;
-                });
-            });
-        })();
-        </script>
-        {{ else }}
-        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
-        {{ end }}
-    </section>
+    {{ template "print-form" dict
+        "Endpoint" (printf "/containers/%s/print" .Data.Container.ID)
+        "EntityID" .Data.Container.ID
+        "Mode" "container-label"
+        "Title" (.T "inventory.print_container_label")
+        "PrinterLabel" (.T "inventory.printer")
+        "TemplateLabel" (.T "inventory.template")
+        "Printers" .Data.Printers
+        "Schemas" .Data.Schemas
+        "ShowDateCheckbox" true
+        "DateChecked" true
+        "DateLabel" (.T "inventory.print_date")
+        "ShowChildrenCheckbox" true
+        "ChildrenLabel" (.T "inventory.show_children")
+        "ShowTextInput" false
+        "ButtonText" (.T "inventory.print_label")
+        "PreviewLabel" (.T "labels.preview")
+        "NoPrintersText" (.T "inventory.no_printers")
+        "AddPrinterText" (.T "inventory.add_printer")
+    }}
 
-    <section class="print-section">
-        <h3>{{.T "inventory.print_labels"}}</h3>
-        {{ if .Data.Printers }}
-        <div class="form-group">
-            <label for="container-print-printer">{{.T "inventory.printer"}}</label>
-            <select id="container-print-printer" onchange="window.filterTemplates && window.filterTemplates('container-print-printer','container-print-template')">
-                {{ range .Data.Printers }}
-                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
-                {{ end }}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="container-print-template">{{.T "inventory.template"}}</label>
-            <select id="container-print-template">
-                {{ range .Data.Templates }}
-                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
-                {{ end }}
-                <optgroup label="Built-in">
-                    {{ range .Data.Schemas }}
-                    <option value="{{ . }}">{{ . }}</option>
-                    {{ end }}
-                </optgroup>
-            </select>
-        </div>
-        <button id="container-print-all-btn" onclick="(function(){
-            var printer = document.getElementById('container-print-printer').value;
-            var tmpl = document.getElementById('container-print-template').value;
-            var result = document.getElementById('container-print-result');
-            result.textContent = 'Pobieranie przedmiotów...';
-            fetch('/containers/{{ .Data.Container.ID }}/items-json', {headers: {'Accept': 'application/json'}})
-                .then(function(r){ return r.json(); })
-                .then(function(items){
-                    if (!items || items.length === 0) {
-                        result.textContent = 'Brak przedmiotów do wydruku.';
-                        return;
-                    }
-                    result.textContent = 'Drukowanie ' + items.length + ' etykiet...';
-                    var printed = 0;
-                    var errors = [];
-                    function printNext(i) {
-                        if (i >= items.length) {
-                            if (errors.length > 0) {
-                                result.textContent = 'Wydrukowano ' + printed + '/' + items.length + '. Błędy: ' + errors.join(', ');
-                            } else {
-                                result.textContent = 'Wydrukowano ' + printed + ' etykiet!';
-                            }
-                            return;
-                        }
-                        fetch('/items/' + items[i].id + '/print', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-                            body: JSON.stringify({printer_id: printer, template: tmpl})
-                        }).then(function(r){ return r.json(); }).then(function(d){
-                            if (d.ok) { printed++; } else { errors.push(items[i].name + ': ' + d.error); }
-                            printNext(i + 1);
-                        }).catch(function(e){ errors.push(items[i].name + ': ' + e); printNext(i + 1); });
-                    }
-                    printNext(0);
-                }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
-        })()">{{.T "inventory.print_all"}}</button>
-        {{ else }}
-        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
-        {{ end }}
-        <div id="container-print-result"></div>
-    </section>
+    {{ template "print-form" dict
+        "Endpoint" ""
+        "EntityID" .Data.Container.ID
+        "Mode" "bulk-items"
+        "Title" (.T "inventory.print_labels")
+        "PrinterLabel" (.T "inventory.printer")
+        "TemplateLabel" (.T "inventory.template")
+        "Printers" .Data.Printers
+        "Templates" .Data.Templates
+        "Schemas" .Data.Schemas
+        "ShowDateCheckbox" false
+        "ShowChildrenCheckbox" false
+        "ShowTextInput" false
+        "ButtonText" (.T "inventory.print_all")
+        "PreviewLabel" (.T "labels.preview")
+        "NoPrintersText" (.T "inventory.no_printers")
+        "AddPrinterText" (.T "inventory.add_printer")
+    }}
     {{ end }}
 
     {{ if .Data.Container }}

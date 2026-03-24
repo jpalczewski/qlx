@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="/static/css/tags/tag-autocomplete.css">
     <link rel="stylesheet" href="/static/css/labels/designer.css">
     <link rel="stylesheet" href="/static/css/labels/template-cards.css">
+    <link rel="stylesheet" href="/static/css/labels/preview.css">
     <link rel="stylesheet" href="/static/css/dialogs/dialog.css">
     <link rel="stylesheet" href="/static/css/dialogs/tree-picker.css">
     <link rel="stylesheet" href="/static/css/search/search.css">
@@ -46,6 +47,7 @@
     <script src="/static/js/tags/tag-hash.js" defer></script>
     <script src="/static/js/tags/tag-field.js" defer></script>
     <script src="/static/js/labels/template-filter.js" defer></script>
+    <script src="/static/js/labels/print-form.js" defer></script>
     <script src="/static/js/pickers.js" defer></script>
     <script src="/static/js/inventory/quick-entry.js" defer></script>
 </head>
@@ -66,6 +68,7 @@
     <main id="content">
         {{ template "content" . }}
     </main>
+    {{ template "preview-dialog" }}
     <div id="toast-container"></div>
 </body>
 </html>

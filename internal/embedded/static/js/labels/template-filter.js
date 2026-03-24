@@ -4,6 +4,7 @@
 
   /**
    * Filter template options by the selected printer's model.
+   * Supports both legacy ID-based selectors and data-attribute selectors.
    * @param {string} printerSelectId
    * @param {string} templateSelectId
    */
@@ -42,21 +43,7 @@
   // Backward compatibility
   window.filterTemplates = qlx.filterTemplates;
 
-  // Run filter on HTMX swap (when page loads via HTMX)
-  document.body.addEventListener("htmx:afterSwap", function () {
-    if (document.getElementById("print-printer")) {
-      qlx.filterTemplates("print-printer", "print-template");
-    }
-    if (document.getElementById("container-print-printer")) {
-      qlx.filterTemplates("container-print-printer", "container-print-template");
-    }
-  });
-
-  // Filter templates on initial page load
-  if (document.getElementById("print-printer")) {
-    qlx.filterTemplates("print-printer", "print-template");
-  }
-  if (document.getElementById("container-print-printer")) {
-    qlx.filterTemplates("container-print-printer", "container-print-template");
-  }
+  // Note: Template filtering for data-attribute-based print forms
+  // is handled by print-form.js. This file provides the legacy
+  // ID-based API for backward compatibility.
 })();

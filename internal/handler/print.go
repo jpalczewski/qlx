@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image/png"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/erxyi/qlx/internal/print"
@@ -59,7 +60,9 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /printers/{id}", h.DeletePrinter)
 	mux.HandleFunc("GET /encoders", h.ListEncoders)
 	mux.HandleFunc("POST /items/{id}/print", h.PrintItem)
+	mux.HandleFunc("GET /items/{id}/preview", h.PreviewItem)
 	mux.HandleFunc("POST /containers/{id}/print", h.PrintContainer)
+	mux.HandleFunc("GET /containers/{id}/preview", h.PreviewContainer)
 	mux.HandleFunc("POST /print-image", h.PrintImage)
 	mux.HandleFunc("GET /printers/status", h.AllStatuses)
 	mux.HandleFunc("GET /printers/{id}/status", h.Status)
@@ -181,6 +184,119 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 			"item_data": data,
 		})
 	}
+}
+
+// previewWidth extracts the width query parameter, defaulting to 384 (Niimbot B1).
+func previewWidth(r *http.Request) int {
+	if w, err := strconv.Atoi(r.URL.Query().Get("width")); err == nil && w > 0 {
+		return w
+	}
+	return 384
+}
+
+// renderPreview renders a label preview and writes the response.
+// For built-in schemas it returns a PNG image; for designer templates it returns JSON.
+func (h *PrintHandler) renderPreview(w http.ResponseWriter, r *http.Request,
+	data label.LabelData, templateName string, widthPx int) {
+
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+
+	if _, ok := label.GetSchema(templateName); ok {
+		img, err := label.Render(data, templateName, widthPx, 203, opts)
+		if err != nil {
+			webutil.LogError("preview render failed: %v", err)
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, img); err != nil {
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": "png encode: " + err.Error()})
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "no-cache")
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			webutil.LogError("preview write failed: %v", err)
+		}
+		return
+	}
+
+	tmpl := h.templates.GetTemplate(templateName)
+	if tmpl == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
+		return
+	}
+	webutil.JSON(w, http.StatusOK, map[string]any{
+		"ok":        true,
+		"render":    "client",
+		"template":  tmpl,
+		"item_data": data,
+	})
+}
+
+// PreviewItem handles GET /items/{id}/preview — returns a label preview image.
+func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
+	item := h.inventory.GetItem(r.PathValue("id"))
+	if item == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	path := h.inventory.ContainerPath(item.ContainerID)
+	data := label.LabelData{
+		Name:        item.Name,
+		Description: item.Description,
+		Location:    webutil.FormatContainerPath(path, " → "),
+		QRContent:   "/items/" + item.ID,
+		BarcodeID:   item.ID,
+		Icon:        item.Icon,
+		Tags:        h.resolveTags(item.TagIDs),
+	}
+
+	templateName := r.URL.Query().Get("template")
+	if templateName == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "template parameter required"})
+		return
+	}
+
+	h.renderPreview(w, r, data, templateName, previewWidth(r))
+}
+
+// PreviewContainer handles GET /containers/{id}/preview — returns a label preview image.
+func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) {
+	container := h.inventory.GetContainer(r.PathValue("id"))
+	if container == nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	path := h.inventory.ContainerPath(container.ParentID)
+	data := label.LabelData{
+		Name:        container.Name,
+		Description: container.Description,
+		Location:    webutil.FormatContainerPath(path, " → "),
+		QRContent:   "/containers/" + container.ID,
+		BarcodeID:   container.ID,
+		Icon:        container.Icon,
+		Tags:        h.resolveTags(container.TagIDs),
+	}
+
+	if r.URL.Query().Get("show_children") == "true" {
+		for _, child := range h.inventory.ContainerChildren(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
+		}
+		for _, item := range h.inventory.ContainerItems(container.ID) {
+			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
+		}
+	}
+
+	templateName := r.URL.Query().Get("template")
+	if templateName == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "template parameter required"})
+		return
+	}
+
+	h.renderPreview(w, r, data, templateName, previewWidth(r))
 }
 
 // PrintImage handles POST /print-image.
@@ -326,9 +442,14 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 				webutil.JSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("template %q not found", tmplName)})
 				return
 			}
-			// Client-side rendering not supported for multi-template container print;
-			// skip designer templates silently.
-			webutil.LogInfo("skipping designer template %q for container print (not supported)", tmplName)
+			// Designer template: return for client-side rendering (single template only)
+			webutil.JSON(w, http.StatusOK, map[string]any{
+				"ok":        true,
+				"render":    "client",
+				"template":  tmpl,
+				"item_data": data,
+			})
+			return
 		}
 	}
 

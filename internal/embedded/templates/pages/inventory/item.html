@@ -26,81 +26,24 @@
             </p>
         </section>
 
-        <section class="print-section">
-            <h3>{{.T "inventory.print_label"}}</h3>
-            {{ if .Data.Printers }}
-            <div class="form-group">
-                <label for="print-printer">{{.T "inventory.printer"}}</label>
-                <select id="print-printer" onchange="window.filterTemplates && window.filterTemplates('print-printer','print-template')">
-                    {{ range .Data.Printers }}
-                    <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
-                    {{ end }}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="print-template">{{.T "inventory.template"}}</label>
-                <select id="print-template">
-                    {{ range .Data.Templates }}
-                    <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
-                    {{ end }}
-                    <optgroup label="Built-in">
-                        {{ range .Data.Schemas }}
-                        <option value="{{ . }}">{{ . }}</option>
-                        {{ end }}
-                    </optgroup>
-                </select>
-            </div>
-            <button id="print-btn" onclick="(function(){
-                var printer = document.getElementById('print-printer').value;
-                var tmpl = document.getElementById('print-template').value;
-                var result = document.getElementById('print-result');
-                result.textContent = 'Drukowanie...';
-                fetch('/items/{{ .Data.Item.ID }}/print', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-                    body: JSON.stringify({printer_id: printer, template: tmpl})
-                }).then(function(r){ return r.json(); }).then(function(d){
-                    if (!d.ok) { result.textContent = 'Błąd: ' + (d.error || 'unknown'); return; }
-                    if (d.render !== 'client') { result.textContent = 'Wydrukowano!'; return; }
-                    // Client-side rendering for designer templates
-                    result.textContent = 'Renderowanie...';
-                    var elements = [];
-                    try { elements = JSON.parse(d.template.elements || '[]'); } catch(e) {}
-                    var itemData = d.item_data || {};
-                    var params = {
-                        name: itemData.Name || '', description: itemData.Description || '',
-                        location: itemData.Location || '', id: '{{ .Data.Item.ID }}',
-                        qr_url: '/items/{{ .Data.Item.ID }}',
-                        date: new Date().toISOString().slice(0,10),
-                        time: new Date().toTimeString().slice(0,5),
-                        printer: ''
-                    };
-                    // Create off-screen canvas for rendering
-                    var w = d.template.width_mm > 0 ? Math.round(d.template.width_mm * 203/25.4) : (d.template.width_px || 384);
-                    var h = d.template.height_mm > 0 ? Math.round(d.template.height_mm * 203/25.4) : (d.template.height_px || 240);
-                    var tmpCanvas = document.createElement('canvas');
-                    tmpCanvas.width = w; tmpCanvas.height = h;
-                    tmpCanvas.style.display = 'none';
-                    document.body.appendChild(tmpCanvas);
-                    var fc = new fabric.StaticCanvas(tmpCanvas, {width:w, height:h, backgroundColor:'#ffffff'});
-                    window.QlxFormat.qlxToCanvas(fc, elements, params).then(function(){
-                        fc.renderAll();
-                        return window.LabelPrint.print(fc, printer, 2);
-                    }).then(function(){
-                        result.textContent = 'Wydrukowano!';
-                    }).catch(function(e){
-                        result.textContent = 'Błąd: ' + e;
-                    }).finally(function(){
-                        fc.dispose();
-                        if(tmpCanvas.parentNode) tmpCanvas.parentNode.removeChild(tmpCanvas);
-                    });
-                }).catch(function(e){ result.textContent = 'Błąd: ' + e; });
-            })()">{{.T "action.print"}}</button>
-            {{ else }}
-            <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
-            {{ end }}
-            <div id="print-result"></div>
-        </section>
+        {{ template "print-form" dict
+            "Endpoint" (printf "/items/%s/print" .Data.Item.ID)
+            "EntityID" .Data.Item.ID
+            "Mode" "item"
+            "Title" (.T "inventory.print_label")
+            "PrinterLabel" (.T "inventory.printer")
+            "TemplateLabel" (.T "inventory.template")
+            "Printers" .Data.Printers
+            "Templates" .Data.Templates
+            "Schemas" .Data.Schemas
+            "ShowDateCheckbox" false
+            "ShowChildrenCheckbox" false
+            "ShowTextInput" false
+            "ButtonText" (.T "action.print")
+            "PreviewLabel" (.T "labels.preview")
+            "NoPrintersText" (.T "inventory.no_printers")
+            "AddPrinterText" (.T "inventory.add_printer")
+        }}
 
         <section class="actions">
             <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="button">{{.T "inventory.edit"}}</a>
