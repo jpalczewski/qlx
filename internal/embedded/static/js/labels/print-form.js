@@ -161,7 +161,15 @@
     var loadingEl = qs(dialog, "[data-preview-loading]");
     var ditherCheckbox = qs(dialog, "[data-preview-dither]");
 
+    // Set i18n labels each time dialog opens (translations may not be loaded at init time)
     if (titleEl) titleEl.textContent = qlx.t("labels.preview_title");
+    var ditherLabel = qs(dialog, "[data-preview-dither-label]");
+    if (ditherLabel) ditherLabel.textContent = qlx.t("labels.show_dithering");
+    var cancelLabel = qs(dialog, "[data-preview-cancel-label]");
+    if (cancelLabel) cancelLabel.textContent = qlx.t("action.cancel");
+    var printLabel = qs(dialog, "[data-preview-print-label]");
+    if (printLabel) printLabel.textContent = qlx.t("action.print");
+
     clearChildren(contentEl);
     if (loadingEl) {
       var spinner = loadingEl.cloneNode(true);
@@ -510,14 +518,6 @@
     var dialog = getPreviewDialog();
     if (!dialog || dialog._initialized) return;
     dialog._initialized = true;
-
-    // Set text labels from i18n
-    var ditherLabel = qs(dialog, "[data-preview-dither-label]");
-    if (ditherLabel) ditherLabel.textContent = qlx.t("labels.show_dithering");
-    var cancelLabel = qs(dialog, "[data-preview-cancel-label]");
-    if (cancelLabel) cancelLabel.textContent = qlx.t("action.cancel");
-    var printLabel = qs(dialog, "[data-preview-print-label]");
-    if (printLabel) printLabel.textContent = qlx.t("action.print");
 
     var closeBtns = qsa(dialog, "[data-preview-close]");
     for (var i = 0; i < closeBtns.length; i++) {

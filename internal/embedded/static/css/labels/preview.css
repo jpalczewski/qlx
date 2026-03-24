@@ -109,6 +109,37 @@
   gap: var(--space-sm);
 }
 
+.preview-dialog-actions button {
+  padding: 0.5rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.preview-dialog-actions button[data-preview-print] {
+  background: var(--color-accent);
+  color: white;
+  border: 1px solid var(--color-accent);
+}
+
+.preview-dialog-actions button[data-preview-print]:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.preview-dialog-actions button[data-preview-close] {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.preview-dialog-actions button[data-preview-close]:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 /* ---- Print section (standalone) ---- */
 
 .print-section {
