@@ -125,13 +125,13 @@ test.describe('Label preview', () => {
   test('container label preview works', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
-    const form = page.locator('[data-print-form][data-print-mode="container-label"]');
-    await form.locator('input[name="print-schema"]').first().check();
+    const containerTab = page.locator('[data-tab-content="container-label"]');
+    await containerTab.locator('input[name="print-schema"]').first().check();
 
     const previewResponse = page.waitForResponse(r =>
       r.url().includes(`/containers/${containerId}/preview`) && r.request().method() === 'GET'
     );
-    await form.locator('[data-print-preview]').click();
+    await containerTab.locator('[data-print-preview]').click();
     await previewResponse;
 
     const dialog = page.locator('[data-preview-dialog]');

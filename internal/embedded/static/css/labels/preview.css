@@ -109,9 +109,100 @@
   gap: var(--space-sm);
 }
 
+/* ---- Print section (standalone, e.g. item detail) ---- */
+
+.print-section {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+.print-section h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--font-size-lg);
+}
+
 .print-actions {
   display: flex;
   gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+/* ---- Print panel (tabbed, container page) ---- */
+
+.print-panel {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+.print-panel-header {
+  margin-bottom: var(--space-sm);
+}
+
+.print-panel-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+}
+
+.print-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.print-tab:hover {
+  color: var(--color-text);
+}
+
+.print-tab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.print-tab-content {
+  display: none;
+}
+
+.print-tab-content.active {
+  display: block;
+}
+
+/* ---- Schema checkbox grid ---- */
+
+.schema-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--space-xs) var(--space-md);
+}
+
+.schema-grid .checkbox-label {
+  font-size: var(--font-size-sm);
+}
+
+/* ---- Print options row ---- */
+
+.print-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  margin-bottom: var(--space-sm);
+}
+
+.print-options .checkbox-label {
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 600px) {

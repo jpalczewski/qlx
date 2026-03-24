@@ -94,45 +94,29 @@
     </section>
 
     {{ if .Data.Container }}
-    {{ template "print-form" dict
-        "Endpoint" (printf "/containers/%s/print" .Data.Container.ID)
-        "EntityID" .Data.Container.ID
-        "Mode" "container-label"
-        "Title" (.T "inventory.print_container_label")
-        "PrinterLabel" (.T "inventory.printer")
-        "TemplateLabel" (.T "inventory.template")
-        "Printers" .Data.Printers
-        "Schemas" .Data.Schemas
-        "ShowDateCheckbox" true
-        "DateChecked" true
-        "DateLabel" (.T "inventory.print_date")
-        "ShowChildrenCheckbox" true
-        "ChildrenLabel" (.T "inventory.show_children")
-        "ShowTextInput" false
-        "ButtonText" (.T "inventory.print_label")
-        "PreviewLabel" (.T "labels.preview")
-        "NoPrintersText" (.T "inventory.no_printers")
-        "AddPrinterText" (.T "inventory.add_printer")
-    }}
-
-    {{ template "print-form" dict
-        "Endpoint" ""
-        "EntityID" .Data.Container.ID
-        "Mode" "bulk-items"
-        "Title" (.T "inventory.print_labels")
+    {{ if .Data.Printers }}
+    {{ template "print-panel" dict
         "PrinterLabel" (.T "inventory.printer")
         "TemplateLabel" (.T "inventory.template")
         "Printers" .Data.Printers
         "Templates" .Data.Templates
         "Schemas" .Data.Schemas
-        "ShowDateCheckbox" false
-        "ShowChildrenCheckbox" false
-        "ShowTextInput" false
-        "ButtonText" (.T "inventory.print_all")
+        "EntityID" .Data.Container.ID
+        "ContainerEndpoint" (printf "/containers/%s/print" .Data.Container.ID)
+        "ContainerTabLabel" (.T "inventory.print_container_label")
+        "BulkTabLabel" (.T "inventory.print_labels")
+        "DateLabel" (.T "inventory.print_date")
+        "ChildrenLabel" (.T "inventory.show_children")
         "PreviewLabel" (.T "labels.preview")
-        "NoPrintersText" (.T "inventory.no_printers")
-        "AddPrinterText" (.T "inventory.add_printer")
+        "ContainerPrintLabel" (.T "inventory.print_label")
+        "BulkPrintLabel" (.T "inventory.print_all")
     }}
+    {{ else }}
+    <section class="print-section">
+        <h3>{{.T "inventory.print_label"}}</h3>
+        <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
+    </section>
+    {{ end }}
     {{ end }}
 
     {{ if .Data.Container }}

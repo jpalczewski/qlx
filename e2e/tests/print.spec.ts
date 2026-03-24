@@ -68,15 +68,19 @@ test.describe('Print flow', () => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h2')).toContainText('Print Test Container');
 
-    const bulkForm = page.locator('[data-print-form][data-print-mode="bulk-items"]');
-    await expect(bulkForm).toBeVisible();
-    await bulkForm.locator('[data-print-template]').selectOption('simple');
+    const panel = page.locator('.print-panel');
+    // Switch to bulk tab
+    await panel.locator('.print-tab[data-tab="bulk-items"]').click();
 
-    await bulkForm.locator('[data-print-btn]').click();
+    const bulkTab = panel.locator('[data-tab-content="bulk-items"]');
+    await expect(bulkTab).toBeVisible();
+    await bulkTab.locator('[data-print-template]').selectOption('simple');
 
-    await expect(bulkForm.locator('[data-print-result]')).not.toHaveText('');
+    await bulkTab.locator('[data-print-btn]').click();
+
+    await expect(bulkTab.locator('[data-print-result]')).not.toHaveText('');
     await page.waitForFunction(() => {
-      const el = document.querySelector('[data-print-mode="bulk-items"] [data-print-result]');
+      const el = document.querySelector('[data-tab-content="bulk-items"] [data-print-result]');
       return el && el.textContent && el.textContent.length > 0;
     }, null, { timeout: 15000 });
   });

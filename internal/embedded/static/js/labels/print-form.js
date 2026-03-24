@@ -19,7 +19,12 @@
 
   function getFormValues(form) {
     var mode = form.getAttribute("data-print-mode");
+    // Look for printer select: local first, then panel-level
     var printerSel = qs(form, "[data-print-printer]");
+    if (!printerSel) {
+      var panel = form.closest(".print-panel");
+      if (panel) printerSel = qs(panel, "[data-panel-printer]");
+    }
     var printerId = printerSel ? printerSel.value : "";
     var printerModel = "";
     if (printerSel && printerSel.selectedIndex >= 0) {
@@ -548,11 +553,79 @@
     });
   }
 
+  function initPanel(panel) {
+    if (panel._panelInit) return;
+    panel._panelInit = true;
+
+    // Tab switching
+    var tabs = qsa(panel, ".print-tab");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener("click", function () {
+        var tabName = this.getAttribute("data-tab");
+        var allTabs = qsa(panel, ".print-tab");
+        var allContents = qsa(panel, ".print-tab-content");
+        for (var j = 0; j < allTabs.length; j++) {
+          allTabs[j].classList.toggle("active", allTabs[j].getAttribute("data-tab") === tabName);
+        }
+        for (var k = 0; k < allContents.length; k++) {
+          allContents[k].classList.toggle("active", allContents[k].getAttribute("data-tab-content") === tabName);
+        }
+      });
+    }
+
+    // Panel printer → filter templates in child forms
+    var panelPrinter = qs(panel, "[data-panel-printer]");
+    if (panelPrinter) {
+      panelPrinter.addEventListener("change", function () {
+        var forms = qsa(panel, "[data-print-form]");
+        for (var f = 0; f < forms.length; f++) {
+          filterTemplatesInPanel(forms[f], panelPrinter);
+        }
+      });
+      // Initial filter
+      var forms = qsa(panel, "[data-print-form]");
+      for (var f = 0; f < forms.length; f++) {
+        filterTemplatesInPanel(forms[f], panelPrinter);
+      }
+    }
+  }
+
+  function filterTemplatesInPanel(form, printerSel) {
+    var templateSel = qs(form, "[data-print-template]");
+    if (!printerSel || !templateSel) return;
+
+    var selected = printerSel.options[printerSel.selectedIndex];
+    var model = selected ? selected.getAttribute("data-model") : "";
+    var firstVisible = null;
+    var currentHidden = false;
+
+    Array.from(templateSel.options).forEach(function (opt) {
+      var target = opt.getAttribute("data-target");
+      if (!target || target === "universal" || target === "printer:" + model) {
+        opt.hidden = false;
+        opt.disabled = false;
+        if (!firstVisible) firstVisible = opt;
+      } else {
+        opt.hidden = true;
+        opt.disabled = true;
+        if (opt.selected) currentHidden = true;
+      }
+    });
+
+    if (currentHidden && firstVisible) {
+      firstVisible.selected = true;
+    }
+  }
+
   function initAll(root) {
     root = root || document;
     var forms = qsa(root, "[data-print-form]");
     for (var i = 0; i < forms.length; i++) {
       initForm(forms[i]);
+    }
+    var panels = qsa(root, ".print-panel");
+    for (var p = 0; p < panels.length; p++) {
+      initPanel(panels[p]);
     }
     initDialog();
   }
