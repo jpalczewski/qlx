@@ -80,3 +80,43 @@ func TestSearchStore_Tags_Empty(t *testing.T) {
 		t.Error("expected nil for empty query")
 	}
 }
+
+func TestSearchStore_Notes(t *testing.T) {
+	db := testStore(t)
+
+	c := db.CreateContainer("", "Box", "", "", "")
+	db.CreateNote(c.ID, "", "Fragile", "Handle with care", "", "")
+	db.CreateNote(c.ID, "", "Review", "Check date", "", "")
+
+	results := db.SearchNotes("Fragile")
+	if len(results) != 1 {
+		t.Errorf("got %d results, want 1", len(results))
+	}
+	if len(results) > 0 && results[0].Title != "Fragile" {
+		t.Errorf("got title %q, want %q", results[0].Title, "Fragile")
+	}
+}
+
+func TestSearchStore_Notes_Content(t *testing.T) {
+	db := testStore(t)
+
+	c := db.CreateContainer("", "Box", "", "", "")
+	db.CreateNote(c.ID, "", "Note", "ceramic capacitor inside", "", "")
+
+	results := db.SearchNotes("capacitor")
+	if len(results) != 1 {
+		t.Errorf("got %d results, want 1", len(results))
+	}
+}
+
+func TestSearchStore_Notes_Empty(t *testing.T) {
+	db := testStore(t)
+
+	c := db.CreateContainer("", "Box", "", "", "")
+	db.CreateNote(c.ID, "", "Note", "content", "", "")
+
+	results := db.SearchNotes("")
+	if results != nil {
+		t.Error("expected nil for empty query")
+	}
+}

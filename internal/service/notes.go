@@ -12,12 +12,16 @@ import (
 type NoteService struct {
 	store interface {
 		store.NoteStore
+		store.ContainerStore
+		store.ItemStore
 	}
 }
 
 // NewNoteService creates a new NoteService backed by the given store.
 func NewNoteService(s interface {
 	store.NoteStore
+	store.ContainerStore
+	store.ItemStore
 }) *NoteService {
 	return &NoteService{store: s}
 }
@@ -43,6 +47,16 @@ func (s *NoteService) CreateNote(containerID, itemID, title, content, color, ico
 	}
 	if (containerID == "") == (itemID == "") {
 		return nil, fmt.Errorf("exactly one of container_id or item_id must be set")
+	}
+	if containerID != "" {
+		if s.store.GetContainer(containerID) == nil {
+			return nil, store.ErrContainerNotFound
+		}
+	}
+	if itemID != "" {
+		if s.store.GetItem(itemID) == nil {
+			return nil, store.ErrItemNotFound
+		}
 	}
 	note := s.store.CreateNote(containerID, itemID, title, content, color, icon)
 	return note, nil

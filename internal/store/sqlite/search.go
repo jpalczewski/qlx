@@ -83,7 +83,7 @@ func (s *SQLiteStore) SearchNotes(query string) []store.Note {
 		return nil
 	}
 	rows, err := s.db.Query(`
-		SELECT n.`+noteSelectCols+`
+		SELECT n.id, n.container_id, n.item_id, n.title, n.content, n.color, n.icon, n.created_at
 		FROM notes n
 		JOIN notes_fts ON notes_fts.rowid = n.rowid
 		WHERE notes_fts MATCH ?
@@ -93,7 +93,7 @@ func (s *SQLiteStore) SearchNotes(query string) []store.Note {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var notes []store.Note
+	notes := make([]store.Note, 0)
 	for rows.Next() {
 		note, err := scanNote(rows)
 		if err != nil {

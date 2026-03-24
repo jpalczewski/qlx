@@ -91,7 +91,7 @@ func (s *SQLiteStore) ContainerNotes(containerID string) []store.Note {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var notes []store.Note
+	notes := make([]store.Note, 0)
 	for rows.Next() {
 		note, err := scanNote(rows)
 		if err != nil {
@@ -111,7 +111,7 @@ func (s *SQLiteStore) ItemNotes(itemID string) []store.Note {
 	}
 	defer func() { _ = rows.Close() }()
 
-	var notes []store.Note
+	notes := make([]store.Note, 0)
 	for rows.Next() {
 		note, err := scanNote(rows)
 		if err != nil {
