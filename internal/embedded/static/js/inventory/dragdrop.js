@@ -147,7 +147,7 @@
     dragData = null;
 
     fetch(url, {
-      method: "POST",
+      method: "PATCH",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body
     })
@@ -175,10 +175,9 @@
     initDragDrop();
   }
 
-  // Re-init after HTMX swaps
-  document.body.addEventListener("htmx:afterSwap", function (event) {
-    if (!event.detail || !event.detail.target) return;
-    if (event.detail.target.id !== "content") return;
+  // Re-init after any HTMX swap (covers both full #content swaps and
+  // partial swaps like quick-entry adding a new container to the list).
+  document.body.addEventListener("htmx:afterSwap", function () {
     initDragDrop();
   });
 })();
