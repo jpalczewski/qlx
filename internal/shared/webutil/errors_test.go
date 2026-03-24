@@ -22,6 +22,7 @@ func TestStoreHTTPStatus(t *testing.T) {
 		{store.ErrCycleDetected, 400},
 		{store.ErrInvalidParent, 400},
 		{store.ErrInvalidContainer, 400},
+		{store.ErrNoteNotFound, 404},
 	}
 	for _, tt := range tests {
 		if got := StoreHTTPStatus(tt.err); got != tt.status {

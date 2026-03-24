@@ -10,5 +10,6 @@ type Store interface {
 	PrinterStore
 	TemplateStore
 	ExportStore
+	NoteStore
 	Close() error
 }
