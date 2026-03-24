@@ -80,4 +80,6 @@ type ExportStore interface {
 	ExportData() (map[string]*Container, map[string]*Item)
 	AllItems() []Item
 	AllContainers() []Container
+	ExportItems(containerID string, recursive bool) ([]ExportItem, error)
+	ExportContainerTree(containerID string) ([]Container, error)
 }

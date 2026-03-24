@@ -49,3 +49,15 @@ func (s *SQLiteStore) ExportData() (map[string]*store.Container, map[string]*sto
 
 	return cMap, iMap
 }
+
+// ExportItems returns denormalized items for a container, optionally including
+// items from descendant containers. This is a stub — full implementation in Task 3.
+func (s *SQLiteStore) ExportItems(containerID string, recursive bool) ([]store.ExportItem, error) {
+	return nil, nil
+}
+
+// ExportContainerTree returns the container and all its descendants in
+// breadth-first order. This is a stub — full implementation in Task 3.
+func (s *SQLiteStore) ExportContainerTree(containerID string) ([]store.Container, error) {
+	return nil, nil
+}
