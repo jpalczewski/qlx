@@ -31,6 +31,7 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 			"containers": []any{},
 			"items":      []any{},
 			"tags":       []any{},
+			"notes":      []any{},
 		}
 		h.resp.Respond(w, r, http.StatusOK, data, "search", func() any {
 			return SearchResultsData{Query: q}
@@ -41,11 +42,13 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 	containers := h.search.SearchContainers(q)
 	items := h.search.SearchItems(q)
 	tags := h.search.SearchTags(q)
+	notes := h.search.SearchNotes(q)
 
 	data := map[string]any{
 		"containers": containers,
 		"items":      items,
 		"tags":       tags,
+		"notes":      notes,
 	}
 
 	h.resp.Respond(w, r, http.StatusOK, data, "search", func() any {
@@ -54,6 +57,7 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 			Containers: containers,
 			Items:      items,
 			Tags:       tags,
+			Notes:      notes,
 		}
 	})
 }

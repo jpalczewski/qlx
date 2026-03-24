@@ -35,6 +35,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 	printers := service.NewPrinterService(s)
 	templates := service.NewTemplateService(s)
 	export := service.NewExportService(s)
+	notes := service.NewNoteService(s)
 
 	// Build responder with template rendering
 	tmplMap := handler.LoadTemplates(tags.ResolveTagIDs)
@@ -52,6 +53,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 		handler.NewPrintHandler(pm, inventory, printers, templates, tags, resp),
 		handler.NewTemplateHandler(templates, pm, resp),
 		handler.NewExportHandler(export, inventory),
+		handler.NewNoteHandler(notes, inventory, resp),
 		handler.NewPartialsHandler(inventory, search, tags, resp),
 		handler.NewSettingsHandler(resp),
 		handler.NewI18nHandler(translations),
