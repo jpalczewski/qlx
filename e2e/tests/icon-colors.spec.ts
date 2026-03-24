@@ -102,14 +102,14 @@ test.describe('Icon and color system', () => {
     // Navigate to the container's detail page (not root list)
     await page.goto(`${app.baseURL}/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
 
-    // Container header shows entity-icon with an svg
-    const entityIcon = page.locator('.container-header .entity-icon');
+    // Container detail shows entity-icon with an svg
+    const entityIcon = page.locator('.container-detail-header .entity-icon');
     await expect(entityIcon).toBeVisible();
     await expect(entityIcon.locator('svg')).toBeVisible();
 
-    // Container header border uses the blue hex color (inline style)
-    const containerHeader = page.locator('.container-header');
-    const style = await containerHeader.getAttribute('style');
+    // Container detail border uses the blue hex color (inline style)
+    const containerDetail = page.locator('.container-detail');
+    const style = await containerDetail.getAttribute('style');
     expect(style).toContain(BLUE_HEX);
   });
 

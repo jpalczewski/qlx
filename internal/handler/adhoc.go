@@ -28,6 +28,7 @@ func NewAdhocHandler(pm *print.PrinterManager, prn *service.PrinterService,
 func (h *AdhocHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /quick-print", h.Page)
 	mux.HandleFunc("POST /adhoc/print", h.Print)
+	mux.HandleFunc("GET /adhoc/preview", h.Preview)
 }
 
 // Page renders the quick print page with printers and schema names.
@@ -55,13 +56,9 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := label.LabelData{
-		Name: req.Text,
-	}
-
+	data := label.LabelData{Name: req.Text}
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
 
-	// Check if this is a built-in schema or designer template
 	if _, ok := label.GetSchema(req.Template); ok {
 		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
 			webutil.LogError("adhoc print failed: %v", err)
@@ -69,17 +66,27 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
-	} else {
-		tmpl := h.templates.GetTemplate(req.Template)
-		if tmpl == nil {
-			webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "template not found"})
-			return
-		}
-		webutil.JSON(w, http.StatusOK, map[string]any{
-			"ok":        true,
-			"render":    "client",
-			"template":  tmpl,
-			"item_data": data,
-		})
+		return
 	}
+
+	respondClientRender(w, h.templates, req.Template, data)
+}
+
+// Preview handles GET /adhoc/preview — returns a label preview image for ad-hoc text.
+func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
+	text := r.URL.Query().Get("text")
+	if text == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "text parameter required"})
+		return
+	}
+
+	templateName := r.URL.Query().Get("template")
+	if templateName == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "template parameter required"})
+		return
+	}
+
+	data := label.LabelData{Name: text}
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
 }

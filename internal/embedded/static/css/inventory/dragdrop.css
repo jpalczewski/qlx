@@ -11,10 +11,12 @@
     opacity: 0.4;
 }
 
-.drag-over {
-    border-color: var(--color-accent) !important;
+.drag-over,
+li.drag-over,
+a.drag-over {
+    border-color: var(--color-accent);
     box-shadow: 0 0 0 2px var(--color-accent);
-    background: rgba(233, 69, 96, 0.1) !important;
+    background: rgba(233, 69, 96, 0.1);
 }
 
 .breadcrumb a[data-drop-id].drag-over {

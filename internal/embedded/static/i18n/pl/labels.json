@@ -21,5 +21,15 @@
   "labels.tool_qr": "Kod QR",
   "labels.tool_barcode": "Kod kreskowy",
   "labels.tool_line": "Linia",
-  "labels.tool_image": "Obraz"
+  "labels.tool_image": "Obraz",
+  "labels.preview": "Podgląd",
+  "labels.preview_title": "Podgląd etykiety",
+  "labels.show_dithering": "Pokaż dithering",
+  "labels.rendering": "Renderowanie...",
+  "labels.fetching_items": "Pobieranie przedmiotów...",
+  "labels.no_items_to_print": "Brak przedmiotów do wydruku.",
+  "labels.printing_count": "Drukowanie {count} etykiet...",
+  "labels.printed_count": "Wydrukowano {count} etykiet!",
+  "labels.printed_with_errors": "Wydrukowano {printed}/{total}. Błędy: {errors}",
+  "labels.preview_bulk_note": "Druk zbiorczy wydrukuje wszystkie przedmioty bez podglądu."
 }

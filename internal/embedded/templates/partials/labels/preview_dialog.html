@@ -1,0 +1,27 @@
+{{ define "preview-dialog" }}
+<dialog data-preview-dialog class="preview-dialog">
+    <article>
+        <header class="preview-dialog-header">
+            <h3 data-preview-title></h3>
+            <button data-preview-close class="preview-close" aria-label="Close">&times;</button>
+        </header>
+        <div class="preview-dialog-body">
+            <div data-preview-content class="preview-content">
+                <div class="preview-loading" data-preview-loading>
+                    <span class="spinner"></span>
+                </div>
+            </div>
+        </div>
+        <footer class="preview-dialog-footer">
+            <label class="checkbox-label">
+                <input type="checkbox" data-preview-dither>
+                <span data-preview-dither-label></span>
+            </label>
+            <div class="preview-dialog-actions">
+                <button class="secondary" data-preview-close data-preview-cancel-label></button>
+                <button data-preview-print data-preview-print-label></button>
+            </div>
+        </footer>
+    </article>
+</dialog>
+{{ end }}

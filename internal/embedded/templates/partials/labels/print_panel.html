@@ -1,0 +1,65 @@
+{{ define "print-panel" }}
+<section class="print-panel">
+    <div class="print-panel-header">
+        <div class="form-group">
+            <label>{{ .PrinterLabel }}</label>
+            <select data-panel-printer>
+                {{ range .Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+    </div>
+    <div class="print-panel-tabs">
+        <button class="print-tab active" data-tab="container-label">{{ .ContainerTabLabel }}</button>
+        <button class="print-tab" data-tab="bulk-items">{{ .BulkTabLabel }}</button>
+    </div>
+    <div class="print-tab-content active" data-tab-content="container-label"
+         data-print-form
+         data-endpoint="{{ .ContainerEndpoint }}"
+         data-entity-id="{{ .EntityID }}"
+         data-print-mode="container-label">
+        <div class="form-group">
+            <label>{{ .TemplateLabel }}</label>
+            <div class="schema-grid" data-print-checkboxes>
+                {{ range .Schemas }}
+                <label class="checkbox-label"><input type="checkbox" name="print-schema" value="{{ . }}"> {{ . }}</label>
+                {{ end }}
+            </div>
+        </div>
+        <div class="print-options">
+            <label class="checkbox-label"><input type="checkbox" data-print-date checked> {{ .DateLabel }}</label>
+            <label class="checkbox-label"><input type="checkbox" data-print-children checked> {{ .ChildrenLabel }}</label>
+        </div>
+        <div class="print-actions">
+            <button data-print-preview class="button secondary">{{ .PreviewLabel }}</button>
+            <button data-print-btn>{{ .ContainerPrintLabel }}</button>
+        </div>
+        <div data-print-result></div>
+    </div>
+    <div class="print-tab-content" data-tab-content="bulk-items"
+         data-print-form
+         data-endpoint=""
+         data-entity-id="{{ .EntityID }}"
+         data-print-mode="bulk-items">
+        <div class="form-group">
+            <label>{{ .TemplateLabel }}</label>
+            <select data-print-template>
+                {{ range .Templates }}
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
+                {{ end }}
+                <optgroup label="Built-in">
+                    {{ range .Schemas }}
+                    <option value="{{ . }}">{{ . }}</option>
+                    {{ end }}
+                </optgroup>
+            </select>
+        </div>
+        <div class="print-actions">
+            <button data-print-preview class="button secondary">{{ .PreviewLabel }}</button>
+            <button data-print-btn>{{ .BulkPrintLabel }}</button>
+        </div>
+        <div data-print-result></div>
+    </div>
+</section>
+{{ end }}

@@ -1,38 +1,135 @@
+/* ---- Item detail card ---- */
+
 .item-detail {
     background: var(--color-bg-card);
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: var(--space-lg);
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
 }
 
-.item-detail .name {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+/* Header: icon + title + description inline */
+.item-detail .item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
 }
 
-.item-detail .description {
-    color: var(--color-text-muted);
-    margin-bottom: 1rem;
+.item-detail .item-header .entity-icon.large {
+    flex-shrink: 0;
+    margin-top: 0.15rem;
 }
 
-.item-detail .location {
-    font-size: 0.9rem;
-    color: var(--color-text-muted);
-    margin-bottom: 1rem;
+.item-detail .item-header-text {
+    min-width: 0;
 }
+
+.item-detail .item-header-text h1 {
+    margin: 0;
+    font-size: var(--font-size-h1);
+    line-height: 1.2;
+}
+
+.item-detail .item-desc {
+    color: var(--color-text-muted);
+    margin: var(--space-xs) 0 0 0;
+    font-size: var(--font-size-base);
+}
+
+/* Meta: tags + location */
+.item-detail .item-meta {
+    margin-bottom: var(--space-md);
+}
+
+.item-detail .item-location {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-top: var(--space-sm);
+}
+
+.item-detail .item-location-label {
+    font-weight: 500;
+}
+
+.item-detail .item-location a {
+    color: var(--color-accent);
+}
+
+.item-detail .item-location a:hover {
+    color: var(--color-accent-hover);
+}
+
+/* Footer: actions + back link */
+.item-detail .item-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-detail .item-footer-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+/* Unified small action buttons */
+.btn-action {
+    display: inline-block;
+    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+    background: var(--color-bg-alt);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-action:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.btn-action-danger {
+    color: var(--color-accent);
+    border-color: transparent;
+    background: transparent;
+}
+
+.btn-action-danger:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: white;
+}
+
+/* Back link */
+.item-detail .item-back {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-decoration: none;
+}
+
+.item-detail .item-back:hover {
+    color: var(--color-accent);
+}
+
+/* ---- Printer card ---- */
 
 .printer-status {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     color: var(--color-text-muted);
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
     border-top: 1px solid var(--color-border);
 }
 
 .printer-card {
     background: var(--color-bg-card);
-    padding: 1rem;
-    border-radius: 8px;
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
 }

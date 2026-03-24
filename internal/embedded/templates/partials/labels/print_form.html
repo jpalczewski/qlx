@@ -1,0 +1,73 @@
+{{ define "print-form" }}
+<div class="print-section" data-print-form
+     data-endpoint="{{ .Endpoint }}"
+     data-entity-id="{{ .EntityID }}"
+     data-print-mode="{{ .Mode }}">
+    {{ if .Title }}<h3>{{ .Title }}</h3>{{ end }}
+    {{ if .Printers }}
+    {{ if .ShowTextInput }}
+    <div class="form-group">
+        <label>{{ .TextLabel }}</label>
+        <textarea data-print-text rows="3" class="form-control"></textarea>
+    </div>
+    {{ end }}
+    {{ if eq .Mode "container-label" }}
+    <div class="form-group">
+        <label>{{ .PrinterLabel }}</label>
+        <select data-print-printer>
+            {{ range .Printers }}
+            <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>{{ .TemplateLabel }}</label>
+        <div class="schema-grid" data-print-checkboxes>
+            {{ range .Schemas }}
+            <label class="checkbox-label"><input type="checkbox" name="print-schema" value="{{ . }}"> {{ . }}</label>
+            {{ end }}
+        </div>
+    </div>
+    {{ else }}
+    <div class="print-row">
+        <div class="form-group">
+            <label>{{ .PrinterLabel }}</label>
+            <select data-print-printer>
+                {{ range .Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>{{ .TemplateLabel }}</label>
+            <select data-print-template>
+                {{ range .Templates }}
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
+                {{ end }}
+                <optgroup label="Built-in">
+                    {{ range .Schemas }}
+                    <option value="{{ . }}">{{ . }}</option>
+                    {{ end }}
+                </optgroup>
+            </select>
+        </div>
+    </div>
+    {{ end }}
+    {{ if .ShowDateCheckbox }}
+    <div class="print-options">
+        <label class="checkbox-label"><input type="checkbox" data-print-date {{ if .DateChecked }}checked{{ end }}> {{ .DateLabel }}</label>
+    {{ if .ShowChildrenCheckbox }}
+        <label class="checkbox-label"><input type="checkbox" data-print-children checked> {{ .ChildrenLabel }}</label>
+    {{ end }}
+    </div>
+    {{ end }}
+    <div class="print-actions">
+        <button data-print-preview class="button secondary">{{ .PreviewLabel }}</button>
+        <button data-print-btn>{{ .ButtonText }}</button>
+    </div>
+    {{ else }}
+    <p class="empty">{{ .NoPrintersText }}. <a href="/printers" hx-get="/printers" hx-target="#content">{{ .AddPrinterText }}</a>.</p>
+    {{ end }}
+    <div data-print-result></div>
+</div>
+{{ end }}
