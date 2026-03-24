@@ -101,7 +101,7 @@ func TestNoteHandler_Update_JSON(t *testing.T) {
 	}
 
 	var updated store.Note
-	json.NewDecoder(w.Body).Decode(&updated) //nolint:errcheck
+	json.NewDecoder(w.Body).Decode(&updated) //nolint:gosec
 	if updated.Title != "New Title" {
 		t.Errorf("expected title 'New Title', got %s", updated.Title)
 	}
@@ -129,8 +129,8 @@ func TestNoteHandler_ContainerNotes(t *testing.T) {
 	h, notesSvc, inv := newTestNoteHandler(t)
 
 	container, _ := inv.CreateContainer("", "Box", "", "", "")
-	notesSvc.CreateNote(container.ID, "", "Note1", "", "", "") //nolint:errcheck
-	notesSvc.CreateNote(container.ID, "", "Note2", "", "", "") //nolint:errcheck
+	notesSvc.CreateNote(container.ID, "", "Note1", "", "", "") //nolint:gosec
+	notesSvc.CreateNote(container.ID, "", "Note2", "", "", "") //nolint:gosec
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -144,7 +144,7 @@ func TestNoteHandler_ContainerNotes(t *testing.T) {
 	}
 
 	var notes []store.Note
-	json.NewDecoder(w.Body).Decode(&notes) //nolint:errcheck
+	json.NewDecoder(w.Body).Decode(&notes) //nolint:gosec
 	if len(notes) != 2 {
 		t.Errorf("expected 2 notes, got %d", len(notes))
 	}
