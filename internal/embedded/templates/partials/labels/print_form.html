@@ -11,6 +11,7 @@
         <textarea data-print-text rows="3" class="form-control"></textarea>
     </div>
     {{ end }}
+    {{ if eq .Mode "container-label" }}
     <div class="form-group">
         <label>{{ .PrinterLabel }}</label>
         <select data-print-printer>
@@ -19,38 +20,45 @@
             {{ end }}
         </select>
     </div>
-    {{ if eq .Mode "container-label" }}
     <div class="form-group">
         <label>{{ .TemplateLabel }}</label>
-        <div data-print-checkboxes>
+        <div class="schema-grid" data-print-checkboxes>
             {{ range .Schemas }}
             <label class="checkbox-label"><input type="checkbox" name="print-schema" value="{{ . }}"> {{ . }}</label>
             {{ end }}
         </div>
     </div>
     {{ else }}
-    <div class="form-group">
-        <label>{{ .TemplateLabel }}</label>
-        <select data-print-template>
-            {{ range .Templates }}
-            <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
-            {{ end }}
-            <optgroup label="Built-in">
-                {{ range .Schemas }}
-                <option value="{{ . }}">{{ . }}</option>
+    <div class="print-row">
+        <div class="form-group">
+            <label>{{ .PrinterLabel }}</label>
+            <select data-print-printer>
+                {{ range .Printers }}
+                <option value="{{ .ID }}" data-model="{{ .Model }}">{{ .Name }}</option>
                 {{ end }}
-            </optgroup>
-        </select>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>{{ .TemplateLabel }}</label>
+            <select data-print-template>
+                {{ range .Templates }}
+                <option value="{{ .ID }}" data-target="{{ .Target }}">{{ .Name }}</option>
+                {{ end }}
+                <optgroup label="Built-in">
+                    {{ range .Schemas }}
+                    <option value="{{ . }}">{{ . }}</option>
+                    {{ end }}
+                </optgroup>
+            </select>
+        </div>
     </div>
     {{ end }}
     {{ if .ShowDateCheckbox }}
-    <div class="form-group">
+    <div class="print-options">
         <label class="checkbox-label"><input type="checkbox" data-print-date {{ if .DateChecked }}checked{{ end }}> {{ .DateLabel }}</label>
-    </div>
-    {{ end }}
     {{ if .ShowChildrenCheckbox }}
-    <div class="form-group">
         <label class="checkbox-label"><input type="checkbox" data-print-children checked> {{ .ChildrenLabel }}</label>
+    {{ end }}
     </div>
     {{ end }}
     <div class="print-actions">
