@@ -86,6 +86,7 @@ type SearchResultsData struct {
 	Containers []store.Container
 	Items      []store.Item
 	Tags       []store.Tag
+	Notes      []store.Note
 }
 
 // TagChipsData is the view model for tag chips partial.
