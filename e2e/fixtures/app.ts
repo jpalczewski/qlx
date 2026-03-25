@@ -45,6 +45,13 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
       domain: '127.0.0.1',
       path: '/',
     }]);
+    // SSE (printer status) keeps a connection open indefinitely, preventing
+    // the 'load' event from firing on slow CI runners. Override goto to
+    // default to 'domcontentloaded' so tests don't need to specify it.
+    const originalGoto = page.goto.bind(page);
+    page.goto = (url: string, options?: Parameters<typeof page.goto>[1]) => {
+      return originalGoto(url, { waitUntil: 'domcontentloaded', ...options });
+    };
     await use(page);
   },
   app: [async ({}, use) => {
