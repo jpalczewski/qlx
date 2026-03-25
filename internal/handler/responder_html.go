@@ -92,8 +92,11 @@ func (h *HTMLResponder) Redirect(w http.ResponseWriter, r *http.Request, url str
 
 // RenderPartial renders a named define block directly (no layout).
 // Use this for HTMX partial responses (fragments, not full pages).
-// Returns true on success, false if the template was not found.
+// Returns true on success, false if the template was not found or the request wants JSON.
 func (h *HTMLResponder) RenderPartial(w http.ResponseWriter, r *http.Request, tmplName, defineName string, data any) bool {
+	if webutil.WantsJSON(r) {
+		return false
+	}
 	t, ok := h.templates[tmplName]
 	if !ok {
 		http.Error(w, "template not found: "+tmplName, http.StatusInternalServerError)

@@ -55,7 +55,10 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("HX-Trigger", "notes-changed")
-	h.resp.Respond(w, r, http.StatusCreated, note, "note-card", func() any { return note })
+	if !h.resp.RenderPartial(w, r, "item", "note-card", note) {
+		// JSON fallback (no HTML rendered by RenderPartial)
+		h.resp.Respond(w, r, http.StatusCreated, note, "", nil)
+	}
 }
 
 // Update handles PUT /notes/{id}.
@@ -74,7 +77,9 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, note, "note-card", func() any { return note })
+	if !h.resp.RenderPartial(w, r, "item", "note-card", note) {
+		h.resp.Respond(w, r, http.StatusOK, note, "", nil)
+	}
 }
 
 // Delete handles DELETE /notes/{id}.
@@ -99,9 +104,10 @@ func (h *NoteHandler) ContainerNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := h.notes.ContainerNotes(id)
-	h.resp.Respond(w, r, http.StatusOK, notes, "notes-tab", func() any {
-		return NotesTabData{Notes: notes, ContainerID: id}
-	})
+	vm := NotesTabData{Notes: notes, ContainerID: id, ParentType: "container", ParentID: id}
+	if !h.resp.RenderPartial(w, r, "containers", "notes-tab", vm) {
+		h.resp.Respond(w, r, http.StatusOK, notes, "", nil)
+	}
 }
 
 // ItemNotes handles GET /items/{id}/notes.
@@ -113,7 +119,8 @@ func (h *NoteHandler) ItemNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := h.notes.ItemNotes(id)
-	h.resp.Respond(w, r, http.StatusOK, notes, "notes-tab", func() any {
-		return NotesTabData{Notes: notes, ItemID: id}
-	})
+	vm := NotesTabData{Notes: notes, ItemID: id, ParentType: "item", ParentID: id}
+	if !h.resp.RenderPartial(w, r, "item", "notes-tab", vm) {
+		h.resp.Respond(w, r, http.StatusOK, notes, "", nil)
+	}
 }

@@ -150,4 +150,8 @@ type NotesTabData struct {
 	Notes       []store.Note
 	ContainerID string
 	ItemID      string
+	// ParentType is "container" or "item" — used in the hidden input name.
+	ParentType string
+	// ParentID is the ID of the parent container or item.
+	ParentID string
 }

@@ -6,7 +6,7 @@
           hx-target=".note-list"
           hx-swap="afterbegin"
           hx-on::after-request="if(event.detail.successful){ this.reset(); }">
-        <input type="hidden" name="{{ .ParentType }}_id" value="{{ .ParentID }}">
+        <input type="hidden" name="{{ .Data.ParentType }}_id" value="{{ .Data.ParentID }}">
         <input class="note-quick-entry-title"
                type="text"
                name="title"
@@ -23,7 +23,7 @@
 
     {{/* Note list */}}
     <ul class="note-list">
-        {{ range .Notes }}
+        {{ range .Data.Notes }}
         {{ template "note-card" dict "Data" . }}
         {{ end }}
     </ul>
