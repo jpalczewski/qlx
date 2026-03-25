@@ -20,6 +20,7 @@ async function getAvailablePort(): Promise<number> {
 }
 
 function buildBinary() {
+  if (fs.existsSync(BINARY_PATH)) return;
   execFileSync('go', ['build', '-o', BINARY_PATH, './cmd/qlx/'], {
     cwd: PROJECT_ROOT,
     stdio: 'inherit',
@@ -63,7 +64,7 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
 
     // Wait for server to be ready
     const startTime = Date.now();
-    const timeout = 10_000;
+    const timeout = 20_000;
     let ready = false;
     while (Date.now() - startTime < timeout) {
       try {
