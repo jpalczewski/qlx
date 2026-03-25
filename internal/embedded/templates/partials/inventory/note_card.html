@@ -1,0 +1,29 @@
+{{ define "note-card" }}
+<article class="note-card flash"
+         data-note-id="{{ .Data.ID }}"
+         data-note-title="{{ .Data.Title }}"
+         data-note-content="{{ .Data.Content }}"
+         {{ if .Data.Color }}style="background-color: {{ paletteHex .Data.Color }}22; border-left: 3px solid {{ paletteHex .Data.Color }}"{{ end }}>
+    {{ if .Data.Icon }}
+    <span class="note-card-icon">{{ icon .Data.Icon }}</span>
+    {{ end }}
+    <div class="note-card-actions">
+        <button class="note-card-action-btn"
+                type="button"
+                onclick="qlx.editNote(this.closest('.note-card'))"
+                title="Edit">✎</button>
+        <button class="note-card-action-btn danger"
+                type="button"
+                hx-delete="/notes/{{ .Data.ID }}"
+                hx-target="closest article"
+                hx-swap="outerHTML"
+                hx-confirm="Delete this note?"
+                title="Delete">✕</button>
+    </div>
+    <h3 class="note-card-title">{{ .Data.Title }}</h3>
+    {{ if .Data.Content }}
+    <p class="note-card-content">{{ .Data.Content }}</p>
+    {{ end }}
+    <div class="note-card-meta">{{ .Data.CreatedAt.Format "2006-01-02" }}</div>
+</article>
+{{ end }}
