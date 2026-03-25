@@ -54,7 +54,8 @@ func (h *NoteHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.resp.Respond(w, r, http.StatusCreated, note, "note", nil)
+	w.Header().Set("HX-Trigger", "notes-changed")
+	h.resp.Respond(w, r, http.StatusCreated, note, "note-card", func() any { return note })
 }
 
 // Update handles PUT /notes/{id}.
@@ -73,7 +74,7 @@ func (h *NoteHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.resp.Respond(w, r, http.StatusOK, note, "note", nil)
+	h.resp.Respond(w, r, http.StatusOK, note, "note-card", func() any { return note })
 }
 
 // Delete handles DELETE /notes/{id}.
@@ -85,6 +86,7 @@ func (h *NoteHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("HX-Trigger", "notes-changed")
 	h.resp.Respond(w, r, http.StatusOK, map[string]string{"id": id}, "", nil)
 }
 
@@ -97,7 +99,9 @@ func (h *NoteHandler) ContainerNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := h.notes.ContainerNotes(id)
-	h.resp.Respond(w, r, http.StatusOK, notes, "notes", nil)
+	h.resp.Respond(w, r, http.StatusOK, notes, "notes-tab", func() any {
+		return NotesTabData{Notes: notes, ContainerID: id}
+	})
 }
 
 // ItemNotes handles GET /items/{id}/notes.
@@ -109,5 +113,7 @@ func (h *NoteHandler) ItemNotes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	notes := h.notes.ItemNotes(id)
-	h.resp.Respond(w, r, http.StatusOK, notes, "notes", nil)
+	h.resp.Respond(w, r, http.StatusOK, notes, "notes-tab", func() any {
+		return NotesTabData{Notes: notes, ItemID: id}
+	})
 }

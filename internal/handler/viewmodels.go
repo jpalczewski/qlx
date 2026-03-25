@@ -27,6 +27,7 @@ type ContainerListData struct {
 	Printers  []store.PrinterConfig
 	Templates []store.Template
 	Schemas   []string
+	NoteCount int
 }
 
 // ItemDetailData is the view model for the item detail page.
@@ -36,6 +37,7 @@ type ItemDetailData struct {
 	Printers  []store.PrinterConfig
 	Templates []store.Template
 	Schemas   []string
+	NoteCount int
 }
 
 // PrintersData is the view model for the printers page.
@@ -142,3 +144,10 @@ type DebugToolsData struct {
 
 // SettingsData is the view model for the settings page.
 type SettingsData struct{}
+
+// NotesTabData is the view model for the notes tab partial.
+type NotesTabData struct {
+	Notes       []store.Note
+	ContainerID string
+	ItemID      string
+}

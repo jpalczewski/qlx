@@ -15,7 +15,8 @@ func newTestItemHandler(t *testing.T) (*ItemHandler, *service.InventoryService) 
 	t.Helper()
 	s := newHandlerTestStore(t)
 	inv := service.NewInventoryService(s)
-	h := NewItemHandler(inv, nil, nil, &JSONResponder{})
+	notes := service.NewNoteService(s)
+	h := NewItemHandler(inv, nil, nil, notes, &JSONResponder{})
 	return h, inv
 }
 
