@@ -4,7 +4,6 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
   timeout: 30000,
   reporter: [['html', { open: 'never' }], ['list']],
   use: {
@@ -14,7 +13,7 @@ export default defineConfig({
       'Accept-Language': 'pl',
     },
     // SSE (EventSource for printer status) keeps connections open indefinitely,
-    // which can block the default 'load' waitUntil on slow CI runners.
+    // which blocks the default 'load' waitUntil. Use 'domcontentloaded' globally.
     navigationTimeout: 20000,
     actionTimeout: 15000,
   },
