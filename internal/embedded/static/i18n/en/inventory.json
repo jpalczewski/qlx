@@ -44,5 +44,7 @@
   "inventory.note_content_placeholder": "Content (optional)…",
   "inventory.add_note": "Add note",
   "inventory.no_notes": "No notes yet",
-  "inventory.confirm_delete_note": "Delete this note?"
+  "inventory.confirm_delete_note": "Delete this note?",
+  "inventory.note_saved": "Note saved",
+  "inventory.note_save_failed": "Failed to save note"
 }

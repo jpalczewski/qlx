@@ -12,6 +12,10 @@
                 type="button"
                 onclick="qlx.editNote(this.closest('.note-card'))"
                 title="Edit">✎</button>
+        <button class="note-card-action-btn"
+                type="button"
+                hx-post="/notes/{{ .Data.ID }}/print"
+                title="Print">🖶</button>
         <button class="note-card-action-btn danger"
                 type="button"
                 hx-delete="/notes/{{ .Data.ID }}"

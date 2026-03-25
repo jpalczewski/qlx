@@ -44,5 +44,7 @@
   "inventory.note_content_placeholder": "Treść (opcjonalnie)…",
   "inventory.add_note": "Dodaj notatkę",
   "inventory.no_notes": "Brak notatek",
-  "inventory.confirm_delete_note": "Usunąć tę notatkę?"
+  "inventory.confirm_delete_note": "Usunąć tę notatkę?",
+  "inventory.note_saved": "Notatka zapisana",
+  "inventory.note_save_failed": "Nie udało się zapisać notatki"
 }

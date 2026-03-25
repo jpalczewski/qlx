@@ -3,5 +3,6 @@
   "search.no_results": "Brak wyników dla",
   "search.containers": "Kontenery",
   "search.items": "Przedmioty",
-  "search.tags": "Tagi"
+  "search.tags": "Tagi",
+  "search.notes": "Notatki"
 }

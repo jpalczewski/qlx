@@ -52,7 +52,7 @@
     var cancelBtn = document.createElement("button");
     cancelBtn.type = "button";
     cancelBtn.className = "btn btn-secondary btn-small";
-    cancelBtn.textContent = "Cancel";
+    cancelBtn.textContent = qlx.t("action.cancel");
     cancelBtn.addEventListener("click", function () {
       restoreCard(card, savedChildren);
     });
@@ -61,7 +61,7 @@
     var saveBtn = document.createElement("button");
     saveBtn.type = "submit";
     saveBtn.className = "btn btn-primary btn-small";
-    saveBtn.textContent = "Save";
+    saveBtn.textContent = qlx.t("action.save");
     footer.appendChild(saveBtn);
 
     form.appendChild(footer);
@@ -110,13 +110,13 @@
         restoreCard(card, savedChildren);
 
         if (typeof qlx.showToast === "function") {
-          qlx.showToast("Note saved", false);
+          qlx.showToast(qlx.t("inventory.note_saved"), false);
         }
       })
       .catch(function (err) {
         console.error("note update failed:", err);
         if (typeof qlx.showToast === "function") {
-          qlx.showToast("Failed to save note", true);
+          qlx.showToast(qlx.t("inventory.note_save_failed"), true);
         }
       });
   }

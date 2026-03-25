@@ -23,8 +23,11 @@
 
     {{/* Note list */}}
     <ul class="note-list">
+        {{ $root := . }}
         {{ range .Data.Notes }}
         {{ template "note-card" dict "Data" . }}
+        {{ else }}
+        <li class="empty-state">{{ $root.T "inventory.no_notes" }}</li>
         {{ end }}
     </ul>
 </div>
