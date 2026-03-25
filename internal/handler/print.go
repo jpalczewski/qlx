@@ -25,13 +25,15 @@ type PrintHandler struct {
 	printers  *service.PrinterService
 	templates *service.TemplateService
 	tags      *service.TagService
+	notes     *service.NoteService
 	resp      Responder
 }
 
 // NewPrintHandler creates a new PrintHandler.
 func NewPrintHandler(pm *print.PrinterManager, inv *service.InventoryService,
-	prn *service.PrinterService, tmpl *service.TemplateService, tags *service.TagService, resp Responder) *PrintHandler {
-	return &PrintHandler{pm: pm, inventory: inv, printers: prn, templates: tmpl, tags: tags, resp: resp}
+	prn *service.PrinterService, tmpl *service.TemplateService, tags *service.TagService,
+	notes *service.NoteService, resp Responder) *PrintHandler {
+	return &PrintHandler{pm: pm, inventory: inv, printers: prn, templates: tmpl, tags: tags, notes: notes, resp: resp}
 }
 
 // resolveTags converts tag IDs to LabelTag structs with path information.
@@ -64,6 +66,8 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /items/{id}/preview", h.PreviewItem)
 	mux.HandleFunc("POST /containers/{id}/print", h.PrintContainer)
 	mux.HandleFunc("GET /containers/{id}/preview", h.PreviewContainer)
+	mux.HandleFunc("POST /notes/{id}/print", h.PrintNote)
+	mux.HandleFunc("GET /notes/{id}/preview", h.PreviewNote)
 	mux.HandleFunc("POST /print-image", h.PrintImage)
 	mux.HandleFunc("GET /printers/status", h.AllStatuses)
 	mux.HandleFunc("GET /printers/{id}/status", h.Status)
@@ -182,6 +186,21 @@ func (h *PrintHandler) buildContainerLabelData(containerID string, showChildren 
 	return data, true
 }
 
+// buildNoteLabelData builds LabelData for the given note.
+func (h *PrintHandler) buildNoteLabelData(noteID string) (label.LabelData, bool) {
+	note := h.notes.GetNote(noteID)
+	if note == nil {
+		return label.LabelData{}, false
+	}
+	return label.LabelData{
+		Name:        note.Title,
+		Description: note.Content,
+		QRContent:   "/notes/" + note.ID,
+		BarcodeID:   note.ID,
+		Icon:        note.Icon,
+	}, true
+}
+
 // printOrClientRender prints a built-in schema or returns JSON for client-side designer rendering.
 func (h *PrintHandler) printOrClientRender(w http.ResponseWriter, data label.LabelData,
 	printerID, templateName string, opts label.RenderOpts) {
@@ -296,6 +315,41 @@ func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
 func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) {
 	showChildren := r.URL.Query().Get("show_children") == "true"
 	data, ok := h.buildContainerLabelData(r.PathValue("id"), showChildren)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	templateName := r.URL.Query().Get("template")
+	if templateName == "" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "template parameter required"})
+		return
+	}
+
+	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
+	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
+}
+
+// PrintNote handles POST /notes/{id}/print.
+func (h *PrintHandler) PrintNote(w http.ResponseWriter, r *http.Request) {
+	var req PrintRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request"})
+		return
+	}
+
+	data, ok := h.buildNoteLabelData(r.PathValue("id"))
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate})
+}
+
+// PreviewNote handles GET /notes/{id}/preview — returns a label preview image.
+func (h *PrintHandler) PreviewNote(w http.ResponseWriter, r *http.Request) {
+	data, ok := h.buildNoteLabelData(r.PathValue("id"))
 	if !ok {
 		http.NotFound(w, r)
 		return

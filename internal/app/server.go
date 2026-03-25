@@ -50,7 +50,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 		handler.NewTagHandler(tags, inventory, resp),
 		handler.NewBulkHandler(bulk),
 		handler.NewSearchHandler(search, resp),
-		handler.NewPrintHandler(pm, inventory, printers, templates, tags, resp),
+		handler.NewPrintHandler(pm, inventory, printers, templates, tags, notes, resp),
 		handler.NewTemplateHandler(templates, pm, resp),
 		handler.NewExportHandler(export, inventory),
 		handler.NewNoteHandler(notes, inventory, resp),
