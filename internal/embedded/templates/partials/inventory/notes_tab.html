@@ -10,14 +10,14 @@
         <input class="note-quick-entry-title"
                type="text"
                name="title"
-               placeholder="Note title…"
+               placeholder="{{ .T "inventory.note_title_placeholder" }}"
                autocomplete="off"
                required>
         <textarea class="note-quick-entry-content"
                   name="content"
-                  placeholder="Content (optional)…"></textarea>
+                  placeholder="{{ .T "inventory.note_content_placeholder" }}"></textarea>
         <div class="note-quick-entry-footer">
-            <button type="submit" class="btn btn-primary btn-small">Add note</button>
+            <button type="submit" class="btn btn-primary btn-small">{{ .T "inventory.add_note" }}</button>
         </div>
     </form>
 
