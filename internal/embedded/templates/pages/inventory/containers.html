@@ -15,6 +15,12 @@
                 {{ if .Data.Container.Description }}<p class="container-desc">{{ .Data.Container.Description }}</p>{{ end }}
             </div>
             <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
+            <div class="dropdown">
+                <button class="button secondary small dropdown-toggle" onclick="this.parentElement.classList.toggle('open')" type="button">&#8943;</button>
+                <div class="dropdown-menu">
+                    <button class="dropdown-item" type="button" onclick="this.closest('.dropdown').classList.remove('open'); qlx.openExportDialog({containerId: '{{ .Data.Container.ID }}', containerName: '{{ .Data.Container.Name }}'})">{{.T "action.export"}}</button>
+                </div>
+            </div>
         </div>
         <section class="container-tags">
             {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Container.ID "ObjectType" "container" "Tags" (resolveTags .Data.Container.TagIDs)) }}

@@ -7,5 +7,6 @@
   "action.print": "Print",
   "action.print_all": "Print all",
   "action.edit": "Edit",
-  "action.create": "Create"
+  "action.create": "Create",
+  "action.export": "Export"
 }

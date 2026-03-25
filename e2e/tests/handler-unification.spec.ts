@@ -431,27 +431,25 @@ test.describe('Redirect behavior', () => {
 // ─── Export edge cases ──────────────────────────────────────────────────────
 test.describe('Export edge cases', () => {
 
-  test('export JSON on empty store returns empty maps', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/export/json`);
+  test('export JSON on empty store returns empty containers array', async ({ request, app }) => {
+    const res = await request.get(`${app.baseURL}/export?format=json`);
     expect(res.status()).toBe(200);
     const data = await res.json();
     expect(data.containers).toBeDefined();
-    expect(data.items).toBeDefined();
   });
 
   test('export CSV on empty store returns header only', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/export/csv`);
+    const res = await request.get(`${app.baseURL}/export?format=csv`);
     expect(res.status()).toBe(200);
     const ct = res.headers()['content-type'] || '';
     expect(ct).toContain('text/csv');
     const text = await res.text();
     const lines = text.trim().split('\n');
-    // At minimum the header row
     expect(lines.length).toBeGreaterThanOrEqual(1);
     expect(lines[0]).toContain('item_id');
   });
 
-  test('export JSON includes items with container path', async ({ request, app }) => {
+  test('export JSON includes items', async ({ request, app }) => {
     const c = await (await request.post(`${app.baseURL}/containers`, {
       headers: { 'Accept': 'application/json' },
       data: { name: 'ExportParent' },
@@ -461,10 +459,10 @@ test.describe('Export edge cases', () => {
       data: { name: 'ExportChild', container_id: c.id },
     });
 
-    const res = await request.get(`${app.baseURL}/export/json`);
+    const res = await request.get(`${app.baseURL}/export?format=json`);
     const data = await res.json();
-    const items = Object.values(data.items) as any[];
-    expect(items.some((i: any) => i.name === 'ExportChild')).toBe(true);
+    const allItems = data.containers.flatMap((c: any) => c.items || []);
+    expect(allItems.some((i: any) => i.name === 'ExportChild')).toBe(true);
   });
 });
 

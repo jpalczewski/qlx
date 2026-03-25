@@ -20,8 +20,7 @@
 <div class="settings-section">
     <h2>{{.T "settings.data"}}</h2>
     <div class="actions">
-        <a href="/export/json" class="btn btn-secondary" download="qlx-export.json">{{.T "settings.export_json"}}</a>
-        <a href="/export/csv" class="btn btn-secondary" download="qlx-export.csv">{{.T "settings.export_csv"}}</a>
+        <button class="btn btn-secondary" onclick="qlx.openExportDialog({})">{{.T "settings.export"}}</button>
     </div>
 </div>
 {{ end }}
