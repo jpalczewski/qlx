@@ -1,5 +1,7 @@
 {{ define "tag-list-item" }}
-<li draggable="true" data-id="{{ .Data.ID }}" data-type="tag" class="flash">
-    <a href="/tags?parent_id={{ .Data.ID }}" hx-get="/tags?parent_id={{ .Data.ID }}" hx-target="#content">{{ .Data.Name }}</a>
-</li>
+<a href="/tags/{{ .Data.ID }}" hx-get="/tags/{{ .Data.ID }}" hx-target="#content"
+   class="tag-pill flash"{{ if .Data.Color }} style="background-color: {{ paletteHex .Data.Color }}22; border-color: {{ paletteHex .Data.Color }}"{{ end }}>
+    {{ if .Data.Icon }}<span class="entity-icon">{{ icon .Data.Icon }}</span>{{ end }}
+    <span class="tag-pill-name">{{ .Data.Name }}</span>
+</a>
 {{ end }}

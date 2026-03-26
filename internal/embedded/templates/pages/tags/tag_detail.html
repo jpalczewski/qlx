@@ -68,13 +68,15 @@
     {{ if .Data.Children }}
     <section>
         <h3>{{.T "tags.children_section"}}</h3>
-        <ul class="tag-list">
+        <div class="tag-pill-list">
             {{ range .Data.Children }}
-            <li>
-                <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
-            </li>
+            <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content"
+               class="tag-pill"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
+                {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
+                <span class="tag-pill-name">{{ .Name }}</span>
+            </a>
             {{ end }}
-        </ul>
+        </div>
     </section>
     {{ end }}
 </div>

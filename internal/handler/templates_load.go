@@ -12,22 +12,37 @@ import (
 	"github.com/erxyi/qlx/internal/store"
 )
 
+// TemplateFuncs holds tag-related functions injected into templates.
+type TemplateFuncs struct {
+	ResolveTags func([]string) []store.Tag
+	GetTag      func(string) *store.Tag
+}
+
 // LoadTemplates discovers and parses all HTML templates from the embedded FS.
-func LoadTemplates(resolveTagsFn func([]string) []store.Tag) map[string]*template.Template {
-	layoutTmpl := loadLayout(resolveTagsFn)
+func LoadTemplates(fns TemplateFuncs) map[string]*template.Template {
+	layoutTmpl := loadLayout(fns)
 	mergeHTMLDir(layoutTmpl, "templates/partials")
 	mergeHTMLDir(layoutTmpl, "templates/components")
 	return discoverPages(layoutTmpl)
 }
 
-func loadLayout(resolveTagsFn func([]string) []store.Tag) *template.Template {
+func loadLayout(fns TemplateFuncs) *template.Template {
 	content, err := embedded.Templates.ReadFile("templates/layouts/base.html")
 	if err != nil {
 		panic(err)
 	}
 	return template.Must(template.New("layout").Funcs(template.FuncMap{
 		"dict":        dict,
-		"resolveTags": resolveTagsFn,
+		"resolveTags": fns.ResolveTags,
+		"tagParentName": func(parentID string) string {
+			if parentID == "" {
+				return ""
+			}
+			if t := fns.GetTag(parentID); t != nil {
+				return t.Name
+			}
+			return ""
+		},
 		"icon": func(name string) template.HTML {
 			data, err := palette.SVG(name)
 			if err != nil {

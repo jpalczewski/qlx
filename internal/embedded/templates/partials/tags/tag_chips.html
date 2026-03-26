@@ -3,6 +3,7 @@
     {{ range .Data.Tags }}
     <span class="tag-chip"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
         {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
+        {{ if .ParentID }}<a href="/tags/{{ .ParentID }}" hx-get="/tags/{{ .ParentID }}" hx-target="#content" class="tag-parent">{{ tagParentName .ParentID }} /</a> {{ end }}
         <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content" class="tag-name">{{ .Name }}</a>
         <button class="tag-remove"
                 hx-delete="/{{ $.Data.ObjectType }}s/{{ $.Data.ObjectID }}/tags/{{ .ID }}"
