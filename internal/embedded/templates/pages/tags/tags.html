@@ -6,20 +6,22 @@
     <a href="/tags" hx-get="/tags" hx-target="#content">{{.T "tags.title"}}</a>
     {{ range .Data.Path }}
     <span class="sep">/</span>
-    <a href="/tags?parent_id={{ .ID }}" hx-get="/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a>
+    <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content">{{ .Name }}</a>
     {{ end }}
 </nav>
 {{ end }}
 
-<ul id="tag-list" class="tag-list">
+<div id="tag-list" class="tag-pill-list">
     {{ range .Data.Tags }}
-    <li>
-        <a href="/tags?parent_id={{ .ID }}" hx-get="/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a>
-    </li>
+    <a href="/tags/{{ .ID }}" hx-get="/tags/{{ .ID }}" hx-target="#content"
+       class="tag-pill"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
+        {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
+        <span class="tag-pill-name">{{ .Name }}</span>
+    </a>
     {{ else }}
-    <li class="empty-state">{{$.T "tags.no_tags"}}</li>
+    <p class="empty-state">{{$.T "tags.no_tags"}}</p>
     {{ end }}
-</ul>
+</div>
 
 <form class="quick-entry"
       hx-post="/tags"
