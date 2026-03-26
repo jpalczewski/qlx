@@ -1,0 +1,16 @@
+{
+  "keyboard.help": "Skróty klawiszowe",
+  "keyboard.new_item": "Nowy przedmiot",
+  "keyboard.new_container": "Nowy kontener",
+  "keyboard.go_to_container": "Przejdź do kontenera",
+  "keyboard.open": "Otwórz",
+  "keyboard.selection_mode": "Tryb zaznaczania",
+  "keyboard.select_all": "Zaznacz wszystko",
+  "keyboard.close": "Zamknij / anuluj",
+  "keyboard.navigate": "Nawiguj po liście",
+  "keyboard.open_selected": "Otwórz zaznaczony",
+  "keyboard.focus_search": "Szukaj",
+  "keyboard.nav_group": "Nawigacja",
+  "keyboard.action_group": "Akcje",
+  "keyboard.general_group": "Ogólne"
+}

@@ -1,0 +1,16 @@
+{
+  "keyboard.help": "Keyboard shortcuts",
+  "keyboard.new_item": "New item",
+  "keyboard.new_container": "New container",
+  "keyboard.go_to_container": "Go to container",
+  "keyboard.open": "Open",
+  "keyboard.selection_mode": "Selection mode",
+  "keyboard.select_all": "Select all",
+  "keyboard.close": "Close / cancel",
+  "keyboard.navigate": "Navigate list",
+  "keyboard.open_selected": "Open selected",
+  "keyboard.focus_search": "Focus search",
+  "keyboard.nav_group": "Navigation",
+  "keyboard.action_group": "Actions",
+  "keyboard.general_group": "General"
+}
