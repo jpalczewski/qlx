@@ -7,7 +7,8 @@
 }
 .tag-chip .entity-icon { margin-right: 0.2rem; }
 .tag-chip .entity-icon svg { width: 12px; height: 12px; }
-.tag-chip .tag-parent { color: var(--color-text-muted); font-size: 0.8em; }
+.tag-chip .tag-parent { color: var(--color-text-muted); font-size: 0.8em; text-decoration: none; }
+.tag-chip .tag-parent:hover { text-decoration: underline; }
 .tag-chip .tag-remove {
     background: none; border: none; cursor: pointer;
     color: var(--color-text-muted); padding: 0; font-size: 1rem; line-height: 1;
