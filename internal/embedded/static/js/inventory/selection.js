@@ -43,8 +43,8 @@
 
     var toggleBtn = document.getElementById("select-toggle-btn");
     if (toggleBtn) {
-      toggleBtn.removeEventListener("click", onSelectToggle);
-      toggleBtn.addEventListener("click", onSelectToggle);
+      toggleBtn.removeEventListener("click", qlx.toggleSelectionMode);
+      toggleBtn.addEventListener("click", qlx.toggleSelectionMode);
     }
   };
 
@@ -63,14 +63,39 @@
     updateActionBar();
   }
 
-  function onSelectToggle() {
+  qlx.toggleSelectionMode = function toggleSelectionMode() {
     var content = document.getElementById("content");
     if (!content) return;
     content.classList.toggle("selection-mode");
     if (!content.classList.contains("selection-mode")) {
       qlx.clearSelection();
     }
-  }
+  };
+
+  qlx.isSelectionMode = function isSelectionMode() {
+    var content = document.getElementById("content");
+    return content ? content.classList.contains("selection-mode") : false;
+  };
+
+  qlx.selectAll = function selectAll() {
+    var checkboxes = document.querySelectorAll(".bulk-select");
+    var allChecked = selection.size > 0 && selection.size === checkboxes.length;
+    checkboxes.forEach(function (cb) {
+      var el = /** @type {HTMLInputElement} */ (cb);
+      var li = el.closest("[data-id]");
+      if (!li) return;
+      var id = li.getAttribute("data-id");
+      var type = li.getAttribute("data-type") || "item";
+      if (allChecked) {
+        el.checked = false;
+        selection.delete(id);
+      } else {
+        el.checked = true;
+        selection.set(id, type);
+      }
+    });
+    updateActionBar();
+  };
 
   /** Clear all selections and hide the action bar. */
   qlx.clearSelection = function clearSelection() {
@@ -81,10 +106,6 @@
     var bar = document.getElementById("action-bar");
     if (bar) bar.style.display = "none";
   };
-
-  // Backward compatibility
-  window.clearSelection = qlx.clearSelection;
-  window.initBulkSelect = qlx.initBulkSelect;
 
   // ── Action Bar ──────────────────────────────────────────────────────────────
   function getOrCreateActionBar() {
