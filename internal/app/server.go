@@ -38,7 +38,10 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager) *Server {
 	notes := service.NewNoteService(s)
 
 	// Build responder with template rendering
-	tmplMap := handler.LoadTemplates(tags.ResolveTagIDs)
+	tmplMap := handler.LoadTemplates(handler.TemplateFuncs{
+		ResolveTags: tags.ResolveTagIDs,
+		GetTag:      tags.GetTag,
+	})
 	resp := handler.NewHTMLResponder(tmplMap, translations)
 
 	// Create domain handlers

@@ -5,15 +5,9 @@
     padding: 0.15rem 0.5rem; background: var(--color-bg-alt); border-radius: 12px; font-size: 0.85rem;
     border: 1px solid transparent;
 }
-.tag-chip .entity-icon {
-    margin-right: 0.2rem;
-}
-
-.tag-chip .entity-icon svg {
-    width: 12px;
-    height: 12px;
-}
-
+.tag-chip .entity-icon { margin-right: 0.2rem; }
+.tag-chip .entity-icon svg { width: 12px; height: 12px; }
+.tag-chip .tag-parent { color: var(--color-text-muted); font-size: 0.8em; }
 .tag-chip .tag-remove {
     background: none; border: none; cursor: pointer;
     color: var(--color-text-muted); padding: 0; font-size: 1rem; line-height: 1;
@@ -24,3 +18,20 @@
 }
 .tag-chip .tag-name { color: inherit; text-decoration: none; }
 .tag-chip .tag-name:hover { text-decoration: underline; }
+
+/* Compact chips inside list items — hide edit controls */
+.container-list .tag-chip,
+.item-list .tag-chip {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+}
+.container-list .tag-chip .entity-icon svg,
+.item-list .tag-chip .entity-icon svg {
+    width: 10px; height: 10px;
+}
+.container-list .tag-remove,
+.item-list .tag-remove,
+.container-list .tag-add,
+.item-list .tag-add {
+    display: none;
+}
