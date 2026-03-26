@@ -2,60 +2,79 @@
 <div class="item-view">
     {{ template "breadcrumb" dict "Path" .Data.Path "Current" .Data.Item.Name "Home" (.T "inventory.home") }}
 
-    <article class="item-detail" {{ if .Data.Item.Color }}style="border-left: 3px solid {{ paletteHex .Data.Item.Color }}"{{ end }}>
-        <div class="item-header">
-            <span class="entity-icon large">{{ if .Data.Item.Icon }}{{ icon .Data.Item.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>
-            <div class="item-header-text">
-                <h1>{{ .Data.Item.Name }}</h1>
-                {{ if .Data.Item.Description }}
-                <p class="item-desc">{{ .Data.Item.Description }}</p>
-                {{ end }}
-            </div>
+    <div class="tab-container">
+        <div class="tab-bar" role="tablist">
+            <button class="tab-btn active" data-tab="detail" role="tab" aria-selected="true">
+                {{.T "inventory.tab_detail"}}
+            </button>
+            <button class="tab-btn" data-tab="notes"
+                    hx-get="/items/{{ .Data.Item.ID }}/notes"
+                    hx-target="#tab-panel-notes"
+                    hx-trigger="click once"
+                    role="tab" aria-selected="false">
+                {{.T "inventory.tab_notes"}} {{ if .Data.NoteCount }}<span class="tab-badge" data-tab-badge="notes">{{ .Data.NoteCount }}</span>{{ end }}
+            </button>
         </div>
 
-        <section class="item-meta">
-            <section class="item-tags">
-                {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Item.ID "ObjectType" "item" "Tags" (resolveTags .Data.Item.TagIDs)) }}
-            </section>
+        <div id="tab-panel-detail" class="tab-panel active" data-tab="detail">
+            <article class="item-detail" {{ if .Data.Item.Color }}style="border-left: 3px solid {{ paletteHex .Data.Item.Color }}"{{ end }}>
+                <div class="item-header">
+                    <span class="entity-icon large">{{ if .Data.Item.Icon }}{{ icon .Data.Item.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>
+                    <div class="item-header-text">
+                        <h1>{{ .Data.Item.Name }}</h1>
+                        {{ if .Data.Item.Description }}
+                        <p class="item-desc">{{ .Data.Item.Description }}</p>
+                        {{ end }}
+                    </div>
+                </div>
 
-            {{ if .Data.Path }}
-            <div class="item-location">
-                <span class="item-location-label">{{.T "inventory.location"}}:</span>
-                {{ range $i, $c := .Data.Path }}
-                {{ if $i }} → {{ end }}
-                <a href="/containers/{{ $c.ID }}" hx-get="/containers/{{ $c.ID }}" hx-target="#content"><span class="entity-icon" style="width:14px;height:14px">{{ if $c.Icon }}{{ icon $c.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ $c.Name }}</a>
-                {{ end }}
-            </div>
-            {{ end }}
-        </section>
+                <section class="item-meta">
+                    <section class="item-tags">
+                        {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Item.ID "ObjectType" "item" "Tags" (resolveTags .Data.Item.TagIDs)) }}
+                    </section>
 
-        {{ template "print-form" dict
-            "Endpoint" (printf "/items/%s/print" .Data.Item.ID)
-            "EntityID" .Data.Item.ID
-            "Mode" "item"
-            "Title" (.T "inventory.print_label")
-            "PrinterLabel" (.T "inventory.printer")
-            "TemplateLabel" (.T "inventory.template")
-            "Printers" .Data.Printers
-            "Templates" .Data.Templates
-            "Schemas" .Data.Schemas
-            "ShowDateCheckbox" false
-            "ShowChildrenCheckbox" false
-            "ShowTextInput" false
-            "ButtonText" (.T "action.print")
-            "PreviewLabel" (.T "labels.preview")
-            "NoPrintersText" (.T "inventory.no_printers")
-            "AddPrinterText" (.T "inventory.add_printer")
-        }}
+                    {{ if .Data.Path }}
+                    <div class="item-location">
+                        <span class="item-location-label">{{.T "inventory.location"}}:</span>
+                        {{ range $i, $c := .Data.Path }}
+                        {{ if $i }} → {{ end }}
+                        <a href="/containers/{{ $c.ID }}" hx-get="/containers/{{ $c.ID }}" hx-target="#content"><span class="entity-icon" style="width:14px;height:14px">{{ if $c.Icon }}{{ icon $c.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ $c.Name }}</a>
+                        {{ end }}
+                    </div>
+                    {{ end }}
+                </section>
 
-        <footer class="item-footer">
-            <div class="item-footer-actions">
-                <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="btn-action">{{.T "inventory.edit"}}</a>
-                <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="btn-action btn-action-danger">{{.T "action.delete"}}</button>
-            </div>
-            <a class="item-back" href="/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
-        </footer>
-    </article>
+                {{ template "print-form" dict
+                    "Endpoint" (printf "/items/%s/print" .Data.Item.ID)
+                    "EntityID" .Data.Item.ID
+                    "Mode" "item"
+                    "Title" (.T "inventory.print_label")
+                    "PrinterLabel" (.T "inventory.printer")
+                    "TemplateLabel" (.T "inventory.template")
+                    "Printers" .Data.Printers
+                    "Templates" .Data.Templates
+                    "Schemas" .Data.Schemas
+                    "ShowDateCheckbox" false
+                    "ShowChildrenCheckbox" false
+                    "ShowTextInput" false
+                    "ButtonText" (.T "action.print")
+                    "PreviewLabel" (.T "labels.preview")
+                    "NoPrintersText" (.T "inventory.no_printers")
+                    "AddPrinterText" (.T "inventory.add_printer")
+                }}
+
+                <footer class="item-footer">
+                    <div class="item-footer-actions">
+                        <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="btn-action">{{.T "inventory.edit"}}</a>
+                        <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="btn-action btn-action-danger">{{.T "action.delete"}}</button>
+                    </div>
+                    <a class="item-back" href="/containers/{{ .Data.Item.ContainerID }}/items" hx-get="/containers/{{ .Data.Item.ContainerID }}/items" hx-target="#content">← {{.T "inventory.back_to_container"}}</a>
+                </footer>
+            </article>
+        </div>
+
+        <div id="tab-panel-notes" class="tab-panel" data-tab="notes"></div>
+    </div>
 </div>
 {{ if .Data.Templates }}
 <script src="/static/fabric.min.js"></script>

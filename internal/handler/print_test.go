@@ -20,7 +20,8 @@ func newTestPrintHandler(t *testing.T) (*PrintHandler, *service.InventoryService
 	prn := service.NewPrinterService(s)
 	tmpl := service.NewTemplateService(s)
 	tags := service.NewTagService(s)
-	h := NewPrintHandler(pm, inv, prn, tmpl, tags, &JSONResponder{})
+	notes := service.NewNoteService(s)
+	h := NewPrintHandler(pm, inv, prn, tmpl, tags, notes, &JSONResponder{})
 	return h, inv
 }
 

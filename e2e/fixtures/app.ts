@@ -20,6 +20,7 @@ async function getAvailablePort(): Promise<number> {
 }
 
 function buildBinary() {
+  if (fs.existsSync(BINARY_PATH)) return;
   execFileSync('go', ['build', '-o', BINARY_PATH, './cmd/qlx/'], {
     cwd: PROJECT_ROOT,
     stdio: 'inherit',
@@ -44,6 +45,13 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
       domain: '127.0.0.1',
       path: '/',
     }]);
+    // SSE (printer status) keeps a connection open indefinitely, preventing
+    // the 'load' event from firing on slow CI runners. Override goto to
+    // default to 'domcontentloaded' so tests don't need to specify it.
+    const originalGoto = page.goto.bind(page);
+    page.goto = (url: string, options?: Parameters<typeof page.goto>[1]) => {
+      return originalGoto(url, { waitUntil: 'domcontentloaded', ...options });
+    };
     await use(page);
   },
   app: [async ({}, use) => {
@@ -51,6 +59,8 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
 
     const port = await getAvailablePort();
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qlx-e2e-'));
+    const logPath = path.join(dataDir, 'server.log');
+    const logFd = fs.openSync(logPath, 'w');
 
     const proc: ChildProcess = spawn(BINARY_PATH, [
       '--port', String(port),
@@ -58,14 +68,23 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
       '--data', dataDir,
     ], {
       cwd: PROJECT_ROOT,
-      stdio: 'pipe',
+      stdio: ['ignore', logFd, logFd],
     });
+
+    // Detect early crash
+    let crashed = false;
+    let exitCode: number | null = null;
+    proc.on('exit', (code) => { crashed = true; exitCode = code; });
 
     // Wait for server to be ready
     const startTime = Date.now();
-    const timeout = 10_000;
+    const timeout = 20_000;
     let ready = false;
     while (Date.now() - startTime < timeout) {
+      if (crashed) {
+        const log = fs.readFileSync(logPath, 'utf-8').slice(-2000);
+        throw new Error(`QLX server crashed (exit ${exitCode}) on port ${port}.\nLast log:\n${log}`);
+      }
       try {
         const res = await fetch(`http://127.0.0.1:${port}/`);
         if (res.ok) { ready = true; break; }
@@ -74,7 +93,10 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
       }
       await new Promise(r => setTimeout(r, 100));
     }
-    if (!ready) throw new Error(`QLX server failed to start on port ${port}`);
+    if (!ready) {
+      const log = fs.readFileSync(logPath, 'utf-8').slice(-2000);
+      throw new Error(`QLX server failed to start on port ${port} within ${timeout}ms.\nLast log:\n${log}`);
+    }
 
     await use({ baseURL: `http://127.0.0.1:${port}`, port, dataDir });
 
@@ -84,6 +106,7 @@ export const test = base.extend<AppFixtures, AppWorkerFixtures>({
       proc.on('exit', () => resolve());
       setTimeout(() => { proc.kill('SIGKILL'); resolve(); }, 3000);
     });
+    fs.closeSync(logFd);
     fs.rmSync(dataDir, { recursive: true, force: true });
   }, { scope: 'worker' }],
 });

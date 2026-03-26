@@ -26,3 +26,8 @@ func (s *SearchService) SearchItems(query string) []store.Item {
 func (s *SearchService) SearchTags(query string) []store.Tag {
 	return s.store.SearchTags(query)
 }
+
+// SearchNotes searches notes by title and content.
+func (s *SearchService) SearchNotes(query string) []store.Note {
+	return s.store.SearchNotes(query)
+}

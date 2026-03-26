@@ -55,6 +55,7 @@ type SearchStore interface {
 	SearchContainers(query string) []Container
 	SearchItems(query string) []Item
 	SearchTags(query string) []Tag
+	SearchNotes(query string) []Note
 }
 
 // PrinterStore defines printer-related store operations.
@@ -81,4 +82,14 @@ type ExportStore interface {
 	AllContainers() []Container
 	ExportItems(containerID string, recursive bool) ([]ExportItem, error)
 	ExportContainerTree(containerID string) ([]Container, error)
+}
+
+// NoteStore defines note-related store operations.
+type NoteStore interface {
+	GetNote(id string) *Note
+	CreateNote(containerID, itemID, title, content, color, icon string) *Note
+	UpdateNote(id, title, content, color, icon string) (*Note, error)
+	DeleteNote(id string) error
+	ContainerNotes(containerID string) []Note
+	ItemNotes(itemID string) []Note
 }

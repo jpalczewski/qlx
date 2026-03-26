@@ -1,7 +1,7 @@
 {{ define "search" }}
 <h1>{{.T "search.results_title"}} "{{ .Data.Query }}"</h1>
 
-{{ if and (not .Data.Containers) (not .Data.Items) (not .Data.Tags) }}
+{{ if and (not .Data.Containers) (not .Data.Items) (not .Data.Tags) (not .Data.Notes) }}
 <p class="empty-state">{{.T "search.no_results"}} "{{ .Data.Query }}"</p>
 {{ end }}
 
@@ -35,6 +35,29 @@
         <li><a href="/tags?parent_id={{ .ID }}" hx-get="/tags?parent_id={{ .ID }}" hx-target="#content">{{ .Name }}</a></li>
     {{ end }}
     </ul>
+</section>
+{{ end }}
+
+{{ if .Data.Notes }}
+<section>
+    <h2>{{.T "search.notes"}}</h2>
+    <div class="note-list">
+    {{ range .Data.Notes }}
+        <a class="note-search-result"
+           href="/{{ if .ContainerID }}containers/{{ .ContainerID }}{{ else }}items/{{ .ItemID }}{{ end }}"
+           hx-get="/{{ if .ContainerID }}containers/{{ .ContainerID }}{{ else }}items/{{ .ItemID }}{{ end }}"
+           hx-target="#content">
+            <div class="note-card"
+                 style="background: {{ if .Color }}{{ paletteHex .Color }}22{{ else }}#88888822{{ end }}; border: 1px solid {{ if .Color }}{{ paletteHex .Color }}44{{ else }}#88888844{{ end }};">
+                <div class="note-header">
+                    <span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "note" }}{{ end }}</span>
+                    <strong class="note-title">{{ .Title }}</strong>
+                </div>
+                {{ if .Content }}<p class="note-content">{{ .Content }}</p>{{ end }}
+            </div>
+        </a>
+    {{ end }}
+    </div>
 </section>
 {{ end }}
 {{ end }}

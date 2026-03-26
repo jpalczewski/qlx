@@ -35,6 +35,18 @@ type Item struct {
 	Icon        string    `json:"icon"`
 }
 
+// Note represents a sticky annotation attached to a container or item.
+type Note struct {
+	ID          string    `json:"id"`
+	ContainerID string    `json:"container_id,omitempty"`
+	ItemID      string    `json:"item_id,omitempty"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	Color       string    `json:"color"`
+	Icon        string    `json:"icon"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type PrinterConfig struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`

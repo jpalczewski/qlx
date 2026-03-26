@@ -14,12 +14,13 @@ type ContainerHandler struct {
 	inventory *service.InventoryService
 	templates *service.TemplateService
 	printers  *service.PrinterService
+	notes     *service.NoteService
 	resp      Responder
 }
 
 // NewContainerHandler creates a new ContainerHandler.
-func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, resp Responder) *ContainerHandler {
-	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, resp: resp}
+func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, notes *service.NoteService, resp Responder) *ContainerHandler {
+	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, notes: notes, resp: resp}
 }
 
 // RegisterRoutes registers container routes on the given mux.
@@ -205,6 +206,9 @@ func (h *ContainerHandler) containerListVM(parentID string) ContainerListData {
 			vm.Container = container
 			vm.Items = h.inventory.ContainerItems(parentID)
 			vm.Path = h.inventory.ContainerPath(parentID)
+			if h.notes != nil {
+				vm.NoteCount = len(h.notes.ContainerNotes(parentID))
+			}
 		}
 	}
 	return vm

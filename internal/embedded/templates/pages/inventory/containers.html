@@ -26,6 +26,22 @@
             {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.Container.ID "ObjectType" "container" "Tags" (resolveTags .Data.Container.TagIDs)) }}
         </section>
     </div>
+
+    <div class="tab-container">
+        <div class="tab-bar" role="tablist">
+            <button class="tab-btn active" data-tab="contents" role="tab" aria-selected="true">
+                {{.T "inventory.tab_contents"}}
+            </button>
+            <button class="tab-btn" data-tab="notes"
+                    hx-get="/containers/{{ .Data.Container.ID }}/notes"
+                    hx-target="#tab-panel-notes"
+                    hx-trigger="click once"
+                    role="tab" aria-selected="false">
+                {{.T "inventory.tab_notes"}} {{ if .Data.NoteCount }}<span class="tab-badge" data-tab-badge="notes">{{ .Data.NoteCount }}</span>{{ end }}
+            </button>
+        </div>
+
+        <div id="tab-panel-contents" class="tab-panel active" data-tab="contents">
     {{ end }}
 
     <section class="containers">
@@ -127,14 +143,17 @@
         <p class="empty">{{.T "inventory.no_printers"}}. <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "inventory.add_printer"}}</a>.</p>
     </section>
     {{ end }}
-    {{ end }}
 
-    {{ if .Data.Container }}
     {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
         <button hx-delete="/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
     </section>
     {{ end }}
+
+        </div><!-- /tab-panel-contents -->
+
+        <div id="tab-panel-notes" class="tab-panel" data-tab="notes"></div>
+    </div><!-- /tab-container -->
     {{ end }}
 </div>
 {{ if .Data.Templates }}

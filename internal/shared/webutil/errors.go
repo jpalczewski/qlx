@@ -20,6 +20,7 @@ var statusMap = map[error]int{
 	store.ErrCycleDetected:         http.StatusBadRequest,
 	store.ErrInvalidParent:         http.StatusBadRequest,
 	store.ErrInvalidContainer:      http.StatusBadRequest,
+	store.ErrNoteNotFound:          http.StatusNotFound,
 	validate.ErrNameRequired:       http.StatusBadRequest,
 	validate.ErrNameTooLong:        http.StatusBadRequest,
 	validate.ErrDescriptionTooLong: http.StatusBadRequest,

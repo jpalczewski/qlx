@@ -15,12 +15,13 @@ type ItemHandler struct {
 	inventory *service.InventoryService
 	templates *service.TemplateService
 	printers  *service.PrinterService
+	notes     *service.NoteService
 	resp      Responder
 }
 
 // NewItemHandler creates a new ItemHandler.
-func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, resp Responder) *ItemHandler {
-	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, resp: resp}
+func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, notes *service.NoteService, resp Responder) *ItemHandler {
+	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, notes: notes, resp: resp}
 }
 
 // RegisterRoutes registers item routes on the given mux.
@@ -185,6 +186,9 @@ func (h *ItemHandler) itemDetailVM(item *store.Item) ItemDetailData {
 	}
 	if h.templates != nil {
 		vm.Templates = h.templates.AllTemplates()
+	}
+	if h.notes != nil {
+		vm.NoteCount = len(h.notes.ItemNotes(item.ID))
 	}
 	return vm
 }

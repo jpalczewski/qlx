@@ -144,3 +144,21 @@ type AdhocPrintRequest struct {
 type TagAssignRequest struct {
 	TagID string `json:"tag_id" form:"tag_id"`
 }
+
+// CreateNoteRequest is the input for note creation.
+type CreateNoteRequest struct {
+	ContainerID string `json:"container_id" form:"container_id"`
+	ItemID      string `json:"item_id" form:"item_id"`
+	Title       string `json:"title" form:"title"`
+	Content     string `json:"content" form:"content"`
+	Color       string `json:"color" form:"color"`
+	Icon        string `json:"icon" form:"icon"`
+}
+
+// UpdateNoteRequest is the input for note updates.
+type UpdateNoteRequest struct {
+	Title   string `json:"title" form:"title"`
+	Content string `json:"content" form:"content"`
+	Color   string `json:"color" form:"color"`
+	Icon    string `json:"icon" form:"icon"`
+}

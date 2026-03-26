@@ -1,0 +1,34 @@
+{{ define "notes-tab" }}
+<div class="notes-tab">
+    {{/* Quick-entry form: posts to /notes, prepends new card */}}
+    <form class="note-quick-entry"
+          hx-post="/notes"
+          hx-target=".note-list"
+          hx-swap="afterbegin"
+          hx-on::after-request="if(event.detail.successful){ this.reset(); }">
+        <input type="hidden" name="{{ .Data.ParentType }}_id" value="{{ .Data.ParentID }}">
+        <input class="note-quick-entry-title"
+               type="text"
+               name="title"
+               placeholder="{{ .T "inventory.note_title_placeholder" }}"
+               autocomplete="off"
+               required>
+        <textarea class="note-quick-entry-content"
+                  name="content"
+                  placeholder="{{ .T "inventory.note_content_placeholder" }}"></textarea>
+        <div class="note-quick-entry-footer">
+            <button type="submit" class="btn btn-primary btn-small">{{ .T "inventory.add_note" }}</button>
+        </div>
+    </form>
+
+    {{/* Note list */}}
+    <ul class="note-list">
+        {{ $root := . }}
+        {{ range .Data.Notes }}
+        {{ template "note-card" dict "Data" . }}
+        {{ else }}
+        <li class="empty-state">{{ $root.T "inventory.no_notes" }}</li>
+        {{ end }}
+    </ul>
+</div>
+{{ end }}

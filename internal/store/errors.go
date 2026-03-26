@@ -14,4 +14,5 @@ var (
 	ErrCycleDetected        = errors.New("cycle detected")
 	ErrInvalidParent        = errors.New("invalid parent container")
 	ErrInvalidContainer     = errors.New("invalid container for item")
+	ErrNoteNotFound         = errors.New("note not found")
 )

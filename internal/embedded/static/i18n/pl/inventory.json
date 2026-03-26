@@ -36,5 +36,15 @@
   "inventory.show_children": "Pokaż zawartość",
   "inventory.printed": "Wydrukowano!",
   "inventory.select_template": "Wybierz szablon",
-  "inventory.enter_text": "Wpisz tekst"
+  "inventory.enter_text": "Wpisz tekst",
+  "inventory.tab_detail": "Szczegóły",
+  "inventory.tab_contents": "Zawartość",
+  "inventory.tab_notes": "Notatki",
+  "inventory.note_title_placeholder": "Tytuł notatki…",
+  "inventory.note_content_placeholder": "Treść (opcjonalnie)…",
+  "inventory.add_note": "Dodaj notatkę",
+  "inventory.no_notes": "Brak notatek",
+  "inventory.confirm_delete_note": "Usunąć tę notatkę?",
+  "inventory.note_saved": "Notatka zapisana",
+  "inventory.note_save_failed": "Nie udało się zapisać notatki"
 }
