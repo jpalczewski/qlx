@@ -64,6 +64,7 @@ type TagTreeData struct {
 	Tags         []store.Tag
 	Parent       *store.Tag
 	Path         []store.Tag
+	ChildCounts  map[string]int // tag ID → number of direct children
 	DefaultColor string
 	DefaultIcon  string
 }

@@ -308,10 +308,15 @@ func (h *TagHandler) resolveTagIDs(ids []string) []store.Tag {
 
 // tagTreeVM builds the full view model for the tag tree page.
 func (h *TagHandler) tagTreeVM(parentID string) TagTreeData {
+	tags := h.tags.TagChildren(parentID)
 	vm := TagTreeData{
-		Tags:         h.tags.TagChildren(parentID),
+		Tags:         tags,
+		ChildCounts:  make(map[string]int, len(tags)),
 		DefaultColor: palette.RandomColor().Name,
 		DefaultIcon:  palette.RandomIcon().Name,
+	}
+	for _, t := range tags {
+		vm.ChildCounts[t.ID] = len(h.tags.TagChildren(t.ID))
 	}
 	if parentID != "" {
 		parent := h.tags.GetTag(parentID)

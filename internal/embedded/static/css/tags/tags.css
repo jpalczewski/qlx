@@ -34,6 +34,7 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0;
+    margin-bottom: 1.5rem;
 }
 
 .tag-pill {
@@ -58,4 +59,19 @@
 .tag-pill .entity-icon svg {
     width: 14px;
     height: 14px;
+}
+
+.tag-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2em;
+    padding: 0 0.3em;
+    margin-left: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    border-radius: 8px;
+    background: var(--color-bg-card);
+    color: var(--color-text-muted);
 }

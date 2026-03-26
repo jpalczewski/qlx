@@ -17,6 +17,7 @@
        class="tag-pill"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
         {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
         <span class="tag-pill-name">{{ .Name }}</span>
+        {{ with index $.Data.ChildCounts .ID }}{{ if gt . 0 }}<span class="tag-pill-badge">{{ . }}</span>{{ end }}{{ end }}
     </a>
     {{ else }}
     <p class="empty-state">{{$.T "tags.no_tags"}}</p>
