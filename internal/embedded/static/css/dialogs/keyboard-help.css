@@ -1,0 +1,18 @@
+#keyboard-help { max-width: 420px; }
+#keyboard-help h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+.kb-help-group { margin-bottom: 1rem; }
+.kb-help-group-title {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-text-muted); margin-bottom: 0.25rem;
+}
+.kb-help-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+.kb-help-row kbd {
+  display: inline-block; min-width: 1.8rem; text-align: center;
+  padding: 0.15rem 0.4rem; border-radius: 4px;
+  border: 1px solid var(--color-border); background: var(--color-bg);
+  font-family: inherit; font-size: 0.8rem;
+}
+.kb-help-row span { font-size: 0.9rem; }
