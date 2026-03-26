@@ -1,5 +1,117 @@
 import { test, expect } from '../fixtures/app';
 
+test.describe('Tag pill styling', () => {
+
+  test('tags page shows tag pills linking to tag detail', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const tagResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'PillTag', color: 'blue', icon: '' }
+    });
+    const tag = await tagResp.json();
+
+    await page.goto(`${baseURL}/tags`, { waitUntil: 'domcontentloaded' });
+
+    const pill = page.locator('.tag-pill', { hasText: 'PillTag' });
+    await expect(pill).toBeVisible();
+
+    // Pill links to /tags/{id} (tag detail), not /tags?parent_id=
+    await expect(pill).toHaveAttribute('href', `/tags/${tag.id}`);
+  });
+
+  test('tags page shows child count badge for tags with children', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const parentResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'BadgeParent', color: 'green', icon: '' }
+    });
+    const parent = await parentResp.json();
+
+    await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'BadgeChild1', parent_id: parent.id }
+    });
+    await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'BadgeChild2', parent_id: parent.id }
+    });
+
+    await page.goto(`${baseURL}/tags`, { waitUntil: 'domcontentloaded' });
+
+    const badge = page.locator('.tag-pill', { hasText: 'BadgeParent' }).locator('.tag-pill-badge');
+    await expect(badge).toBeVisible();
+    await expect(badge).toContainText('2');
+  });
+
+  test('tag chip shows parent name and links to parent tag', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const parentResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'ParentVis', color: 'red', icon: '' }
+    });
+    const parentTag = await parentResp.json();
+
+    const childResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'ChildVis', parent_id: parentTag.id }
+    });
+    const childTag = await childResp.json();
+
+    // Create container + item, assign child tag
+    const contResp = await page.request.post(`${baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'ParentVisContainer' }
+    });
+    const container = await contResp.json();
+
+    const itemResp = await page.request.post(`${baseURL}/items`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'ParentVisItem', container_id: container.id }
+    });
+    const item = await itemResp.json();
+
+    await page.request.post(`${baseURL}/items/${item.id}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { tag_id: childTag.id }
+    });
+
+    // Navigate to item detail
+    await page.goto(`${baseURL}/items/${item.id}`, { waitUntil: 'domcontentloaded' });
+
+    // Parent name visible in chip
+    const parentLink = page.locator('.tag-chip .tag-parent', { hasText: 'ParentVis' });
+    await expect(parentLink).toBeVisible();
+
+    // Parent link navigates to parent tag detail
+    await expect(parentLink).toHaveAttribute('href', `/tags/${parentTag.id}`);
+  });
+
+  test('tag detail children section uses pill styling', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const parentResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'DetailParent', color: 'teal', icon: '' }
+    });
+    const parent = await parentResp.json();
+
+    const childResp = await page.request.post(`${baseURL}/tags`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'DetailChild', parent_id: parent.id, color: 'purple', icon: '' }
+    });
+    const child = await childResp.json();
+
+    await page.goto(`${baseURL}/tags/${parent.id}`, { waitUntil: 'domcontentloaded' });
+
+    const pill = page.locator('.tag-pill-list .tag-pill', { hasText: 'DetailChild' });
+    await expect(pill).toBeVisible();
+    await expect(pill).toHaveAttribute('href', `/tags/${child.id}`);
+  });
+});
+
 test.describe('Tag UI improvements', () => {
 
   test('tag chip links navigate to tag detail page', async ({ page, app }) => {
