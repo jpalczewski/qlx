@@ -1,12 +1,97 @@
-.tree-picker { display: flex; flex-direction: column; height: 100%; padding: 1rem; }
-.tree-picker h3 { margin: 0 0 0.75rem; }
-.tree-search { margin-bottom: 0.75rem; }
-.tree-node { list-style: none; padding: 0.25rem 0; }
-.tree-expand { cursor: pointer; user-select: none; margin-right: 0.25rem; }
-.tree-label { cursor: pointer; padding: 0.15rem 0.5rem; border-radius: 4px; }
-.tree-label.selected { background: var(--color-accent); color: white; }
-.tree-branch { margin-left: 1rem; padding: 0; }
+/* Tree picker inner layout */
+.tree-picker {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: var(--space-md);
+    gap: var(--space-sm);
+}
+
+.tree-picker h3 {
+    margin: 0;
+}
+
+/* Search input */
+.tree-search {
+    width: 100%;
+    padding: var(--space-sm);
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.tree-search:focus {
+    border-color: var(--color-accent);
+}
+
+/* Tree container panel */
+.tree-picker-tree-panel {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-alt);
+    padding: var(--space-xs);
+}
+
+/* Tree nodes */
+.tree-node {
+    list-style: none;
+    padding: 0;
+}
+
+.tree-node:hover > .tree-label {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-sm);
+}
+
+/* Expand toggle */
+.tree-expand {
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    width: 1.2em;
+    text-align: center;
+    transition: transform 0.15s ease;
+    transform: rotate(0deg);
+    color: var(--color-text-muted);
+}
+
+.tree-node.expanded > .tree-expand {
+    transform: rotate(90deg);
+}
+
+/* Node label */
+.tree-label {
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+}
+
+.tree-label.selected {
+    background: var(--color-accent);
+    color: white;
+    border-radius: var(--radius-sm);
+}
+
+/* Nested branches */
+.tree-branch {
+    margin-left: var(--space-md);
+    padding: 0;
+}
+
+/* Footer with action buttons */
 .tree-picker-footer {
-    margin-top: auto; padding-top: 0.75rem; display: flex;
-    gap: 0.5rem; justify-content: flex-end;
+    margin-top: auto;
+    padding-top: var(--space-sm);
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: flex-end;
+    border-top: 1px solid var(--color-border);
 }
