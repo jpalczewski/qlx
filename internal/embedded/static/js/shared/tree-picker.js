@@ -14,8 +14,13 @@
     var ul = li.querySelector("ul.tree-branch");
 
     if (ul && ul.children.length > 0) {
-      ul.style.display = ul.style.display === "none" ? "" : "none";
-      expandEl.textContent = ul.style.display === "none" ? "\u25B6" : "\u25BC";
+      var collapsed = ul.style.display === "none";
+      ul.style.display = collapsed ? "" : "none";
+      if (collapsed) {
+        li.classList.add("expanded");
+      } else {
+        li.classList.remove("expanded");
+      }
       return;
     }
 
@@ -36,7 +41,7 @@
           ul.appendChild(doc.body.firstChild);
         }
         if (window.htmx) htmx.process(ul);
-        expandEl.textContent = "\u25BC";
+        li.classList.add("expanded");
       })
       .catch(function (err) {
         console.error("tree expand failed:", err);
