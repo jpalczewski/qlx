@@ -113,8 +113,7 @@
 
       var treeContainer = document.createElement("div");
       treeContainer.id = treeContainerId;
-      treeContainer.style.flex = "1";
-      treeContainer.style.overflowY = "auto";
+      treeContainer.className = "tree-picker-tree-panel";
       picker.appendChild(treeContainer);
 
       var footer = document.createElement("div");
