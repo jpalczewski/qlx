@@ -67,13 +67,13 @@ func (s *PrinterSession) Start() error {
 
 	if s.querier != nil {
 		// Initial connect handshake
-		if err := s.querier.Connect(s.tr); err != nil {
+		if err := s.querier.Connect(context.TODO(), s.tr); err != nil {
 			webutil.LogError("session %s: connect handshake failed: %v", s.config.Name, err)
 		}
 
 		// Read RFID info
 		s.mu.Lock()
-		rfid, err := s.querier.RfidInfo(s.tr)
+		rfid, err := s.querier.RfidInfo(context.TODO(), s.tr)
 		s.mu.Unlock()
 		if err != nil {
 			webutil.LogTrace("session %s: rfid read failed: %v", s.config.Name, err)

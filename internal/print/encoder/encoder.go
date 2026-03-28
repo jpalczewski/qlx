@@ -1,7 +1,9 @@
 package encoder
 
 import (
+	"context"
 	"image"
+
 	"github.com/erxyi/qlx/internal/print/transport"
 )
 
@@ -30,11 +32,11 @@ type PrintOpts struct {
 // StatusQuerier is optionally implemented by encoders that support status queries.
 type StatusQuerier interface {
 	// Connect sends initial handshake.
-	Connect(tr transport.Transport) error
+	Connect(ctx context.Context, tr transport.Transport) error
 	// Heartbeat reads current printer status (battery, lid, paper).
 	Heartbeat(tr transport.Transport) (HeartbeatResult, error)
 	// RfidInfo reads tape/label RFID data.
-	RfidInfo(tr transport.Transport) (RfidResult, error)
+	RfidInfo(ctx context.Context, tr transport.Transport) (RfidResult, error)
 }
 
 // HeartbeatResult contains data from a heartbeat response.
@@ -50,6 +52,6 @@ type RfidResult struct {
 	TotalLabels   int
 	UsedLabels    int
 	Barcode       string // EAN barcode from RFID (for cloud size lookup)
-	LabelWidthMm  int   // 0 if unknown
-	LabelHeightMm int   // 0 if unknown
+	LabelWidthMm  int    // 0 if unknown
+	LabelHeightMm int    // 0 if unknown
 }

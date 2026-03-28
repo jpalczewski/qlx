@@ -1,6 +1,7 @@
 package niimbot
 
 import (
+	"context"
 	"testing"
 
 	"github.com/erxyi/qlx/internal/print/transport"
@@ -62,8 +63,8 @@ func TestHeartbeat_D110(t *testing.T) {
 func TestHeartbeat_LidOpen(t *testing.T) {
 	// 13-byte B1 heartbeat response: lid open (data[9]=1)
 	respData := make([]byte, 13)
-	respData[9] = 0x01 // lid open
-	respData[10] = 50  // battery
+	respData[9] = 0x01  // lid open
+	respData[10] = 50   // battery
 	respData[11] = 0x01 // paper not loaded
 
 	mock := &transport.MockTransport{}
@@ -95,7 +96,7 @@ func TestRfidInfo_NoTag(t *testing.T) {
 	mock.SetReadData(pkt.ToBytes())
 
 	enc := &NiimbotEncoder{}
-	result, err := enc.RfidInfo(mock)
+	result, err := enc.RfidInfo(context.Background(), mock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,23 +108,23 @@ func TestRfidInfo_NoTag(t *testing.T) {
 func TestRfidInfo_WithTag(t *testing.T) {
 	// Build RFID response: uuid(8) + barcodeLen(1)+barcode(3) + serialLen(1)+serial(2) + total(u16) + used(u16) + type(u8)
 	var respData []byte
-	respData = append(respData, 0x01)           // data[0] != 0 → tag present
+	respData = append(respData, 0x01)               // data[0] != 0 → tag present
 	respData = append(respData, make([]byte, 7)...) // rest of uuid (8 total: byte 0 already set, 7 more)
 	// uuid is bytes 0..7, so we've written 8 bytes already (1 + 7)
-	respData = append(respData, 3)              // barcodeLen=3
+	respData = append(respData, 3)             // barcodeLen=3
 	respData = append(respData, 'A', 'B', 'C') // barcode
-	respData = append(respData, 2)              // serialLen=2
-	respData = append(respData, 'X', 'Y')       // serial
-	respData = append(respData, 0x00, 0x64)     // totalLabels = 100
-	respData = append(respData, 0x00, 0x0A)     // usedLabels = 10
-	respData = append(respData, 0x01)           // labelType = with-gaps
+	respData = append(respData, 2)             // serialLen=2
+	respData = append(respData, 'X', 'Y')      // serial
+	respData = append(respData, 0x00, 0x64)    // totalLabels = 100
+	respData = append(respData, 0x00, 0x0A)    // usedLabels = 10
+	respData = append(respData, 0x01)          // labelType = with-gaps
 
 	mock := &transport.MockTransport{}
 	pkt := Packet{Type: cmdRfidInfo + respOffsetStandard, Data: respData}
 	mock.SetReadData(pkt.ToBytes())
 
 	enc := &NiimbotEncoder{}
-	result, err := enc.RfidInfo(mock)
+	result, err := enc.RfidInfo(context.Background(), mock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func TestConnect_SendsHandshake(t *testing.T) {
 	mock.SetReadData(pkt.ToBytes())
 
 	enc := &NiimbotEncoder{}
-	err := enc.Connect(mock)
+	err := enc.Connect(context.Background(), mock)
 	if err != nil {
 		t.Fatal(err)
 	}

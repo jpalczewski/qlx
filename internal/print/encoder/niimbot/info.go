@@ -1,6 +1,7 @@
 package niimbot
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 
@@ -19,7 +20,10 @@ const (
 var _ encoder.StatusQuerier = (*NiimbotEncoder)(nil)
 
 // Connect sends the initial handshake packet (0xC1).
-func (e *NiimbotEncoder) Connect(tr transport.Transport) error {
+func (e *NiimbotEncoder) Connect(ctx context.Context, tr transport.Transport) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return e.transceive(tr, cmdConnect, []byte{0x01}, respOffsetStandard)
 }
 
@@ -60,7 +64,10 @@ func (e *NiimbotEncoder) Heartbeat(tr transport.Transport) (encoder.HeartbeatRes
 }
 
 // RfidInfo reads tape/label RFID tag info.
-func (e *NiimbotEncoder) RfidInfo(tr transport.Transport) (encoder.RfidResult, error) {
+func (e *NiimbotEncoder) RfidInfo(ctx context.Context, tr transport.Transport) (encoder.RfidResult, error) {
+	if err := ctx.Err(); err != nil {
+		return encoder.RfidResult{TotalLabels: -1, UsedLabels: -1}, err
+	}
 	resp, err := e.transceiveWithResponse(tr, cmdRfidInfo, []byte{0x01}, respOffsetStandard)
 	if err != nil {
 		return encoder.RfidResult{TotalLabels: -1, UsedLabels: -1}, fmt.Errorf("rfid: %w", err)
@@ -129,21 +136,21 @@ func (e *NiimbotEncoder) RfidInfo(tr transport.Transport) (encoder.RfidResult, e
 // Sourced from product listings and RFID tag data.
 var knownLabels = map[string][2]int{
 	// B1 / B21 common labels (50mm printhead)
-	"6972842748577": {50, 30},  // T50*30-230
-	"6972842748584": {40, 30},  // T40*30-230
-	"6972842748591": {50, 80},  // T50*80-100
-	"6972842748607": {30, 15},  // T30*15-400
-	"6972842748614": {40, 60},  // T40*60-150
-	"6972842748621": {50, 50},  // T50*50-150
-	"6972842748638": {40, 40},  // T40*40-180
-	"6972842748645": {25, 15},  // T25*15-400
-	"6972842748652": {50, 25},  // T50*25-320
-	"6972842748669": {40, 20},  // T40*20-320
-	"6971501227927": {50, 20},  // 50x20-384
+	"6972842748577": {50, 30}, // T50*30-230
+	"6972842748584": {40, 30}, // T40*30-230
+	"6972842748591": {50, 80}, // T50*80-100
+	"6972842748607": {30, 15}, // T30*15-400
+	"6972842748614": {40, 60}, // T40*60-150
+	"6972842748621": {50, 50}, // T50*50-150
+	"6972842748638": {40, 40}, // T40*40-180
+	"6972842748645": {25, 15}, // T25*15-400
+	"6972842748652": {50, 25}, // T50*25-320
+	"6972842748669": {40, 20}, // T40*20-320
+	"6971501227927": {50, 20}, // 50x20-384
 	// D11 / D110 labels (12mm printhead)
-	"6972842748676": {12, 40},  // T12*40-160
-	"6972842748683": {15, 30},  // T15*30-210
-	"6972842748690": {14, 22},  // T14*22-260
+	"6972842748676": {12, 40}, // T12*40-160
+	"6972842748683": {15, 30}, // T15*30-210
+	"6972842748690": {14, 22}, // T14*22-260
 }
 
 // lookupLabelSize returns label dimensions for a known barcode.
