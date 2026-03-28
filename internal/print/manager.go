@@ -1,6 +1,7 @@
 package print
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -142,7 +143,7 @@ func (m *PrinterManager) ConnectPrinter(printerID string) error {
 	session := NewSession(*cfg, tr, enc, modelInfo, m.onStatusUpdate)
 
 	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
-	if err := session.Start(); err != nil {
+	if err := session.Start(context.TODO()); err != nil {
 		return fmt.Errorf("connect %s: %w", cfg.Name, err)
 	}
 
