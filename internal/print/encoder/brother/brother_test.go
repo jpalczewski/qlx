@@ -23,7 +23,7 @@ func encode(t *testing.T, img image.Image) []byte {
 	t.Helper()
 	enc := &BrotherEncoder{}
 	mock := &transport.MockTransport{}
-	opts := encoder.PrintOpts{AutoCut: true}
+	opts := encoder.PrintOpts{CutEvery: 1}
 	if err := enc.Encode(img, "QL-700", opts, mock); err != nil {
 		t.Fatalf("Encode returned error: %v", err)
 	}

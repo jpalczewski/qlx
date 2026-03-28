@@ -74,20 +74,32 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		return err
 	}
 
-	// 4. Autocut on (if AutoCut)
-	if opts.AutoCut {
+	// 4. Various mode: autocut
+	if opts.CutEvery > 0 {
 		if _, err := tr.Write([]byte{0x1B, 0x69, 0x4D, 0x40}); err != nil {
+			return err
+		}
+	} else {
+		if _, err := tr.Write([]byte{0x1B, 0x69, 0x4D, 0x00}); err != nil {
 			return err
 		}
 	}
 
-	// 5. Cut every 1 label
-	if _, err := tr.Write([]byte{0x1B, 0x69, 0x41, 0x01}); err != nil {
+	// 5. Cut every N labels
+	cutEvery := byte(1)
+	if opts.CutEvery > 0 {
+		cutEvery = byte(opts.CutEvery) //nolint:gosec // G115: value validated in manager
+	}
+	if _, err := tr.Write([]byte{0x1B, 0x69, 0x41, cutEvery}); err != nil {
 		return err
 	}
 
-	// 6. Expanded mode: cut at end
-	if _, err := tr.Write([]byte{0x1B, 0x69, 0x4B, 0x08}); err != nil {
+	// 6. Expanded mode: cut at end (bit 3), high-res (bit 6)
+	expandedMode := byte(0x00)
+	if opts.CutEvery > 0 {
+		expandedMode |= 0x08
+	}
+	if _, err := tr.Write([]byte{0x1B, 0x69, 0x4B, expandedMode}); err != nil {
 		return err
 	}
 

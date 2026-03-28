@@ -24,9 +24,10 @@ type ModelInfo struct {
 }
 
 type PrintOpts struct {
-	Density  int
-	AutoCut  bool
-	Quantity int
+	Density  int  `json:"density"`   // 0 = model default; Niimbot 1-5, Brother ignored
+	Copies   int  `json:"copies"`    // 0/1 = single; >1 = multi-copy
+	CutEvery int  `json:"cut_every"` // 0 = no cut; 1 = every copy; N = every N copies
+	HighRes  bool `json:"high_res"`  // Brother: 600 DPI vertical; others: ignored
 }
 
 // StatusQuerier is optionally implemented by encoders that support status queries.

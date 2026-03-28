@@ -114,7 +114,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	binary.BigEndian.PutUint16(pageSizeData[0:2], uint16(rows))
 	//nolint:gosec // G115: value range is validated by protocol constraints
 	binary.BigEndian.PutUint16(pageSizeData[2:4], uint16(m.PrintheadPx))
-	binary.BigEndian.PutUint16(pageSizeData[4:6], 1) // copies = 1
+	binary.BigEndian.PutUint16(pageSizeData[4:6], uint16(max(opts.Copies, 1))) //nolint:gosec // G115: value validated in manager
 	if err := e.transceive(tr, cmdSetPageSize, pageSizeData, respOffsetStandard); err != nil {
 		return fmt.Errorf("SET_PAGE_SIZE: %w", err)
 	}

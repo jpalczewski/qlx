@@ -182,8 +182,8 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 	webutil.LogInfo("printing on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
 	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
-		AutoCut:  true,
-		Quantity: 1,
+		Copies:   1,
+		CutEvery: 1,
 	}
 	if err := session.Print(img, cfg.Model, printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
@@ -235,8 +235,8 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
 	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
-		AutoCut:  true,
-		Quantity: 1,
+		Copies:   1,
+		CutEvery: 1,
 	}
 	if err := session.Print(img, cfg.Model, printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
