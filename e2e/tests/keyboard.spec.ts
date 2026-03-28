@@ -53,9 +53,9 @@ test.describe('Keyboard Shortcuts — Global', () => {
     await expect(page.locator('#keyboard-help')).not.toBeVisible();
   });
 
-  test('m opens container navigator', async ({ page, app }) => {
+  test('g opens container navigator', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
-    await page.keyboard.press('m');
+    await page.keyboard.press('g');
     await expect(page.locator('#container-nav-picker')).toBeVisible();
   });
 });
