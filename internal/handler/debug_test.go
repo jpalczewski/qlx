@@ -12,7 +12,7 @@ import (
 func newTestDebugHandler(t *testing.T) *DebugHandler {
 	t.Helper()
 	s := newHandlerTestStore(t)
-	pm := print.NewPrinterManager(s)
+	pm := print.NewPrinterManager(s, nil)
 	prn := service.NewPrinterService(s)
 	return NewDebugHandler(pm, prn, &JSONResponder{})
 }

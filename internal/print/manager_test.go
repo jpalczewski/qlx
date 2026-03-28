@@ -1,8 +1,10 @@
 package print
 
 import (
+	"context"
 	"image"
 	"testing"
+	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
@@ -11,7 +13,9 @@ import (
 	"github.com/erxyi/qlx/internal/store/sqlite"
 )
 
-// mockEncoder is a minimal Encoder implementation for tests.
+// mockEncoder is a minimal Encoder + StatusQuerier implementation for tests.
+// Implementing StatusQuerier keeps the session heartbeat alive so that
+// ConnectionManager maintains a stable StateConnected.
 type mockEncoder struct{}
 
 func (m *mockEncoder) Name() string { return "mock" }
@@ -34,6 +38,18 @@ func (m *mockEncoder) Encode(img image.Image, model string, opts encoder.PrintOp
 	return err
 }
 
+func (m *mockEncoder) Connect(_ context.Context, _ transport.Transport) error {
+	return nil
+}
+
+func (m *mockEncoder) Heartbeat(_ transport.Transport) (encoder.HeartbeatResult, error) {
+	return encoder.HeartbeatResult{Battery: 100, LidClosed: true, PaperLoaded: true}, nil
+}
+
+func (m *mockEncoder) RfidInfo(_ context.Context, _ transport.Transport) (encoder.RfidResult, error) {
+	return encoder.RfidResult{}, nil
+}
+
 func newTestPrintStore(t *testing.T) *sqlite.SQLiteStore {
 	t.Helper()
 	db, err := sqlite.New(":memory:")
@@ -44,26 +60,64 @@ func newTestPrintStore(t *testing.T) *sqlite.SQLiteStore {
 	return db
 }
 
-func newManagerWithMock(t *testing.T) (*PrinterManager, *sqlite.SQLiteStore, *transport.MockTransport) {
+// newManagerWithMock creates a PrinterManager backed by a ConnectionManager using MockTransport.
+// It returns the manager, store, mock transport, and the ConnectionManager.
+func newManagerWithMock(t *testing.T) (*PrinterManager, *sqlite.SQLiteStore, *transport.MockTransport, *ConnectionManager) {
 	t.Helper()
 	s := newTestPrintStore(t)
-	mgr := NewPrinterManager(s)
-	mgr.RegisterEncoder(&mockEncoder{})
 
 	mockTr := &transport.MockTransport{}
-	mgr.transportFn = func(name string) transport.Transport {
-		if name == "mock" {
-			return mockTr
+	mockEnc := &mockEncoder{}
+
+	cm := NewConnectionManager(
+		func(name string) transport.Transport {
+			if name == "mock" {
+				return mockTr
+			}
+			return nil
+		},
+		func(name string) encoder.Encoder {
+			if name == "mock" {
+				return mockEnc
+			}
+			return nil
+		},
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	t.Cleanup(cm.Stop)
+	cm.Start(ctx)
+
+	mgr := NewPrinterManager(s, cm)
+	mgr.RegisterEncoder(mockEnc)
+
+	return mgr, s, mockTr, cm
+}
+
+// waitForState polls until the printer reaches the desired state or timeout.
+func waitForState(cm *ConnectionManager, printerID string, desired ConnState, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if cm.State(printerID) == desired {
+			return true
 		}
-		return nil
+		time.Sleep(5 * time.Millisecond)
 	}
-	return mgr, s, mockTr
+	return false
 }
 
 func TestPrinterManager_Print(t *testing.T) {
-	mgr, s, mockTr := newManagerWithMock(t)
+	mgr, s, mockTr, cm := newManagerWithMock(t)
 
 	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state, got %s", cm.State(printer.ID))
+	}
 
 	data := label.LabelData{
 		Name:        "Test Item",
@@ -81,7 +135,7 @@ func TestPrinterManager_Print(t *testing.T) {
 
 func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
 	s := newTestPrintStore(t)
-	mgr := NewPrinterManager(s)
+	mgr := NewPrinterManager(s, nil)
 
 	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple", label.RenderOpts{})
 	if err == nil {
@@ -90,31 +144,43 @@ func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
 }
 
 func TestPrinterManager_ConnectDisconnect(t *testing.T) {
-	mgr, s, _ := newManagerWithMock(t)
+	_, s, _, cm := newManagerWithMock(t)
 
 	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
 
-	if err := mgr.ConnectPrinter(printer.ID); err != nil {
-		t.Fatalf("ConnectPrinter() returned unexpected error: %v", err)
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
 	}
 
-	status := mgr.GetStatus(printer.ID)
-	if !status.Connected {
-		t.Error("expected printer to be connected after ConnectPrinter")
+	state := cm.State(printer.ID)
+	if state != StateConnected {
+		t.Errorf("expected connected state after Add, got %s", state)
 	}
 
-	mgr.DisconnectPrinter(printer.ID)
+	if err := cm.Remove(printer.ID); err != nil {
+		t.Fatalf("cm.Remove: %v", err)
+	}
 
-	status = mgr.GetStatus(printer.ID)
-	if status.Connected {
-		t.Error("expected printer to be disconnected after DisconnectPrinter")
+	state = cm.State(printer.ID)
+	if state == StateConnected {
+		t.Error("expected printer to not be connected after Remove")
 	}
 }
 
 func TestPrinterManager_PrintImage(t *testing.T) {
-	mgr, s, mockTr := newManagerWithMock(t)
+	mgr, s, mockTr, cm := newManagerWithMock(t)
 
 	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
+	}
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 
@@ -129,7 +195,7 @@ func TestPrinterManager_PrintImage(t *testing.T) {
 
 func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
 	s := newTestPrintStore(t)
-	mgr := NewPrinterManager(s)
+	mgr := NewPrinterManager(s, nil)
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 	err := mgr.PrintImage("nonexistent-id", img)
@@ -140,7 +206,7 @@ func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
 
 func TestPrinterManager_AvailableEncoders(t *testing.T) {
 	s := newTestPrintStore(t)
-	mgr := NewPrinterManager(s)
+	mgr := NewPrinterManager(s, nil)
 	mgr.RegisterEncoder(&mockEncoder{})
 
 	encs := mgr.AvailableEncoders()

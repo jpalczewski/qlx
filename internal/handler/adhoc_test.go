@@ -14,7 +14,7 @@ import (
 func newTestAdhocHandler(t *testing.T) *AdhocHandler {
 	t.Helper()
 	s := newHandlerTestStore(t)
-	pm := print.NewPrinterManager(s)
+	pm := print.NewPrinterManager(s, nil)
 	prn := service.NewPrinterService(s)
 	tmpl := service.NewTemplateService(s)
 	return NewAdhocHandler(pm, prn, tmpl, &JSONResponder{})

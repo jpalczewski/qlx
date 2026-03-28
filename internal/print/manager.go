@@ -1,13 +1,10 @@
 package print
 
 import (
-	"context"
 	"fmt"
 	"image"
 	"image/color"
 	imagedraw "image/draw"
-	"sync"
-	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
@@ -17,15 +14,6 @@ import (
 	"golang.org/x/image/draw"
 )
 
-// TransportFactory creates a Transport by name.
-type TransportFactory func(name string) transport.Transport
-
-// PrinterStatusEvent is sent to SSE subscribers.
-type PrinterStatusEvent struct {
-	PrinterID string        `json:"printer_id"`
-	Status    PrinterStatus `json:"status"`
-}
-
 // PrinterConfigStore provides read-only access to printer configuration.
 type PrinterConfigStore interface {
 	GetPrinter(id string) *store.PrinterConfig
@@ -34,24 +22,38 @@ type PrinterConfigStore interface {
 
 // PrinterManager manages persistent printer sessions with heartbeat.
 type PrinterManager struct {
-	store       PrinterConfigStore
-	encoders    map[string]encoder.Encoder
-	sessions    map[string]*PrinterSession
-	mu          sync.RWMutex
-	sseMu       sync.Mutex
-	sseClients  map[chan PrinterStatusEvent]struct{}
-	transportFn TransportFactory
+	store    PrinterConfigStore
+	encoders map[string]encoder.Encoder
+	cm       *ConnectionManager
 }
 
-func NewPrinterManager(s PrinterConfigStore) *PrinterManager {
-	m := &PrinterManager{
-		store:      s,
-		encoders:   make(map[string]encoder.Encoder),
-		sessions:   make(map[string]*PrinterSession),
-		sseClients: make(map[chan PrinterStatusEvent]struct{}),
+// NewPrinterManager creates a PrinterManager backed by the given store and ConnectionManager.
+func NewPrinterManager(s PrinterConfigStore, cm *ConnectionManager) *PrinterManager {
+	return &PrinterManager{
+		store:    s,
+		cm:       cm,
+		encoders: make(map[string]encoder.Encoder),
 	}
-	m.transportFn = m.defaultTransportFactory
-	return m
+}
+
+// DefaultTransportFactory returns a TransportFactoryFn that creates transports by name.
+func DefaultTransportFactory() TransportFactoryFn {
+	return func(name string) transport.Transport {
+		switch name {
+		case "usb":
+			return &transport.FileTransport{}
+		case "gousb":
+			return &transport.GoUSBTransport{}
+		case "serial":
+			return &transport.SerialTransport{}
+		case "remote":
+			return &transport.RemoteTransport{}
+		case "ble":
+			return &transport.BLETransport{}
+		default:
+			return nil
+		}
+	}
 }
 
 // findModel returns the ModelInfo matching modelID, or nil if not found.
@@ -65,17 +67,18 @@ func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
 	return nil
 }
 
-// RegisterEncoder adds an encoder. Must be called before Start().
+// RegisterEncoder adds an encoder. Must be called before use.
 func (m *PrinterManager) RegisterEncoder(enc encoder.Encoder) {
-	m.mu.Lock()
 	m.encoders[enc.Name()] = enc
-	m.mu.Unlock()
+}
+
+// Encoder returns a registered encoder by name, or nil if not found.
+func (m *PrinterManager) Encoder(name string) encoder.Encoder {
+	return m.encoders[name]
 }
 
 // AvailableEncoders returns a snapshot of registered encoders.
 func (m *PrinterManager) AvailableEncoders() map[string]encoder.Encoder {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	cp := make(map[string]encoder.Encoder, len(m.encoders))
 	for k, v := range m.encoders {
 		cp[k] = v
@@ -83,110 +86,37 @@ func (m *PrinterManager) AvailableEncoders() map[string]encoder.Encoder {
 	return cp
 }
 
-// Start connects to all configured printers.
-func (m *PrinterManager) Start() {
-	for _, p := range m.store.AllPrinters() {
-		if err := m.ConnectPrinter(p.ID); err != nil {
-			webutil.LogError("auto-connect %s failed: %v", p.Name, err)
-		}
-	}
-}
-
-// Stop disconnects all printers with a timeout per session.
-func (m *PrinterManager) Stop() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for id, session := range m.sessions {
-		webutil.LogInfo("disconnecting %s", session.config.Name)
-		done := make(chan struct{})
-		go func() {
-			session.Stop()
-			close(done)
-		}()
-		select {
-		case <-done:
-			// clean disconnect
-		case <-time.After(5 * time.Second):
-			webutil.LogError("timeout disconnecting %s, forcing", session.config.Name)
-		}
-		delete(m.sessions, id)
-	}
-}
-
-// ConnectPrinter creates a session and connects to the printer.
-func (m *PrinterManager) ConnectPrinter(printerID string) error {
-	cfg := m.store.GetPrinter(printerID)
-	if cfg == nil {
-		return fmt.Errorf("printer not found: %s", printerID)
-	}
-
-	m.mu.RLock()
-	enc, ok := m.encoders[cfg.Encoder]
-	m.mu.RUnlock()
-	if !ok {
-		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
-	}
-
-	tr := m.transportFn(cfg.Transport)
-	if tr == nil {
-		return fmt.Errorf("unknown transport: %s", cfg.Transport)
-	}
-	if webutil.TraceEnabled {
-		tr = &transport.TraceTransport{Inner: tr}
-	}
-
-	modelInfo := findModel(enc, cfg.Model)
-
-	// Stop existing session if any
-	m.DisconnectPrinter(printerID)
-
-	session := NewSession(*cfg, tr, enc, modelInfo, m.onStatusUpdate)
-
-	webutil.LogInfo("connecting to %s (%s/%s via %s)", cfg.Name, cfg.Encoder, cfg.Model, cfg.Transport)
-	if err := session.Start(context.TODO()); err != nil {
-		return fmt.Errorf("connect %s: %w", cfg.Name, err)
-	}
-
-	// Only insert into map after successful Start to prevent leaked sessions
-	m.mu.Lock()
-	m.sessions[printerID] = session
-	m.mu.Unlock()
-
-	return nil
-}
-
-// DisconnectPrinter stops and removes a session.
-func (m *PrinterManager) DisconnectPrinter(printerID string) {
-	m.mu.Lock()
-	session, ok := m.sessions[printerID]
-	if ok {
-		delete(m.sessions, printerID)
-	}
-	m.mu.Unlock()
-
-	if ok {
-		session.Stop()
-	}
-}
-
 // GetStatus returns status for a single printer.
 func (m *PrinterManager) GetStatus(printerID string) PrinterStatus {
-	m.mu.RLock()
-	session, ok := m.sessions[printerID]
-	m.mu.RUnlock()
-	if !ok {
+	if m.cm == nil {
+		return PrinterStatus{Battery: -1, TotalLabels: -1, UsedLabels: -1}
+	}
+	session := m.cm.Session(printerID)
+	if session == nil {
 		return PrinterStatus{Battery: -1, TotalLabels: -1, UsedLabels: -1}
 	}
 	return session.Status()
 }
 
-// AllStatuses returns statuses for all configured printers.
+// AllStatuses returns statuses for all managed printers.
 func (m *PrinterManager) AllStatuses() map[string]PrinterStatus {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 	result := make(map[string]PrinterStatus)
-	for id, session := range m.sessions {
-		result[id] = session.Status()
+	if m.cm == nil {
+		return result
+	}
+	for id, state := range m.cm.States() {
+		if state == StateConnected {
+			if session := m.cm.Session(id); session != nil {
+				result[id] = session.Status()
+				continue
+			}
+		}
+		result[id] = PrinterStatus{
+			Connected:   state == StateConnected,
+			Battery:     -1,
+			TotalLabels: -1,
+			UsedLabels:  -1,
+		}
 	}
 	return result
 }
@@ -198,9 +128,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("printer not found: %s", printerID)
 	}
 
-	m.mu.RLock()
 	enc, ok := m.encoders[cfg.Encoder]
-	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
@@ -215,18 +143,12 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("render: %w", err)
 	}
 
-	m.mu.RLock()
-	session, ok := m.sessions[printerID]
-	m.mu.RUnlock()
-
-	if !ok || !session.Status().Connected {
-		// No active session — try to connect first
-		if err := m.ConnectPrinter(printerID); err != nil {
-			return fmt.Errorf("connect for print: %w", err)
-		}
-		m.mu.RLock()
-		session = m.sessions[printerID]
-		m.mu.RUnlock()
+	if m.cm.State(printerID) != StateConnected {
+		return fmt.Errorf("printer %s not connected", printerID)
+	}
+	session := m.cm.Session(printerID)
+	if session == nil {
+		return fmt.Errorf("printer %s: no active session", printerID)
 	}
 
 	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
@@ -252,9 +174,7 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		return fmt.Errorf("printer not found: %s", printerID)
 	}
 
-	m.mu.RLock()
 	enc, ok := m.encoders[cfg.Encoder]
-	m.mu.RUnlock()
 	if !ok {
 		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
 	}
@@ -264,18 +184,12 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
 
-	m.mu.RLock()
-	session, ok := m.sessions[printerID]
-	m.mu.RUnlock()
-
-	if !ok || !session.Status().Connected {
-		// No active session — try to connect first
-		if err := m.ConnectPrinter(printerID); err != nil {
-			return fmt.Errorf("connect for print: %w", err)
-		}
-		m.mu.RLock()
-		session = m.sessions[printerID]
-		m.mu.RUnlock()
+	if m.cm.State(printerID) != StateConnected {
+		return fmt.Errorf("printer %s not connected", printerID)
+	}
+	session := m.cm.Session(printerID)
+	if session == nil {
+		return fmt.Errorf("printer %s: no active session", printerID)
 	}
 
 	// Scale image to match printer printhead width if needed
@@ -293,12 +207,12 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
 	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
 
 	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
-	opts := encoder.PrintOpts{
+	printOpts := encoder.PrintOpts{
 		Density:  modelInfo.DensityDefault,
 		AutoCut:  true,
 		Quantity: 1,
 	}
-	if err := session.Print(img, cfg.Model, opts); err != nil {
+	if err := session.Print(img, cfg.Model, printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
@@ -347,52 +261,4 @@ func applyCalibrationOffset(img image.Image, cfg *store.PrinterConfig, printhead
 
 	webutil.LogInfo("applied calibration offset (%+d, %+d) for %s", cfg.OffsetX, cfg.OffsetY, cfg.Name)
 	return dst
-}
-
-// SubscribeSSE returns a channel that receives status events.
-func (m *PrinterManager) SubscribeSSE() chan PrinterStatusEvent {
-	ch := make(chan PrinterStatusEvent, 16)
-	m.sseMu.Lock()
-	m.sseClients[ch] = struct{}{}
-	m.sseMu.Unlock()
-	return ch
-}
-
-// UnsubscribeSSE removes a SSE subscriber.
-func (m *PrinterManager) UnsubscribeSSE(ch chan PrinterStatusEvent) {
-	m.sseMu.Lock()
-	delete(m.sseClients, ch)
-	m.sseMu.Unlock()
-	close(ch)
-}
-
-// onStatusUpdate is called by sessions when status changes.
-func (m *PrinterManager) onStatusUpdate(printerID string, status PrinterStatus) {
-	evt := PrinterStatusEvent{PrinterID: printerID, Status: status}
-	m.sseMu.Lock()
-	for ch := range m.sseClients {
-		select {
-		case ch <- evt:
-		default:
-			// drop if client is slow
-		}
-	}
-	m.sseMu.Unlock()
-}
-
-func (m *PrinterManager) defaultTransportFactory(name string) transport.Transport {
-	switch name {
-	case "usb":
-		return &transport.FileTransport{}
-	case "gousb":
-		return &transport.GoUSBTransport{}
-	case "serial":
-		return &transport.SerialTransport{}
-	case "remote":
-		return &transport.RemoteTransport{}
-	case "ble":
-		return &transport.BLETransport{}
-	default:
-		return nil
-	}
 }

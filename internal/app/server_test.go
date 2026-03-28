@@ -22,7 +22,7 @@ func newAppTestStore(t *testing.T) *sqlite.SQLiteStore {
 
 func TestRoot_RenderModes(t *testing.T) {
 	mem := newAppTestStore(t)
-	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem, nil), nil)
 
 	fullReq := httptest.NewRequest("GET", "/", nil)
 	fullRes := httptest.NewRecorder()
@@ -51,7 +51,7 @@ func TestRoot_RenderModes(t *testing.T) {
 func TestAddItemInContainer(t *testing.T) {
 	mem := newAppTestStore(t)
 	container := mem.CreateContainer("", "Box", "", "", "")
-	srv := NewServer(mem, qlprint.NewPrinterManager(mem))
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem, nil), nil)
 
 	form := url.Values{}
 	form.Set("container_id", container.ID)

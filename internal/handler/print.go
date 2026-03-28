@@ -21,6 +21,7 @@ import (
 // PrintHandler handles HTTP requests for printer management and print operations.
 type PrintHandler struct {
 	pm        *print.PrinterManager
+	cm        *print.ConnectionManager
 	inventory *service.InventoryService
 	printers  *service.PrinterService
 	templates *service.TemplateService
@@ -30,10 +31,10 @@ type PrintHandler struct {
 }
 
 // NewPrintHandler creates a new PrintHandler.
-func NewPrintHandler(pm *print.PrinterManager, inv *service.InventoryService,
+func NewPrintHandler(pm *print.PrinterManager, cm *print.ConnectionManager, inv *service.InventoryService,
 	prn *service.PrinterService, tmpl *service.TemplateService, tags *service.TagService,
 	notes *service.NoteService, resp Responder) *PrintHandler {
-	return &PrintHandler{pm: pm, inventory: inv, printers: prn, templates: tmpl, tags: tags, notes: notes, resp: resp}
+	return &PrintHandler{pm: pm, cm: cm, inventory: inv, printers: prn, templates: tmpl, tags: tags, notes: notes, resp: resp}
 }
 
 // resolveTags converts tag IDs to LabelTag structs with path information.
@@ -73,6 +74,7 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /printers/{id}/status", h.Status)
 	mux.HandleFunc("POST /printers/{id}/connect", h.Connect)
 	mux.HandleFunc("POST /printers/{id}/disconnect", h.Disconnect)
+	mux.HandleFunc("POST /printers/{id}/reconnect", h.ReconnectPrinter)
 	mux.HandleFunc("GET /printers/events", h.Events)
 	mux.HandleFunc("GET /printers/scan/usb", h.ScanUSB)
 }
@@ -414,7 +416,13 @@ func (h *PrintHandler) Status(w http.ResponseWriter, r *http.Request) {
 
 // Connect handles POST /printers/{id}/connect (JSON only).
 func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
-	if err := h.pm.ConnectPrinter(r.PathValue("id")); err != nil {
+	id := r.PathValue("id")
+	cfg := h.printers.GetPrinter(id)
+	if cfg == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "printer not found"})
+		return
+	}
+	if err := h.cm.Add(*cfg); err != nil {
 		webutil.LogError("connect printer: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -424,7 +432,19 @@ func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
 
 // Disconnect handles POST /printers/{id}/disconnect (JSON only).
 func (h *PrintHandler) Disconnect(w http.ResponseWriter, r *http.Request) {
-	h.pm.DisconnectPrinter(r.PathValue("id"))
+	if err := h.cm.Remove(r.PathValue("id")); err != nil {
+		webutil.LogError("disconnect printer: %v", err)
+	}
+	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// ReconnectPrinter handles POST /printers/{id}/reconnect (JSON only).
+func (h *PrintHandler) ReconnectPrinter(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.cm.Reconnect(id); err != nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+		return
+	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -439,14 +459,17 @@ func (h *PrintHandler) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch := h.pm.SubscribeSSE()
-	defer h.pm.UnsubscribeSSE(ch)
+	ch := h.cm.Subscribe()
+	defer h.cm.Unsubscribe(ch)
 
 	for {
 		select {
 		case <-r.Context().Done():
 			return
-		case evt := <-ch:
+		case evt, open := <-ch:
+			if !open {
+				return
+			}
 			data, _ := json.Marshal(evt)
 			_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 			flusher.Flush()
