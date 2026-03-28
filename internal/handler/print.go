@@ -73,6 +73,7 @@ func (h *PrintHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /print-image", h.PrintImage)
 	mux.HandleFunc("GET /printers/status", h.AllStatuses)
 	mux.HandleFunc("GET /printers/{id}/status", h.Status)
+	mux.HandleFunc("GET /printers/{id}/capabilities", h.Capabilities)
 	mux.HandleFunc("POST /printers/{id}/connect", h.Connect)
 	mux.HandleFunc("POST /printers/{id}/disconnect", h.Disconnect)
 	mux.HandleFunc("POST /printers/{id}/reconnect", h.ReconnectPrinter)
@@ -446,6 +447,57 @@ func (h *PrintHandler) AllStatuses(w http.ResponseWriter, _ *http.Request) {
 // Status handles GET /printers/{id}/status (JSON only).
 func (h *PrintHandler) Status(w http.ResponseWriter, r *http.Request) {
 	webutil.JSON(w, http.StatusOK, h.pm.GetStatus(r.PathValue("id")))
+}
+
+// Capabilities handles GET /printers/{id}/capabilities.
+func (h *PrintHandler) Capabilities(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	cfg := h.printers.GetPrinter(id)
+	if cfg == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "printer not found"})
+		return
+	}
+
+	enc := h.pm.Encoder(cfg.Encoder)
+	if enc == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "encoder not found"})
+		return
+	}
+
+	mi := print.FindModel(enc, cfg.Model)
+	if mi == nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": "model not found"})
+		return
+	}
+
+	status := h.pm.GetStatus(id)
+
+	mediaType := "continuous"
+	if status.LabelHeightMm > 0 {
+		mediaType = "die-cut"
+	}
+
+	// Use model-derived width as fallback when RFID/status width is unknown
+	widthMm := status.LabelWidthMm
+	if widthMm == 0 {
+		widthMm = int(float64(mi.PrintWidthPx) * 25.4 / float64(mi.DPI))
+	}
+
+	webutil.JSON(w, http.StatusOK, map[string]any{
+		"density": map[string]int{
+			"min":     mi.DensityRange[0],
+			"max":     mi.DensityRange[1],
+			"default": mi.DensityDefault,
+		},
+		"copies":    map[string]int{"max": 100},
+		"cut_every": map[string]bool{"supported": mi.CutSupported},
+		"high_res":  map[string]bool{"supported": mi.HighResSupported},
+		"media": map[string]any{
+			"width_mm":  widthMm,
+			"height_mm": status.LabelHeightMm,
+			"type":      mediaType,
+		},
+	})
 }
 
 // Connect handles POST /printers/{id}/connect (JSON only).

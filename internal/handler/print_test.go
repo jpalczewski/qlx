@@ -316,3 +316,45 @@ func TestPreviewMediaInfo_UnknownPrinterID(t *testing.T) {
 		t.Fatalf("expected fallback for unknown printer_id %+v, got %+v", want, got)
 	}
 }
+
+func TestCapabilities_NotFound(t *testing.T) {
+	h, _ := newTestPrintHandler(t)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/printers/nonexistent/capabilities", nil)
+	req.SetPathValue("id", "nonexistent")
+	h.Capabilities(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestCapabilities_OK(t *testing.T) {
+	h, prn := newTestPrintHandlerWithEncoder(t)
+
+	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "mock", "")
+	if err != nil {
+		t.Fatalf("AddPrinter: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/printers/"+cfg.ID+"/capabilities", nil)
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, ok := resp["density"]; !ok {
+		t.Error("response missing 'density' field")
+	}
+	if _, ok := resp["media"]; !ok {
+		t.Error("response missing 'media' field")
+	}
+}

@@ -14,13 +14,15 @@ type Encoder interface {
 }
 
 type ModelInfo struct {
-	ID             string
-	Name           string
-	DPI            int
-	PrintWidthPx   int
-	MediaTypes     []string
-	DensityRange   [2]int
-	DensityDefault int
+	ID               string
+	Name             string
+	DPI              int
+	PrintWidthPx     int
+	MediaTypes       []string
+	DensityRange     [2]int
+	DensityDefault   int
+	CutSupported     bool // true if encoder supports cut_every
+	HighResSupported bool // true if encoder supports high_res mode
 }
 
 type PrintOpts struct {
