@@ -530,7 +530,7 @@
 
   /** Fetch printer capabilities. Returns a Promise resolving to the caps object or null on error. */
   function fetchCapabilities(printerId) {
-    return fetch("/api/printers/" + encodeURIComponent(printerId) + "/capabilities", {
+    return fetch("/printers/" + encodeURIComponent(printerId) + "/capabilities", {
       headers: { "Accept": "application/json" }
     }).then(function (resp) {
       if (!resp.ok) { console.warn('fetchCapabilities: non-OK response', resp.status, printerId); return null; }
