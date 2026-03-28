@@ -440,7 +440,10 @@ func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID str
 		return computeHeight(elems, qrSize, barcodeH, barcodeID, pad)+dateLineH <= maxH
 	}
 
-	// Phase 1: remove tags and children entirely (lowest priority)
+	// Phase 1: remove tags and children entirely (lowest priority).
+	// This assumes the conventional schema element order: title → description → location → tags → children.
+	// If a schema uses a different order, tags/children may not be at the tail and will not be removed here —
+	// they will be caught by Phase 2 iteration which checks by slot name.
 	for !fits() && len(elems) > 1 {
 		last := elems[len(elems)-1]
 		if last.slot != "tags" && last.slot != "children" {
@@ -461,8 +464,9 @@ func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID str
 				// Remove last line and add ellipsis to new last line
 				elems[i].lines = elems[i].lines[:len(elems[i].lines)-1]
 				last := elems[i].lines[len(elems[i].lines)-1]
-				if len(last) > 3 {
-					elems[i].lines[len(elems[i].lines)-1] = last[:len(last)-3] + "..."
+				runes := []rune(last)
+				if len(runes) > 3 {
+					elems[i].lines[len(elems[i].lines)-1] = string(runes[:len(runes)-3]) + "..."
 				}
 				truncated = true
 				break
@@ -483,10 +487,13 @@ func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID str
 		lines := elems[0].lines
 		elems[0].lines = lines[:len(lines)-1]
 		last := elems[0].lines[len(elems[0].lines)-1]
-		if len(last) > 3 {
-			elems[0].lines[len(elems[0].lines)-1] = last[:len(last)-3] + "..."
+		runes := []rune(last)
+		if len(runes) > 3 {
+			elems[0].lines[len(elems[0].lines)-1] = string(runes[:len(runes)-3]) + "..."
 		}
 	}
+	// If a single-line title still overflows after truncation, it will be clipped
+	// at the canvas edge by the draw package — this is intentional.
 
 	return elems
 }
