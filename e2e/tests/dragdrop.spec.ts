@@ -85,8 +85,11 @@ test.describe('Drag and drop', () => {
     await expect(page.locator('#container-list')).toContainText(sourceName);
     await expect(page.locator('#container-list')).toContainText(destName);
 
-    const source = page.locator(`li[data-type="container"]:has-text("${sourceName}")`);
-    const target = page.locator(`[data-drop-type="container"]:has-text("${destName}")`).first();
+    const source = page.locator('#container-list li').filter({ hasText: sourceName });
+    const target = page.locator('#container-list').locator('[data-drop-type="container"]').filter({ hasText: destName }).first();
+
+    await source.waitFor({ state: 'attached' });
+    await target.waitFor({ state: 'attached' });
 
     const moveResp = page.waitForResponse(
       r => /\/containers\/[^/]+\/move/.test(r.url()) && r.request().method() === 'PATCH',

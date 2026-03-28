@@ -3,6 +3,7 @@
   "keyboard.new_item": "New item",
   "keyboard.new_container": "New container",
   "keyboard.go_to_container": "Go to container",
+  "keyboard.move_to_container": "Move to container",
   "keyboard.open": "Open",
   "keyboard.selection_mode": "Selection mode",
   "keyboard.select_all": "Select all",

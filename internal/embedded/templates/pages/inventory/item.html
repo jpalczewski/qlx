@@ -69,6 +69,7 @@
 
                 <footer class="item-footer">
                     <div class="item-footer-actions">
+                        <button class="btn-action" onclick="qlx.openMovePicker({id: '{{ .Data.Item.ID }}', type: 'item'})">{{.T "action.move_to"}}</button>
                         <a href="/items/{{ .Data.Item.ID }}/edit" hx-get="/items/{{ .Data.Item.ID }}/edit" hx-target="#content" class="btn-action">{{.T "inventory.edit"}}</a>
                         <button hx-delete="/items/{{ .Data.Item.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_item"}}" class="btn-action btn-action-danger">{{.T "action.delete"}}</button>
                     </div>

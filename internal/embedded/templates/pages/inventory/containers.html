@@ -14,6 +14,7 @@
                 <h2>{{ .Data.Container.Name }}</h2>
                 {{ if .Data.Container.Description }}<p class="container-desc">{{ .Data.Container.Description }}</p>{{ end }}
             </div>
+            <button class="button secondary small" onclick="qlx.openMovePicker({id: '{{ .Data.Container.ID }}', type: 'container'})">{{.T "action.move_to"}}</button>
             <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
             <div class="dropdown">
                 <button class="button secondary small dropdown-toggle" onclick="this.parentElement.classList.toggle('open')" type="button">&#8943;</button>
