@@ -12,8 +12,13 @@
     evtSource.onmessage = function (e) {
       try {
         var evt = JSON.parse(e.data);
-        updatePrinterCard(evt.printer_id, evt.status);
-        updateNavbarPrinter(evt.status);
+        if (evt.state !== undefined) {
+          updatePrinterConnectionState(evt.printer_id, evt.state, evt.message);
+        }
+        if (evt.status !== undefined) {
+          updatePrinterCard(evt.printer_id, evt.status);
+          updateNavbarPrinter(evt.status);
+        }
       } catch (err) {
         console.error("SSE parse error:", err);
       }
@@ -92,28 +97,87 @@
   }
 
   /**
-   * Fetch initial printer statuses (SSE only sends updates, not initial state).
+   * Update printer connection state with visual indicators.
+   * @param {string} printerId
+   * @param {string} state - "connecting"|"connected"|"disconnected"|"reconnecting"|"error"|"idle"
+   * @param {string} message - Optional error message
    */
-  function fetchInitialStatuses() {
-    fetch("/printers/status", { headers: { "Accept": "application/json" } })
-      .then(function (r) { return r.json(); })
-      .then(function (statuses) {
-        if (statuses && typeof statuses === "object") {
-          Object.keys(statuses).forEach(function (id) {
-            updatePrinterCard(id, statuses[id]);
-            updateNavbarPrinter(statuses[id]);
-          });
-        }
-      })
-      .catch(function () {});
+  function updatePrinterConnectionState(printerId, state, message) {
+    var card = document.getElementById("printer-status-" + printerId);
+    if (!card) return;
+
+    var dot = card.querySelector(".conn-dot");
+    if (!dot) {
+      dot = document.createElement("span");
+      dot.className = "conn-dot";
+      card.prepend(dot);
+    }
+    dot.className = "conn-dot";
+
+    var label = card.querySelector(".conn-label");
+    if (!label) {
+      label = document.createElement("span");
+      label.className = "conn-label";
+      dot.after(label);
+    }
+
+    switch (state) {
+      case "idle":
+      case "connecting":
+      case "reconnecting":
+        dot.classList.add("conn-dot--pulse");
+        label.textContent = "Connecting...";
+        break;
+      case "connected":
+        dot.classList.add("conn-dot--ok");
+        label.textContent = "Connected";
+        break;
+      case "disconnected":
+        dot.classList.add("conn-dot--warn");
+        label.textContent = "Disconnected";
+        break;
+      case "error":
+        dot.classList.add("conn-dot--error");
+        label.textContent = message || "Error";
+        addReconnectButton(card, printerId);
+        break;
+    }
+
+    if (state !== "error") {
+      var btn = card.querySelector(".reconnect-btn");
+      if (btn) btn.remove();
+    }
+
+    updateNavbarConnectionState(state);
   }
 
-  // Start SSE + fetch initial state on load
-  initSSE();
-  fetchInitialStatuses();
+  /**
+   * Update the navbar connection state class.
+   * @param {string} state
+   */
+  function updateNavbarConnectionState(state) {
+    var navEl = document.getElementById("printer-status");
+    if (!navEl) return;
+    navEl.className = "printer-nav-status printer-nav-status--" + state;
+  }
 
-  // Re-fetch after HTMX swaps (navigating to printers page)
-  document.body.addEventListener("htmx:afterSwap", function () {
-    fetchInitialStatuses();
-  });
+  /**
+   * Add a reconnect button to the printer card.
+   * @param {HTMLElement} card
+   * @param {string} printerId
+   */
+  function addReconnectButton(card, printerId) {
+    if (card.querySelector(".reconnect-btn")) return;
+    var btn = document.createElement("button");
+    btn.className = "reconnect-btn btn btn-sm";
+    btn.textContent = "Reconnect";
+    btn.addEventListener("click", function () {
+      fetch("/printers/" + printerId + "/reconnect", { method: "POST" })
+        .catch(function () {});
+    });
+    card.appendChild(btn);
+  }
+
+  // Start SSE on load (snapshot delivers initial state)
+  initSSE();
 })();
