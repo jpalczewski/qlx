@@ -126,19 +126,19 @@
       case "connecting":
       case "reconnecting":
         dot.classList.add("conn-dot--pulse");
-        label.textContent = "Connecting...";
+        label.textContent = qlx.t("printers.state_connecting");
         break;
       case "connected":
         dot.classList.add("conn-dot--ok");
-        label.textContent = "Connected";
+        label.textContent = qlx.t("printers.state_connected");
         break;
       case "disconnected":
         dot.classList.add("conn-dot--warn");
-        label.textContent = "Disconnected";
+        label.textContent = qlx.t("printers.state_disconnected");
         break;
       case "error":
         dot.classList.add("conn-dot--error");
-        label.textContent = message || "Error";
+        label.textContent = message || qlx.t("printers.state_error");
         addReconnectButton(card, printerId);
         break;
     }
@@ -170,7 +170,7 @@
     if (card.querySelector(".reconnect-btn")) return;
     var btn = document.createElement("button");
     btn.className = "reconnect-btn btn btn-sm";
-    btn.textContent = "Reconnect";
+    btn.textContent = qlx.t("printers.reconnect");
     btn.addEventListener("click", function () {
       fetch("/printers/" + printerId + "/reconnect", { method: "POST" })
         .catch(function () {});
