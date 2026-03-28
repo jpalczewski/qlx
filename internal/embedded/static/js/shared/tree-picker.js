@@ -163,9 +163,9 @@
       // Arrow key navigation + Enter confirmation from search input
       searchInput.addEventListener("keydown", function (e) {
         if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+        e.preventDefault();
         var labels = Array.prototype.slice.call(treeContainer.querySelectorAll(".tree-label"));
         if (!labels.length) return;
-        e.preventDefault();
         if (e.key === "Enter") {
           if (selectedId) {
             config.onConfirm(selectedId);

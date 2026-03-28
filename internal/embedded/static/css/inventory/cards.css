@@ -76,6 +76,7 @@
 
 /* Unified small action buttons */
 .btn-action {
+    appearance: none;
     display: inline-block;
     padding: 0.5rem 1.2rem;
     border-radius: var(--radius-sm);
