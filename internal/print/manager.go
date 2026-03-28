@@ -72,6 +72,12 @@ func (m *PrinterManager) RegisterEncoder(enc encoder.Encoder) {
 	m.encoders[enc.Name()] = enc
 }
 
+// SetConnectionManager wires the ConnectionManager after construction.
+// Used when CM needs PM's encoder lookup (breaks the initialization cycle).
+func (m *PrinterManager) SetConnectionManager(cm *ConnectionManager) {
+	m.cm = cm
+}
+
 // Encoder returns a registered encoder by name, or nil if not found.
 func (m *PrinterManager) Encoder(name string) encoder.Encoder {
 	return m.encoders[name]
