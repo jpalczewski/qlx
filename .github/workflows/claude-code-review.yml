@@ -28,19 +28,3 @@ jobs:
           use_sticky_comment: true
           additional_permissions: |
             actions: read
-          prompt: |
-            Review pull request #${{ github.event.number }} in ${{ github.repository }}.
-
-            Check the code changes for:
-            - Bugs and correctness issues
-            - Security vulnerabilities (XSS, injection, etc.)
-            - Code quality and maintainability
-            - Adherence to project conventions (see CLAUDE.md)
-
-            Also check CI status for this PR using:
-              gh run list --repo ${{ github.repository }} --branch ${{ github.head_ref }} --limit 5
-
-            If any CI run failed, include relevant log excerpts:
-              gh run view <run-id> --repo ${{ github.repository }} --log-failed
-
-            Be concise. Only report real issues. If the code looks good, say so briefly.
