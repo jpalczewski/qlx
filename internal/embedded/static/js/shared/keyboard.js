@@ -6,7 +6,8 @@
   var shortcuts = [
     { key: "/",      handler: focusSearch,         label: "keyboard.focus_search",    group: "nav",     global: true },
     { key: "k",      ctrl: true, handler: focusSearch, label: "keyboard.focus_search", group: "nav",    global: true },
-    { key: "m",      handler: openContainerNav,    label: "keyboard.go_to_container", group: "nav",     global: true },
+    { key: "g",      handler: openContainerNav,    label: "keyboard.go_to_container", group: "nav",     global: true },
+    { key: "m",      handler: handleMove,          label: "keyboard.move_to_container", group: "action" },
     { key: "i",      handler: focusItemEntry,      label: "keyboard.new_item",        group: "action",  context: "container" },
     { key: "c",      handler: focusContainerEntry, label: "keyboard.new_container",   group: "action",  context: "container" },
     { key: "s",      handler: toggleSelection,     label: "keyboard.selection_mode",  group: "action",  context: "container" },
@@ -104,6 +105,49 @@
     if (qlx.selectAll) qlx.selectAll();
   }
 
+  function handleMove() {
+    if (!qlx.openMovePicker) return;
+
+    // Item detail page
+    var itemView = document.querySelector(".item-view");
+    if (itemView) {
+      var editLink = itemView.querySelector("a[href*='/items/'][href*='/edit']");
+      if (editLink) {
+        var itemId = editLink.getAttribute("href").replace("/items/", "").replace("/edit", "");
+        qlx.openMovePicker({ id: itemId, type: "item" });
+      }
+      return;
+    }
+
+    // Container detail page — check for container-detail element (specific container, not root list)
+    var containerDetail = document.querySelector(".container-view .container-detail");
+    if (containerDetail) {
+      // Selection mode with items selected — bulk move
+      if (qlx.isSelectionMode && qlx.isSelectionMode() && qlx.selectionSize && qlx.selectionSize() > 0) {
+        qlx.openMovePicker();
+        return;
+      }
+
+      // kb-active element — single move of that element
+      var active = document.querySelector(".kb-active");
+      if (active) {
+        var id = active.getAttribute("data-id");
+        var type = active.getAttribute("data-type") || "item";
+        if (id) {
+          qlx.openMovePicker({ id: id, type: type });
+          return;
+        }
+      }
+
+      // No selection, no kb-active — move the current container itself
+      var containerEditLink = containerDetail.querySelector("a[href*='/containers/'][href*='/edit']");
+      if (containerEditLink) {
+        var containerId = containerEditLink.getAttribute("href").replace("/containers/", "").replace("/edit", "");
+        qlx.openMovePicker({ id: containerId, type: "container" });
+      }
+    }
+  }
+
   function handleEscape() {
     var openDialog = document.querySelector("dialog[open]");
     if (openDialog) {
@@ -194,7 +238,7 @@
       group: "keyboard.nav_group",
       items: [
         { keys: ["/", "Ctrl+K"], label: "keyboard.focus_search" },
-        { keys: ["m"],           label: "keyboard.go_to_container" },
+        { keys: ["g"],           label: "keyboard.go_to_container" },
         { keys: ["\u2191 \u2193"], label: "keyboard.navigate" },
         { keys: ["Enter"],       label: "keyboard.open_selected" }
       ]
@@ -205,7 +249,8 @@
         { keys: ["i"], label: "keyboard.new_item" },
         { keys: ["c"], label: "keyboard.new_container" },
         { keys: ["s"], label: "keyboard.selection_mode" },
-        { keys: ["a"], label: "keyboard.select_all" }
+        { keys: ["a"], label: "keyboard.select_all" },
+        { keys: ["m"], label: "keyboard.move_to_container" }
       ]
     },
     {
