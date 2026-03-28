@@ -42,3 +42,48 @@ nav .nav-settings {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);
 }
+
+.conn-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted, #6b7280);
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+.conn-dot--ok {
+    background: var(--success, #22c55e);
+}
+
+.conn-dot--warn {
+    background: var(--warning, #eab308);
+}
+
+.conn-dot--error {
+    background: var(--danger, #ef4444);
+}
+
+.conn-dot--pulse {
+    background: var(--info, #3b82f6);
+    animation: conn-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes conn-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.conn-label {
+    font-size: 0.85em;
+    color: var(--muted, #6b7280);
+}
+
+.reconnect-btn {
+    margin-left: 0.5rem;
+}
