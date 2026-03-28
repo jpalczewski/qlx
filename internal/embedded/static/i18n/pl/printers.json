@@ -8,5 +8,15 @@
   "printers.name_placeholder": "np. Brother kuchnia",
   "printers.address": "Adres",
   "printers.add": "Dodaj",
-  "printers.no_devices_found": "Nie znaleziono drukarek"
+  "printers.no_devices_found": "Nie znaleziono drukarek",
+  "printers.state_connected": "Połączono",
+  "printers.state_connecting": "Łączenie...",
+  "printers.state_disconnected": "Rozłączono",
+  "printers.state_error": "Błąd",
+  "printers.reconnect": "Połącz ponownie",
+  "printers.disconnect": "Rozłącz",
+  "printers.copies": "Kopie",
+  "printers.density": "Gęstość",
+  "printers.cut_every": "Tnij co N etykiet (0=wył.)",
+  "printers.high_res": "Wysoka rozdzielczość"
 }

@@ -8,5 +8,15 @@
   "printers.name_placeholder": "e.g. Brother kitchen",
   "printers.address": "Address",
   "printers.add": "Add",
-  "printers.no_devices_found": "No printers found"
+  "printers.no_devices_found": "No printers found",
+  "printers.state_connected": "Connected",
+  "printers.state_connecting": "Connecting...",
+  "printers.state_disconnected": "Disconnected",
+  "printers.state_error": "Error",
+  "printers.reconnect": "Reconnect",
+  "printers.disconnect": "Disconnect",
+  "printers.copies": "Copies",
+  "printers.density": "Density",
+  "printers.cut_every": "Cut every N labels (0=off)",
+  "printers.high_res": "High resolution"
 }
