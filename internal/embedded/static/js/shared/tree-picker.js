@@ -147,6 +147,49 @@
       document.body.appendChild(dlg);
       if (window.htmx) htmx.process(searchInput);
 
+      /** Highlight a tree label and update selectedId. */
+      function selectLabel(labelEl) {
+        treeContainer.querySelectorAll(".tree-label.selected").forEach(function (el) {
+          el.classList.remove("selected");
+        });
+        labelEl.classList.add("selected");
+        var li = labelEl.closest(".tree-node");
+        selectedId = li ? li.getAttribute("data-id") : null;
+        var btn = document.getElementById(confirmBtnId);
+        if (btn) /** @type {HTMLButtonElement} */ (btn).disabled = !selectedId;
+        labelEl.scrollIntoView({ block: "nearest" });
+      }
+
+      // Arrow key navigation + Enter confirmation from search input
+      searchInput.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+        var labels = Array.prototype.slice.call(treeContainer.querySelectorAll(".tree-label"));
+        if (!labels.length) return;
+        e.preventDefault();
+        if (e.key === "Enter") {
+          if (selectedId) {
+            config.onConfirm(selectedId);
+            /** @type {HTMLDialogElement} */ (dlg).close();
+          }
+          return;
+        }
+        var currentIdx = labels.findIndex
+          ? labels.findIndex(function (l) { return l.classList.contains("selected"); })
+          : (function () {
+              for (var i = 0; i < labels.length; i++) {
+                if (labels[i].classList.contains("selected")) return i;
+              }
+              return -1;
+            })();
+        var nextIdx;
+        if (e.key === "ArrowDown") {
+          nextIdx = currentIdx < labels.length - 1 ? currentIdx + 1 : 0;
+        } else {
+          nextIdx = currentIdx > 0 ? currentIdx - 1 : labels.length - 1;
+        }
+        selectLabel(labels[nextIdx]);
+      });
+
       // Delegate click events for tree nodes
       treeContainer.addEventListener("click", function (e) {
         var expandEl = /** @type {HTMLElement} */ (e.target).closest(".tree-expand");
@@ -155,18 +198,7 @@
           return;
         }
         var labelEl = /** @type {HTMLElement} */ (e.target).closest(".tree-label");
-        if (labelEl) {
-          treeContainer.querySelectorAll(".tree-label.selected").forEach(function (el) {
-            el.classList.remove("selected");
-          });
-          labelEl.classList.add("selected");
-
-          var li = labelEl.closest(".tree-node");
-          selectedId = li ? li.getAttribute("data-id") : null;
-
-          var btn = document.getElementById(confirmBtnId);
-          if (btn) /** @type {HTMLButtonElement} */ (btn).disabled = !selectedId;
-        }
+        if (labelEl) selectLabel(labelEl);
       });
 
       return /** @type {HTMLDialogElement} */ (dlg);
