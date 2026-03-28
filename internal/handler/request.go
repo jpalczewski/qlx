@@ -140,6 +140,16 @@ type ContainerPrintRequest struct {
 	HighRes      bool     `json:"high_res"`
 }
 
+// PrintImageRequest is the input for printing a pre-rendered image.
+type PrintImageRequest struct {
+	PrinterID string `json:"printer_id"`
+	PNG       string `json:"png"`
+	Density   int    `json:"density"`
+	Copies    int    `json:"copies"`
+	CutEvery  int    `json:"cut_every"`
+	HighRes   bool   `json:"high_res"`
+}
+
 // AdhocPrintRequest is the input for ad-hoc label printing.
 type AdhocPrintRequest struct {
 	Text      string `json:"text" form:"text"`

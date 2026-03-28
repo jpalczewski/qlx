@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder/niimbot"
+	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/store"
 )
@@ -234,5 +236,83 @@ func TestPrintHandler_ListPrinters_Empty(t *testing.T) {
 	}
 	if len(printers) != 0 {
 		t.Fatalf("expected 0 printers, got %d", len(printers))
+	}
+}
+
+// newTestPrintHandlerWithEncoder returns a handler with a niimbot encoder registered on its PrinterManager.
+func newTestPrintHandlerWithEncoder(t *testing.T) (*PrintHandler, *service.PrinterService) {
+	t.Helper()
+	s := newHandlerTestStore(t)
+	pm := print.NewPrinterManager(s, nil)
+	pm.RegisterEncoder(&niimbot.NiimbotEncoder{})
+	inv := service.NewInventoryService(s)
+	prn := service.NewPrinterService(s)
+	tmpl := service.NewTemplateService(s)
+	tags := service.NewTagService(s)
+	notes := service.NewNoteService(s)
+	h := NewPrintHandler(pm, nil, inv, prn, tmpl, tags, notes, &JSONResponder{})
+	return h, prn
+}
+
+// TestPreviewMediaInfo_Fallback verifies that previewMediaInfo returns the default
+// MediaInfo (WidthPx=384, HeightPx=0, DPI=203) when no printer_id is supplied.
+func TestPreviewMediaInfo_Fallback(t *testing.T) {
+	h, _ := newTestPrintHandler(t)
+
+	r := httptest.NewRequest("GET", "/items/x/preview?template=simple", nil)
+	got := h.previewMediaInfo(r)
+
+	want := label.MediaInfo{WidthPx: 384, HeightPx: 0, DPI: 203}
+	if got != want {
+		t.Fatalf("expected fallback MediaInfo %+v, got %+v", want, got)
+	}
+}
+
+// TestPreviewMediaInfo_WithWidth verifies that the width query parameter is respected
+// in the fallback path.
+func TestPreviewMediaInfo_WithWidth(t *testing.T) {
+	h, _ := newTestPrintHandler(t)
+
+	r := httptest.NewRequest("GET", "/items/x/preview?template=simple&width=696", nil)
+	got := h.previewMediaInfo(r)
+
+	want := label.MediaInfo{WidthPx: 696, HeightPx: 0, DPI: 203}
+	if got != want {
+		t.Fatalf("expected width=696 fallback MediaInfo %+v, got %+v", want, got)
+	}
+}
+
+// TestPreviewMediaInfo_WithPrinterID verifies that previewMediaInfo resolves model
+// dimensions from the printer's encoder when a valid printer_id is supplied.
+// The session is nil (CM=nil), so LabelHeightMm=0 → HeightPx=0 (continuous tape).
+func TestPreviewMediaInfo_WithPrinterID(t *testing.T) {
+	h, prn := newTestPrintHandlerWithEncoder(t)
+
+	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "mock", "")
+	if err != nil {
+		t.Fatalf("AddPrinter: %v", err)
+	}
+
+	r := httptest.NewRequest("GET", "/items/x/preview?template=simple&printer_id="+cfg.ID, nil)
+	got := h.previewMediaInfo(r)
+
+	// Niimbot B1: PrintWidthPx=384, DPI=203; LabelHeightMm=0 → HeightPx=0
+	want := label.MediaInfo{WidthPx: 384, HeightPx: 0, DPI: 203}
+	if got != want {
+		t.Fatalf("expected printer-resolved MediaInfo %+v, got %+v", want, got)
+	}
+}
+
+// TestPreviewMediaInfo_UnknownPrinterID verifies fallback when printer_id is
+// supplied but the printer is not found in the store.
+func TestPreviewMediaInfo_UnknownPrinterID(t *testing.T) {
+	h, _ := newTestPrintHandlerWithEncoder(t)
+
+	r := httptest.NewRequest("GET", "/items/x/preview?template=simple&printer_id=no-such-id", nil)
+	got := h.previewMediaInfo(r)
+
+	want := label.MediaInfo{WidthPx: 384, HeightPx: 0, DPI: 203}
+	if got != want {
+		t.Fatalf("expected fallback for unknown printer_id %+v, got %+v", want, got)
 	}
 }

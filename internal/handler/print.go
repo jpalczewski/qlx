@@ -405,14 +405,7 @@ func (h *PrintHandler) PreviewNote(w http.ResponseWriter, r *http.Request) {
 
 // PrintImage handles POST /print-image.
 func (h *PrintHandler) PrintImage(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		PrinterID string `json:"printer_id"`
-		PNG       string `json:"png"`
-		Density   int    `json:"density"`
-		Copies    int    `json:"copies"`
-		CutEvery  int    `json:"cut_every"`
-		HighRes   bool   `json:"high_res"`
-	}
+	var req PrintImageRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
