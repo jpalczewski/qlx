@@ -83,7 +83,9 @@ func (m *PrinterManager) Encoder(name string) encoder.Encoder {
 	return m.encoders[name]
 }
 
-// ConnectedPrinters returns only printers that are currently in StateConnected.
+// ConnectedPrinters returns printers in StateConnected.
+// Falls back to all configured printers when none are connected, so the
+// print form is always rendered when printers are registered.
 func (m *PrinterManager) ConnectedPrinters() []store.PrinterConfig {
 	all := m.store.AllPrinters()
 	if m.cm == nil {
@@ -94,6 +96,9 @@ func (m *PrinterManager) ConnectedPrinters() []store.PrinterConfig {
 		if m.cm.State(p.ID) == StateConnected {
 			out = append(out, p)
 		}
+	}
+	if len(out) == 0 {
+		return all
 	}
 	return out
 }
