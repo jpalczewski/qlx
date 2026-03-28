@@ -3,7 +3,9 @@
 package transport
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +40,11 @@ type BLETransport struct {
 
 func (t *BLETransport) Name() string { return "ble" }
 
-func (t *BLETransport) Open(address string) error {
+func (t *BLETransport) Open(ctx context.Context, address string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if err := enableBLE(); err != nil {
 		return err
 	}
@@ -46,26 +52,76 @@ func (t *BLETransport) Open(address string) error {
 	addr := bluetooth.Address{}
 	addr.Set(address)
 
-	device, err := bleAdapter.Connect(addr, bluetooth.ConnectionParams{})
-	if err != nil {
-		return err
+	// Wrap bleAdapter.Connect in a goroutine so we can respect ctx cancellation.
+	type connectResult struct {
+		device bluetooth.Device
+		err    error
+	}
+	connectCh := make(chan connectResult, 1)
+	go func() {
+		d, err := bleAdapter.Connect(addr, bluetooth.ConnectionParams{})
+		connectCh <- connectResult{d, err}
+	}()
+	var device bluetooth.Device
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case res := <-connectCh:
+		if res.err != nil {
+			return fmt.Errorf("BLE connect: %w", res.err)
+		}
+		device = res.device
 	}
 	t.device = device
 
-	services, err := device.DiscoverServices([]bluetooth.UUID{niimbotServiceUUID})
-	if err != nil {
+	// Wrap DiscoverServices in a goroutine.
+	type servicesResult struct {
+		services []bluetooth.DeviceService
+		err      error
+	}
+	servicesCh := make(chan servicesResult, 1)
+	go func() {
+		svcs, err := device.DiscoverServices([]bluetooth.UUID{niimbotServiceUUID})
+		servicesCh <- servicesResult{svcs, err}
+	}()
+	var services []bluetooth.DeviceService
+	select {
+	case <-ctx.Done():
 		device.Disconnect()
-		return err
+		return ctx.Err()
+	case res := <-servicesCh:
+		if res.err != nil {
+			device.Disconnect()
+			return res.err
+		}
+		services = res.services
 	}
 	if len(services) == 0 {
 		device.Disconnect()
 		return errors.New("niimbot service not found")
 	}
 
-	chars, err := services[0].DiscoverCharacteristics(nil)
-	if err != nil {
+	// Wrap DiscoverCharacteristics in a goroutine.
+	type charsResult struct {
+		chars []bluetooth.DeviceCharacteristic
+		err   error
+	}
+	charsCh := make(chan charsResult, 1)
+	go func() {
+		chars, err := services[0].DiscoverCharacteristics(nil)
+		charsCh <- charsResult{chars, err}
+	}()
+	var chars []bluetooth.DeviceCharacteristic
+	select {
+	case <-ctx.Done():
 		device.Disconnect()
-		return err
+		return ctx.Err()
+	case res := <-charsCh:
+		if res.err != nil {
+			device.Disconnect()
+			return res.err
+		}
+		chars = res.chars
 	}
 
 	var found bool
@@ -79,14 +135,24 @@ func (t *BLETransport) Open(address string) error {
 		return errors.New("suitable characteristic not found")
 	}
 
-	err = t.char.EnableNotifications(func(buf []byte) {
-		t.mu.Lock()
-		t.recvBuf = append(t.recvBuf, buf...)
-		t.mu.Unlock()
-	})
-	if err != nil {
+	// Wrap EnableNotifications in a goroutine.
+	notifCh := make(chan error, 1)
+	go func() {
+		notifCh <- t.char.EnableNotifications(func(buf []byte) {
+			t.mu.Lock()
+			t.recvBuf = append(t.recvBuf, buf...)
+			t.mu.Unlock()
+		})
+	}()
+	select {
+	case <-ctx.Done():
 		device.Disconnect()
-		return err
+		return ctx.Err()
+	case err := <-notifCh:
+		if err != nil {
+			device.Disconnect()
+			return err
+		}
 	}
 
 	t.connected = true

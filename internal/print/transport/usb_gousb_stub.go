@@ -2,13 +2,16 @@
 
 package transport
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // GoUSBTransport is a stub for builds without the "usb" build tag.
 type GoUSBTransport struct{}
 
 func (t *GoUSBTransport) Name() string { return "gousb" }
-func (t *GoUSBTransport) Open(address string) error {
+func (t *GoUSBTransport) Open(_ context.Context, address string) error {
 	return errors.New("USB (gousb) not supported in this build")
 }
 func (t *GoUSBTransport) Write(data []byte) (int, error) {

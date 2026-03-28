@@ -1,6 +1,7 @@
 package print
 
 import (
+	"context"
 	"image"
 	"sync"
 	"time"
@@ -50,7 +51,7 @@ func NewSession(cfg store.PrinterConfig, tr transport.Transport, enc encoder.Enc
 
 // Start opens the transport, sends connect, reads RFID, starts heartbeat goroutine.
 func (s *PrinterSession) Start() error {
-	if err := s.tr.Open(s.config.Address); err != nil {
+	if err := s.tr.Open(context.TODO(), s.config.Address); err != nil {
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
 			st.LastError = err.Error()

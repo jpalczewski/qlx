@@ -47,7 +47,10 @@ type USBScanResult struct {
 func (t *GoUSBTransport) Name() string { return "gousb" }
 
 // Open connects to a USB device identified by "VID:PID:Serial" address string.
-func (t *GoUSBTransport) Open(address string) error {
+func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	vid, pid, serial, err := parseUSBAddress(address)
 	if err != nil {
 		return fmt.Errorf("gousb open: %w", err)
