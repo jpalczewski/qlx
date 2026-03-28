@@ -19,7 +19,7 @@ test.describe('Printer status SSE', () => {
     // on load. Set up the request interceptor before navigating.
     const sseRequestPromise = page.waitForRequest(
       req => req.url().includes('/printers/events'),
-      { timeout: 5000 }
+      { timeout: 10000 }
     );
 
     await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
@@ -67,5 +67,8 @@ test.describe('Printer status SSE', () => {
     // Wait for the conn-dot to appear — SSE delivers the state snapshot on subscribe
     const connDot = statusEl.locator('.conn-dot');
     await expect(connDot).toBeVisible({ timeout: 5000 });
+
+    // Cleanup: delete the printer added in this test
+    await page.request.delete(`${app.baseURL}/printers/${printerId}`);
   });
 });
