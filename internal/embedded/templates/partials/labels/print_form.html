@@ -52,6 +52,20 @@
             </select>
         </div>
     </div>
+    <div data-print-options class="print-options-controls">
+        <div data-copies-wrap class="form-group form-group-inline">
+            <label>Copies <input type="number" data-copies min="1" max="100" value="1"></label>
+        </div>
+        <div data-density-wrap class="form-group form-group-inline" style="display:none">
+            <label>Density <input type="range" data-density min="1" max="5" value="3"> <span data-density-value>3</span></label>
+        </div>
+        <div data-cut-every-wrap class="form-group form-group-inline" style="display:none">
+            <label>Cut every N labels (0=off) <input type="number" data-cut-every min="0" max="100" value="0"></label>
+        </div>
+        <div data-high-res-wrap class="form-group form-group-inline" style="display:none">
+            <label><input type="checkbox" data-high-res> High resolution</label>
+        </div>
+    </div>
     {{ end }}
     {{ if .ShowDateCheckbox }}
     <div class="print-options">
