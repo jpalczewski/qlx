@@ -124,7 +124,7 @@ func TestPrinterManager_Print(t *testing.T) {
 		Description: "A test label",
 	}
 
-	if err := mgr.Print(printer.ID, data, "simple", label.RenderOpts{}); err != nil {
+	if err := mgr.Print(printer.ID, data, "simple", label.RenderOpts{}, encoder.PrintOpts{}); err != nil {
 		t.Fatalf("Print() returned unexpected error: %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestPrinterManager_PrintUnknownPrinter(t *testing.T) {
 	s := newTestPrintStore(t)
 	mgr := NewPrinterManager(s, nil)
 
-	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple", label.RenderOpts{})
+	err := mgr.Print("nonexistent-id", label.LabelData{Name: "x"}, "simple", label.RenderOpts{}, encoder.PrintOpts{})
 	if err == nil {
 		t.Fatal("expected error for unknown printer, got nil")
 	}
@@ -184,7 +184,7 @@ func TestPrinterManager_PrintImage(t *testing.T) {
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 
-	if err := mgr.PrintImage(printer.ID, img); err != nil {
+	if err := mgr.PrintImage(printer.ID, img, encoder.PrintOpts{}); err != nil {
 		t.Fatalf("PrintImage() returned unexpected error: %v", err)
 	}
 
@@ -198,7 +198,7 @@ func TestPrinterManager_PrintImageUnknownPrinter(t *testing.T) {
 	mgr := NewPrinterManager(s, nil)
 
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
-	err := mgr.PrintImage("nonexistent-id", img)
+	err := mgr.PrintImage("nonexistent-id", img, encoder.PrintOpts{})
 	if err == nil {
 		t.Fatal("expected error for unknown printer, got nil")
 	}
@@ -212,6 +212,52 @@ func TestPrinterManager_AvailableEncoders(t *testing.T) {
 	encs := mgr.AvailableEncoders()
 	if _, ok := encs["mock"]; !ok {
 		t.Error("expected 'mock' encoder to be present in AvailableEncoders")
+	}
+}
+
+func TestPrinterManager_PrintWithOpts(t *testing.T) {
+	mgr, s, mockTr, cm := newManagerWithMock(t)
+
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
+	}
+
+	data := label.LabelData{Name: "Test Item"}
+	opts := encoder.PrintOpts{Density: 5, Copies: 3, CutEvery: 0}
+
+	if err := mgr.Print(printer.ID, data, "simple", label.RenderOpts{}, opts); err != nil {
+		t.Fatalf("Print() returned unexpected error: %v", err)
+	}
+
+	if len(mockTr.Written) == 0 {
+		t.Error("expected data to be written to transport")
+	}
+}
+
+func TestPrinterManager_PrintImageWithOpts(t *testing.T) {
+	mgr, s, mockTr, cm := newManagerWithMock(t)
+
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
+	}
+
+	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
+	opts := encoder.PrintOpts{Density: 2, Copies: 1, CutEvery: 1}
+
+	if err := mgr.PrintImage(printer.ID, img, opts); err != nil {
+		t.Fatalf("PrintImage() returned unexpected error: %v", err)
+	}
+
+	if len(mockTr.Written) == 0 {
+		t.Error("expected data to be written to transport")
 	}
 }
 
@@ -272,5 +318,65 @@ func TestApplyCalibrationOffset_BothAxes(t *testing.T) {
 	}
 	if bounds.Dy() != 50 {
 		t.Fatalf("expected height 50, got %d", bounds.Dy())
+	}
+}
+
+func TestValidatePrintOpts_Defaults(t *testing.T) {
+	mi := &encoder.ModelInfo{DensityDefault: 3, DensityRange: [2]int{1, 5}}
+
+	// Zero density → DensityDefault
+	got := validatePrintOpts(encoder.PrintOpts{}, mi)
+	if got.Density != 3 {
+		t.Errorf("density = %d, want 3 (default)", got.Density)
+	}
+	// Zero copies → 1
+	if got.Copies != 1 {
+		t.Errorf("copies = %d, want 1", got.Copies)
+	}
+}
+
+func TestValidatePrintOpts_Clamping(t *testing.T) {
+	mi := &encoder.ModelInfo{DensityDefault: 3, DensityRange: [2]int{1, 5}}
+
+	// Density above max → clamped to max
+	got := validatePrintOpts(encoder.PrintOpts{Density: 99, Copies: 1}, mi)
+	if got.Density != 5 {
+		t.Errorf("density = %d, want 5 (clamped to max)", got.Density)
+	}
+
+	// Density below min → clamped to min
+	got = validatePrintOpts(encoder.PrintOpts{Density: 0, Copies: 1}, mi)
+	// 0 triggers default (3), no clamping needed
+	if got.Density != 3 {
+		t.Errorf("density = %d, want 3", got.Density)
+	}
+
+	// Copies above 100 → 100
+	got = validatePrintOpts(encoder.PrintOpts{Copies: 200}, mi)
+	if got.Copies != 100 {
+		t.Errorf("copies = %d, want 100 (clamped)", got.Copies)
+	}
+
+	// CutEvery > Copies → clamped to Copies
+	got = validatePrintOpts(encoder.PrintOpts{Copies: 3, CutEvery: 10}, mi)
+	if got.CutEvery != 3 {
+		t.Errorf("cut_every = %d, want 3 (clamped to copies)", got.CutEvery)
+	}
+
+	// CutEvery < 0 → 0
+	got = validatePrintOpts(encoder.PrintOpts{Copies: 3, CutEvery: -1}, mi)
+	if got.CutEvery != 0 {
+		t.Errorf("cut_every = %d, want 0 (clamped to 0)", got.CutEvery)
+	}
+}
+
+func TestValidatePrintOpts_NoDensityRange(t *testing.T) {
+	// DensityRange [0,0] means no density control — skip clamping
+	mi := &encoder.ModelInfo{DensityDefault: 0, DensityRange: [2]int{0, 0}}
+
+	got := validatePrintOpts(encoder.PrintOpts{Density: 5, Copies: 1}, mi)
+	// Density 5 passed through without clamping
+	if got.Density != 5 {
+		t.Errorf("density = %d, want 5 (no clamping when range is [0,0])", got.Density)
 	}
 }

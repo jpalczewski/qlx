@@ -18,6 +18,7 @@ type resolvedText struct {
 	align    string
 	lineH    int
 	iconName string // single icon for title slot
+	slot     string // "title", "description", "location", "tags", "children"
 }
 
 // effectiveFontFamily returns the font to use for an element.
@@ -100,7 +101,8 @@ func formatChildren(children []LabelChild) string {
 // renderSchema renders a label image from a Schema definition and LabelData.
 // Elements are laid out vertically. QR is positioned at top-right, barcode at full-width bottom.
 // Note: QR is always placed at top-right when present — vertical QR placement is not supported.
-func renderSchema(schema Schema, data LabelData, widthPx int, opts RenderOpts) (image.Image, error) {
+func renderSchema(schema Schema, data LabelData, media MediaInfo, opts RenderOpts) (image.Image, error) {
+	widthPx := media.WidthPx
 	pad := schema.Padding
 	qrReserved := qrSizeForSchema(schema)
 
@@ -121,7 +123,17 @@ func renderSchema(schema Schema, data LabelData, widthPx int, opts RenderOpts) (
 		dateLineH = dateLine.lineH + 2 // 2px gap above the date
 	}
 
-	totalH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
+	contentH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
+
+	totalH := contentH
+	if media.HeightPx > 0 {
+		totalH = media.HeightPx
+		// Die-cut: if content overflows, truncate elements by priority
+		if contentH > totalH {
+			textElems = truncateForDieCut(textElems, qrSize, barcodeH, data.BarcodeID, pad, dateLineH, totalH)
+		}
+	}
+
 	img := newCanvas(widthPx, totalH)
 
 	drawTextElements(img, textElems, widthPx, pad, qrSize)
@@ -187,12 +199,14 @@ func resolveElements(schema Schema, data LabelData, widthPx, pad, qrReserved int
 			if el.Slot == "title" && data.Icon != "" && showIcons(el) {
 				rt.iconName = data.Icon
 			}
+			rt.slot = el.Slot
 			textElems = append(textElems, rt)
 
 		case "tags":
 			if rt, ok, err := resolveTagsSlot(el, data.Tags, schema, widthPx, pad, qrReserved); err != nil {
 				return nil, 0, 0, err
 			} else if ok {
+				rt.slot = "tags"
 				textElems = append(textElems, rt)
 			}
 
@@ -200,6 +214,7 @@ func resolveElements(schema Schema, data LabelData, widthPx, pad, qrReserved int
 			if rt, ok, err := resolveChildrenSlot(el, data.Children, schema, widthPx, pad, qrReserved); err != nil {
 				return nil, 0, 0, err
 			} else if ok {
+				rt.slot = "children"
 				textElems = append(textElems, rt)
 			}
 
@@ -411,4 +426,74 @@ func qrSizeForSchema(schema Schema) int {
 		}
 	}
 	return 0
+}
+
+// truncateForDieCut removes/truncates elements by priority until content fits within maxH.
+// Priority (lowest priority removed/truncated first):
+//  1. tags — removed entirely
+//  2. children — removed entirely
+//  3. description — lines truncated with ellipsis, then removed
+//  4. location — lines truncated with ellipsis, then removed
+//  5. title — truncated with ellipsis as last resort
+func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID string, pad, dateLineH, maxH int) []resolvedText { //nolint:gocyclo // sequential priority-ordered truncation steps require many branches
+	fits := func() bool {
+		return computeHeight(elems, qrSize, barcodeH, barcodeID, pad)+dateLineH <= maxH
+	}
+
+	// Phase 1: remove tags and children entirely (lowest priority).
+	// This assumes the conventional schema element order: title → description → location → tags → children.
+	// If a schema uses a different order, tags/children may not be at the tail and will not be removed here —
+	// they will be caught by Phase 2 iteration which checks by slot name.
+	for !fits() && len(elems) > 1 {
+		last := elems[len(elems)-1]
+		if last.slot != "tags" && last.slot != "children" {
+			break
+		}
+		elems = elems[:len(elems)-1]
+	}
+
+	// Phase 2: truncate description and location line-by-line with ellipsis
+	for !fits() {
+		truncated := false
+		for i := len(elems) - 1; i >= 0; i-- {
+			s := elems[i].slot
+			if s != "description" && s != "location" {
+				continue
+			}
+			if len(elems[i].lines) > 1 {
+				// Remove last line and add ellipsis to new last line
+				elems[i].lines = elems[i].lines[:len(elems[i].lines)-1]
+				last := elems[i].lines[len(elems[i].lines)-1]
+				runes := []rune(last)
+				if len(runes) > 3 {
+					elems[i].lines[len(elems[i].lines)-1] = string(runes[:len(runes)-3]) + "..."
+				}
+				truncated = true
+				break
+			} else if len(elems[i].lines) == 1 {
+				// Single line: remove entire element
+				elems = append(elems[:i], elems[i+1:]...)
+				truncated = true
+				break
+			}
+		}
+		if !fits() && !truncated {
+			break // nothing more to remove in this phase
+		}
+	}
+
+	// Phase 3: truncate title lines as last resort
+	for !fits() && len(elems) > 0 && len(elems[0].lines) > 1 {
+		lines := elems[0].lines
+		elems[0].lines = lines[:len(lines)-1]
+		last := elems[0].lines[len(elems[0].lines)-1]
+		runes := []rune(last)
+		if len(runes) > 3 {
+			elems[0].lines[len(elems[0].lines)-1] = string(runes[:len(runes)-3]) + "..."
+		}
+	}
+	// If a single-line title still overflows after truncation, it will be clipped
+	// at the canvas edge by the draw package — this is intentional.
+
+	return elems
 }

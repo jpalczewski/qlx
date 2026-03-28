@@ -27,5 +27,7 @@ func modelInfo(m qlModel) encoder.ModelInfo {
 		PrintWidthPx: m.BytesPerRow * 8,
 		MediaTypes:   []string{"endless", "die-cut"},
 		DensityRange: [2]int{1, 1}, DensityDefault: 1,
+		CutSupported:     m.Cutting,
+		HighResSupported: true,
 	}
 }

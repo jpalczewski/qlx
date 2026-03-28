@@ -53,6 +53,27 @@
     var textEl = qs(form, "[data-print-text]");
     var text = textEl ? textEl.value : "";
 
+    var copiesEl = qs(form, "[data-copies]");
+    var copies = copiesEl ? (parseInt(copiesEl.value, 10) || 1) : 1;
+
+    var densityWrap = qs(form, "[data-density-wrap]");
+    var densityEl = qs(form, "[data-density]");
+    var density = (densityWrap && densityWrap.style.display !== "none" && densityEl)
+        ? (parseInt(densityEl.value, 10) || 0)
+        : 0;
+
+    var cutEveryWrap = qs(form, "[data-cut-every-wrap]");
+    var cutEveryEl = qs(form, "[data-cut-every]");
+    var cutEvery = (cutEveryWrap && cutEveryWrap.style.display !== "none" && cutEveryEl)
+        ? (parseInt(cutEveryEl.value, 10) || 0)
+        : 0;
+
+    var highResWrap = qs(form, "[data-high-res-wrap]");
+    var highResEl = qs(form, "[data-high-res]");
+    var highRes = (highResWrap && highResWrap.style.display !== "none" && highResEl)
+        ? highResEl.checked
+        : false;
+
     return {
       mode: mode,
       printerId: printerId,
@@ -63,7 +84,11 @@
       showChildren: showChildren,
       text: text,
       endpoint: form.getAttribute("data-endpoint"),
-      entityId: form.getAttribute("data-entity-id")
+      entityId: form.getAttribute("data-entity-id"),
+      copies: copies,
+      density: density,
+      cutEvery: cutEvery,
+      highRes: highRes
     };
   }
 
@@ -73,7 +98,11 @@
         printer_id: vals.printerId,
         templates: vals.templates,
         print_date: vals.printDate,
-        show_children: vals.showChildren
+        show_children: vals.showChildren,
+        copies: vals.copies,
+        density: vals.density,
+        cut_every: vals.cutEvery,
+        high_res: vals.highRes
       });
     }
     if (vals.mode === "adhoc") {
@@ -81,14 +110,22 @@
         text: vals.text,
         printer_id: vals.printerId,
         template: vals.template,
-        print_date: vals.printDate
+        print_date: vals.printDate,
+        copies: vals.copies,
+        density: vals.density,
+        cut_every: vals.cutEvery,
+        high_res: vals.highRes
       });
     }
     // item or bulk-items
     return JSON.stringify({
       printer_id: vals.printerId,
       template: vals.template,
-      print_date: vals.printDate
+      print_date: vals.printDate,
+      copies: vals.copies,
+      density: vals.density,
+      cut_every: vals.cutEvery,
+      high_res: vals.highRes
     });
   }
 
@@ -230,6 +267,10 @@
       previewUrl = "/items/" + vals.entityId + "/preview?template=" +
         encodeURIComponent(vals.template) +
         "&print_date=" + vals.printDate;
+    }
+
+    if (vals.printerId) {
+      previewUrl += "&printer_id=" + encodeURIComponent(vals.printerId);
     }
 
     fetch(previewUrl, {
@@ -485,18 +526,102 @@
     applyTemplateFilter(qs(form, "[data-print-printer]"), qs(form, "[data-print-template]"));
   }
 
+  // ---- capabilities & print options ----
+
+  /** Fetch printer capabilities. Returns a Promise resolving to the caps object or null on error. */
+  function fetchCapabilities(printerId) {
+    return fetch("/api/printers/" + encodeURIComponent(printerId) + "/capabilities", {
+      headers: { "Accept": "application/json" }
+    }).then(function (resp) {
+      if (!resp.ok) { console.warn('fetchCapabilities: non-OK response', resp.status, printerId); return null; }
+      return resp.json();
+    }).catch(function (e) {
+      console.warn("fetchCapabilities failed:", e);
+      return null;
+    });
+  }
+
+  /** Show or hide a wrapper div. */
+  function setVisible(el, visible) {
+    if (!el) return;
+    el.style.display = visible ? "" : "none";
+  }
+
+  /** Apply capabilities to show/hide optional print option controls in form. */
+  function applyCapabilities(form, caps) {
+    var densityWrap = qs(form, "[data-density-wrap]");
+    var cutEveryWrap = qs(form, "[data-cut-every-wrap]");
+    var highResWrap = qs(form, "[data-high-res-wrap]");
+
+    if (!caps) {
+      setVisible(densityWrap, false);
+      setVisible(cutEveryWrap, false);
+      setVisible(highResWrap, false);
+      return;
+    }
+
+    // Density: show if range is nonzero (max > min)
+    var densityRange = caps.density_range || [0, 0];
+    var showDensity = densityRange[1] > densityRange[0];
+    setVisible(densityWrap, showDensity);
+    if (showDensity) {
+      var densityEl = qs(form, "[data-density]");
+      if (densityEl) {
+        densityEl.min = densityRange[0];
+        densityEl.max = densityRange[1];
+        densityEl.value = caps.density_default || densityRange[0];
+        var valueEl = qs(form, "[data-density-value]");
+        if (valueEl) valueEl.textContent = densityEl.value;
+      }
+    }
+
+    // Cut every: show if cut_supported
+    setVisible(cutEveryWrap, !!caps.cut_supported);
+
+    // High res: show if high_res_supported
+    setVisible(highResWrap, !!caps.high_res_supported);
+  }
+
+  /** Wire density slider to update its value display. */
+  function initDensityDisplay(form) {
+    var densityEl = qs(form, "[data-density]");
+    var valueEl = qs(form, "[data-density-value]");
+    if (densityEl && valueEl) {
+      densityEl.addEventListener("input", function () {
+        valueEl.textContent = densityEl.value;
+      });
+    }
+  }
+
+  /** Called when printer selection changes. Fetches capabilities and applies them. */
+  function onPrinterChange(form, printerId) {
+    if (!printerId) {
+      applyCapabilities(form, null);
+      return;
+    }
+    fetchCapabilities(printerId).then(function (caps) {
+      applyCapabilities(form, caps);
+    });
+  }
+
   // ---- initialization ----
 
   function initForm(form) {
     if (form._printFormInit) return;
     form._printFormInit = true;
 
+    initDensityDisplay(form);
+
     var printerSel = qs(form, "[data-print-printer]");
     if (printerSel) {
       printerSel.addEventListener("change", function () {
         filterTemplates(form);
+        onPrinterChange(form, printerSel.value);
       });
       filterTemplates(form);
+      if (printerSel.value) {
+        onPrinterChange(form, printerSel.value);
+      }
     }
 
     var printBtn = qs(form, "[data-print-btn]");
@@ -573,12 +698,16 @@
         var forms = qsa(panel, "[data-print-form]");
         for (var f = 0; f < forms.length; f++) {
           filterTemplatesInPanel(forms[f], panelPrinter);
+          onPrinterChange(forms[f], panelPrinter.value);
         }
       });
       // Initial filter
       var forms = qsa(panel, "[data-print-form]");
       for (var f = 0; f < forms.length; f++) {
         filterTemplatesInPanel(forms[f], panelPrinter);
+        if (panelPrinter.value) {
+          onPrinterChange(forms[f], panelPrinter.value);
+        }
       }
     }
   }

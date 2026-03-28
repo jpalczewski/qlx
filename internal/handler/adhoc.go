@@ -58,9 +58,10 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 
 	data := label.LabelData{Name: req.Text}
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
+	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
 
 	if _, ok := label.GetSchema(req.Template); ok {
-		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
+		if err := h.pm.Print(req.PrinterID, data, req.Template, opts, pOpts); err != nil {
 			webutil.LogError("adhoc print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -88,5 +89,5 @@ func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
 
 	data := label.LabelData{Name: text}
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, label.MediaInfo{WidthPx: previewWidth(r), DPI: 203}, opts)
 }

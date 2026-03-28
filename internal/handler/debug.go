@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -175,7 +176,7 @@ func (h *DebugHandler) PrintCalibration(w http.ResponseWriter, r *http.Request) 
 		img = grid
 	}
 
-	if err := h.pm.PrintImage(req.PrinterID, img); err != nil {
+	if err := h.pm.PrintImage(req.PrinterID, img, encoder.PrintOpts{}); err != nil {
 		webutil.LogError("calibration print failed: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
