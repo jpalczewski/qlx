@@ -83,6 +83,21 @@ func (m *PrinterManager) Encoder(name string) encoder.Encoder {
 	return m.encoders[name]
 }
 
+// ConnectedPrinters returns only printers that are currently in StateConnected.
+func (m *PrinterManager) ConnectedPrinters() []store.PrinterConfig {
+	all := m.store.AllPrinters()
+	if m.cm == nil {
+		return all
+	}
+	var out []store.PrinterConfig
+	for _, p := range all {
+		if m.cm.State(p.ID) == StateConnected {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // AvailableEncoders returns a snapshot of registered encoders.
 func (m *PrinterManager) AvailableEncoders() map[string]encoder.Encoder {
 	cp := make(map[string]encoder.Encoder, len(m.encoders))
