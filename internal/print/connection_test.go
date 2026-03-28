@@ -2,6 +2,8 @@ package print
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -169,5 +171,86 @@ func TestConnectionManager_Reconnect(t *testing.T) {
 		case <-deadline:
 			t.Fatal("timed out waiting for StateConnecting after Reconnect")
 		}
+	}
+}
+
+// failingMockTransport simulates a transport that fails N times, then succeeds.
+type failingMockTransport struct {
+	transport.MockTransport
+	failCount int
+	calls     int
+	mu        sync.Mutex
+}
+
+func (f *failingMockTransport) Open(ctx context.Context, address string) error {
+	f.mu.Lock()
+	f.calls++
+	calls := f.calls
+	f.mu.Unlock()
+	if calls <= f.failCount {
+		return fmt.Errorf("simulated open failure %d", calls)
+	}
+	return nil
+}
+
+func TestConnectionManager_EmptyStartStop(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cm := NewConnectionManager(
+		func(name string) transport.Transport { return &transport.MockTransport{} },
+		func(name string) encoder.Encoder { return nil },
+	)
+	cm.Start(ctx)
+
+	if states := cm.States(); len(states) != 0 {
+		t.Errorf("expected empty states, got %v", states)
+	}
+
+	cancel()
+	done := make(chan struct{})
+	go func() {
+		cm.Stop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("cm.Stop() timed out")
+	}
+}
+
+func TestConnectionManager_FailingTransportReconnects(t *testing.T) {
+	ft := &failingMockTransport{failCount: 2}
+	ctx, cancel := context.WithCancel(context.Background())
+	cm := NewConnectionManager(
+		func(name string) transport.Transport { return ft },
+		func(name string) encoder.Encoder {
+			if name == "mock" {
+				return &mockEncoder{}
+			}
+			return nil
+		},
+	)
+	cm.Start(ctx)
+	t.Cleanup(func() { cancel(); cm.Stop() })
+
+	cfg := store.PrinterConfig{ID: "p1", Address: "mock://test", Transport: "mock", Encoder: "mock"}
+	if err := cm.Add(cfg); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Should eventually reach StateConnected after 2 failures.
+	// Backoff is 5s after first failure — use a generous timeout.
+	deadline := time.After(15 * time.Second)
+	for cm.State("p1") != StateConnected {
+		select {
+		case <-deadline:
+			t.Fatalf("timed out waiting for connected, state=%s, transport calls=%d", cm.State("p1"), ft.calls)
+		default:
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+
+	if ft.calls < 3 {
+		t.Errorf("expected at least 3 Open() calls (2 failures + 1 success), got %d", ft.calls)
 	}
 }
