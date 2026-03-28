@@ -10,9 +10,18 @@
                 <span class="name">{{ .Name }}</span>
                 <span class="desc">{{ .Encoder }}/{{ .Model }} via {{ .Transport }} @ {{ .Address }}</span>
                 <div id="printer-status-{{ .ID }}" class="printer-status">
-                    <span class="status-muted">Loading...</span>
+                    {{ if eq .State "connected" }}
+                    <span class="conn-dot conn-dot--ok"></span><span class="conn-label">Connected</span>
+                    {{ else if eq .State "error" }}
+                    <span class="conn-dot conn-dot--error"></span><span class="conn-label">{{ if .StateMsg }}{{ .StateMsg }}{{ else }}Error{{ end }}</span>
+                    <button class="reconnect-btn btn btn-sm" onclick="connectPrinter('{{ .ID }}')">Reconnect</button>
+                    {{ else if eq .State "disconnected" }}
+                    <span class="conn-dot conn-dot--warn"></span><span class="conn-label">Disconnected</span>
+                    {{ else }}
+                    <span class="conn-dot conn-dot--pulse"></span><span class="conn-label">Connecting...</span>
+                    {{ end }}
                 </div>
-                <button onclick="connectPrinter('{{ .ID }}')" class="button" style="font-size:0.8rem;padding:0.4rem 0.8rem">Connect</button>
+                <button onclick="connectPrinter('{{ .ID }}')" class="button" style="font-size:0.8rem;padding:0.4rem 0.8rem">Reconnect</button>
                 <button onclick="disconnectPrinter('{{ .ID }}')" class="button secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem">Disconnect</button>
                 <button hx-delete="/printers/{{ .ID }}" hx-target="#content" hx-confirm="{{$.T "printers.confirm_delete"}}" class="danger">{{$.T "action.delete"}}</button>
             </div>

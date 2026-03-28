@@ -40,9 +40,16 @@ type ItemDetailData struct {
 	NoteCount int
 }
 
+// PrinterWithState combines a printer config with its current connection state.
+type PrinterWithState struct {
+	store.PrinterConfig
+	State    string // ConnState as string for template comparisons
+	StateMsg string // error message when State == "error"
+}
+
 // PrintersData is the view model for the printers page.
 type PrintersData struct {
-	Printers []store.PrinterConfig
+	Printers []PrinterWithState
 	Encoders []EncoderData
 }
 

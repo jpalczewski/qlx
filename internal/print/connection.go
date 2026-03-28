@@ -147,6 +147,16 @@ func (cm *ConnectionManager) State(printerID string) ConnState {
 	return ""
 }
 
+// StateInfo returns the current state and message for a printer atomically.
+func (cm *ConnectionManager) StateInfo(printerID string) (ConnState, string) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	if pc, ok := cm.printers[printerID]; ok {
+		return pc.state, pc.msg
+	}
+	return StateIdle, ""
+}
+
 // States returns a snapshot of all printer states.
 func (cm *ConnectionManager) States() map[string]ConnState {
 	cm.mu.RLock()

@@ -415,6 +415,7 @@ func (h *PrintHandler) Status(w http.ResponseWriter, r *http.Request) {
 }
 
 // Connect handles POST /printers/{id}/connect (JSON only).
+// If the printer is already managed by ConnectionManager, it triggers a reconnect instead.
 func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	cfg := h.printers.GetPrinter(id)
@@ -423,9 +424,12 @@ func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.cm.Add(*cfg); err != nil {
-		webutil.LogError("connect printer: %v", err)
-		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
+		// Printer already managed — force retry instead
+		if err2 := h.cm.Reconnect(id); err2 != nil {
+			webutil.LogError("connect printer: %v", err2)
+			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err2.Error()})
+			return
+		}
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -558,6 +562,15 @@ func (h *PrintHandler) ScanUSB(w http.ResponseWriter, r *http.Request) {
 // printersVM builds the view model for the printers page.
 func (h *PrintHandler) printersVM() PrintersData {
 	printersList := h.printers.AllPrinters()
+	printers := make([]PrinterWithState, len(printersList))
+	for i, p := range printersList {
+		state, msg := h.cm.StateInfo(p.ID)
+		printers[i] = PrinterWithState{
+			PrinterConfig: p,
+			State:         string(state),
+			StateMsg:      msg,
+		}
+	}
 	var encoders []EncoderData
 	for name, enc := range h.pm.AvailableEncoders() {
 		encoders = append(encoders, EncoderData{
@@ -566,7 +579,7 @@ func (h *PrintHandler) printersVM() PrintersData {
 		})
 	}
 	return PrintersData{
-		Printers: printersList,
+		Printers: printers,
 		Encoders: encoders,
 	}
 }
