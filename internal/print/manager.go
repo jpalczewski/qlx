@@ -107,7 +107,7 @@ func validatePrintOpts(opts encoder.PrintOpts, mi *encoder.ModelInfo) encoder.Pr
 // printContext holds resolved printer resources for a print operation.
 type printContext struct {
 	cfg       *store.PrinterConfig
-	enc       encoder.Encoder
+	enc       encoder.Encoder // reserved for capability checks (e.g. capabilities endpoint)
 	model     *encoder.ModelInfo
 	session   *PrinterSession
 	media     label.MediaInfo
@@ -131,6 +131,9 @@ func (m *PrinterManager) resolveForPrint(printerID string, opts encoder.PrintOpt
 		return nil, fmt.Errorf("model not found: %s", cfg.Model)
 	}
 
+	if m.cm == nil {
+		return nil, fmt.Errorf("printer %s not connected (no connection manager)", printerID)
+	}
 	if m.cm.State(printerID) != StateConnected {
 		return nil, fmt.Errorf("printer %s not connected", printerID)
 	}
