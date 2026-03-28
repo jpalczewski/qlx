@@ -65,10 +65,14 @@ func run(device, port, host, dataDir string, trace bool) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	// Build encoder map
-	encoders := map[string]encoder.Encoder{
-		"brother": &brother.BrotherEncoder{},
-		"niimbot": &niimbot.NiimbotEncoder{},
+	// Build encoder map keyed by encoder name (matches PrinterConfig.Encoder field)
+	allEncoders := []encoder.Encoder{
+		&brother.BrotherEncoder{},
+		&niimbot.NiimbotEncoder{},
+	}
+	encoderMap := make(map[string]encoder.Encoder, len(allEncoders))
+	for _, enc := range allEncoders {
+		encoderMap[enc.Name()] = enc
 	}
 
 	// Create ConnectionManager with transport factory and encoder lookup
@@ -78,13 +82,13 @@ func run(device, port, host, dataDir string, trace bool) error {
 	transportFn := qlprint.DefaultTransportFactory()
 	cm := qlprint.NewConnectionManager(
 		transportFn,
-		func(name string) encoder.Encoder { return encoders[name] },
+		func(name string) encoder.Encoder { return encoderMap[name] },
 	)
 	cm.Start(ctx)
 
 	// Create PrinterManager and register encoders
 	pm := qlprint.NewPrinterManager(db, cm)
-	for _, enc := range encoders {
+	for _, enc := range allEncoders {
 		pm.RegisterEncoder(enc)
 	}
 
