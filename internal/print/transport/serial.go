@@ -2,7 +2,11 @@
 
 package transport
 
-import "go.bug.st/serial"
+import (
+	"context"
+
+	"go.bug.st/serial"
+)
 
 // SerialTransport handles Bluetooth serial port communication.
 type SerialTransport struct {
@@ -13,7 +17,10 @@ func (t *SerialTransport) Name() string {
 	return "serial"
 }
 
-func (t *SerialTransport) Open(address string) error {
+func (t *SerialTransport) Open(ctx context.Context, address string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	port, err := serial.Open(address, &serial.Mode{BaudRate: 115200})
 	if err != nil {
 		return err

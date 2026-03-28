@@ -32,6 +32,11 @@ type GoUSBTransport struct {
 	iface *gousb.Interface
 	inEP  *gousb.InEndpoint
 	outEP *gousb.OutEndpoint
+
+	// closeCtx is cancelled by Close() to abort in-flight USB reads
+	// before releasing libusb resources. Prevents SIGSEGV on shutdown.
+	closeCtx    context.Context
+	closeCancel context.CancelFunc
 }
 
 // USBScanResult represents a discovered USB device.
@@ -47,12 +52,16 @@ type USBScanResult struct {
 func (t *GoUSBTransport) Name() string { return "gousb" }
 
 // Open connects to a USB device identified by "VID:PID:Serial" address string.
-func (t *GoUSBTransport) Open(address string) error {
+func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	vid, pid, serial, err := parseUSBAddress(address)
 	if err != nil {
 		return fmt.Errorf("gousb open: %w", err)
 	}
 
+	t.closeCtx, t.closeCancel = context.WithCancel(context.Background())
 	t.ctx = gousb.NewContext()
 
 	devs, err := t.ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
@@ -148,13 +157,18 @@ func (t *GoUSBTransport) Read(buf []byte) (int, error) {
 	if t.inEP == nil {
 		return 0, errors.New("gousb: no IN endpoint (write-only device)")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), usbReadTimeout)
+	ctx, cancel := context.WithTimeout(t.closeCtx, usbReadTimeout)
 	defer cancel()
 	return t.inEP.ReadContext(ctx, buf)
 }
 
-// Close releases all USB resources.
+// Close cancels in-flight reads and releases all USB resources.
 func (t *GoUSBTransport) Close() error {
+	if t.closeCancel != nil {
+		t.closeCancel() // cancel any in-flight ReadContext
+	}
+	// Brief yield so the cancelled ReadContext returns before we free libusb resources.
+	time.Sleep(50 * time.Millisecond)
 	t.cleanup()
 	return nil
 }

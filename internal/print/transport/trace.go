@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"context"
+
 	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
@@ -11,9 +13,9 @@ type TraceTransport struct {
 
 func (t *TraceTransport) Name() string { return t.Inner.Name() }
 
-func (t *TraceTransport) Open(address string) error {
+func (t *TraceTransport) Open(ctx context.Context, address string) error {
 	webutil.LogTrace("%s: open %s", t.Inner.Name(), address)
-	err := t.Inner.Open(address)
+	err := t.Inner.Open(ctx, address)
 	if err != nil {
 		webutil.LogTrace("%s: open error: %v", t.Inner.Name(), err)
 	} else {

@@ -1,6 +1,7 @@
 package print
 
 import (
+	"context"
 	"image"
 	"sync"
 	"time"
@@ -49,8 +50,8 @@ func NewSession(cfg store.PrinterConfig, tr transport.Transport, enc encoder.Enc
 }
 
 // Start opens the transport, sends connect, reads RFID, starts heartbeat goroutine.
-func (s *PrinterSession) Start() error {
-	if err := s.tr.Open(s.config.Address); err != nil {
+func (s *PrinterSession) Start(ctx context.Context) error {
+	if err := s.tr.Open(ctx, s.config.Address); err != nil {
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
 			st.LastError = err.Error()
@@ -66,13 +67,13 @@ func (s *PrinterSession) Start() error {
 
 	if s.querier != nil {
 		// Initial connect handshake
-		if err := s.querier.Connect(s.tr); err != nil {
+		if err := s.querier.Connect(ctx, s.tr); err != nil {
 			webutil.LogError("session %s: connect handshake failed: %v", s.config.Name, err)
 		}
 
 		// Read RFID info
 		s.mu.Lock()
-		rfid, err := s.querier.RfidInfo(s.tr)
+		rfid, err := s.querier.RfidInfo(ctx, s.tr)
 		s.mu.Unlock()
 		if err != nil {
 			webutil.LogTrace("session %s: rfid read failed: %v", s.config.Name, err)

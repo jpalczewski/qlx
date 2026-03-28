@@ -14,6 +14,7 @@ import (
 
 	"github.com/erxyi/qlx/internal/app"
 	qlprint "github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/encoder/brother"
 	"github.com/erxyi/qlx/internal/print/encoder/niimbot"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -64,13 +65,31 @@ func run(device, port, host, dataDir string, trace bool) error {
 	}
 	defer func() { _ = db.Close() }()
 
-	pm := qlprint.NewPrinterManager(db)
-	pm.RegisterEncoder(&brother.BrotherEncoder{})
-	pm.RegisterEncoder(&niimbot.NiimbotEncoder{})
-	pm.Start()
-	defer pm.Stop()
+	// Create PrinterManager and register encoders
+	pm := qlprint.NewPrinterManager(db, nil) // CM wired in below
+	for _, enc := range []encoder.Encoder{
+		&brother.BrotherEncoder{},
+		&niimbot.NiimbotEncoder{},
+	} {
+		pm.RegisterEncoder(enc)
+	}
 
-	server := app.NewServer(db, pm)
+	// Create ConnectionManager — uses PM's encoder lookup to avoid duplicating the map
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cm := qlprint.NewConnectionManager(qlprint.DefaultTransportFactory(), pm.Encoder)
+	pm.SetConnectionManager(cm)
+	cm.Start(ctx)
+
+	// Load configured printers into ConnectionManager
+	for _, p := range db.AllPrinters() {
+		if err := cm.Add(p); err != nil {
+			webutil.LogError("cm.Add %s: %v", p.ID, err)
+		}
+	}
+
+	server := app.NewServer(db, pm, cm)
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	srv := &http.Server{
@@ -96,10 +115,13 @@ func run(device, port, host, dataDir string, trace bool) error {
 
 	webutil.LogInfo("shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	cancel()
+	cm.Stop()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown error: %w", err)
 	}
 

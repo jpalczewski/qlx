@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +18,7 @@ func (t *RemoteTransport) Name() string {
 	return "remote"
 }
 
-func (t *RemoteTransport) Open(address string) error {
+func (t *RemoteTransport) Open(_ context.Context, address string) error {
 	t.address = address
 	t.client = &http.Client{}
 	return nil

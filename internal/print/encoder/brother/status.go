@@ -1,6 +1,7 @@
 package brother
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -64,7 +65,10 @@ type brotherStatus struct {
 }
 
 // Connect performs the initial handshake: invalidate → init → read status.
-func (e *BrotherEncoder) Connect(tr transport.Transport) error {
+func (e *BrotherEncoder) Connect(ctx context.Context, tr transport.Transport) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	// 1. Send 200 null bytes to invalidate any pending state.
 	if _, err := tr.Write(make([]byte, 200)); err != nil {
 		return fmt.Errorf("brother connect: invalidate: %w", err)
@@ -110,7 +114,10 @@ func (e *BrotherEncoder) HeartbeatInterval() time.Duration {
 
 // RfidInfo returns media information from the status response.
 // QL-700 has no RFID, so we derive what we can from the status bytes.
-func (e *BrotherEncoder) RfidInfo(tr transport.Transport) (encoder.RfidResult, error) {
+func (e *BrotherEncoder) RfidInfo(ctx context.Context, tr transport.Transport) (encoder.RfidResult, error) {
+	if err := ctx.Err(); err != nil {
+		return encoder.RfidResult{}, err
+	}
 	st, err := requestStatus(tr)
 	if err != nil {
 		return encoder.RfidResult{}, fmt.Errorf("brother rfid: %w", err)

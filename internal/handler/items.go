@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -15,13 +16,14 @@ type ItemHandler struct {
 	inventory *service.InventoryService
 	templates *service.TemplateService
 	printers  *service.PrinterService
+	pm        *print.PrinterManager
 	notes     *service.NoteService
 	resp      Responder
 }
 
 // NewItemHandler creates a new ItemHandler.
-func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, notes *service.NoteService, resp Responder) *ItemHandler {
-	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, notes: notes, resp: resp}
+func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm *print.PrinterManager, notes *service.NoteService, resp Responder) *ItemHandler {
+	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
 }
 
 // RegisterRoutes registers item routes on the given mux.
@@ -181,8 +183,8 @@ func (h *ItemHandler) itemDetailVM(item *store.Item) ItemDetailData {
 		Path:    h.inventory.ContainerPath(item.ContainerID),
 		Schemas: label.SchemaNames(),
 	}
-	if h.printers != nil {
-		vm.Printers = h.printers.AllPrinters()
+	if h.pm != nil {
+		vm.Printers = h.pm.ConnectedPrinters()
 	}
 	if h.templates != nil {
 		vm.Templates = h.templates.AllTemplates()

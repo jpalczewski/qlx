@@ -15,13 +15,13 @@ import (
 func newTestPrintHandler(t *testing.T) (*PrintHandler, *service.InventoryService) {
 	t.Helper()
 	s := newHandlerTestStore(t)
-	pm := print.NewPrinterManager(s)
+	pm := print.NewPrinterManager(s, nil)
 	inv := service.NewInventoryService(s)
 	prn := service.NewPrinterService(s)
 	tmpl := service.NewTemplateService(s)
 	tags := service.NewTagService(s)
 	notes := service.NewNoteService(s)
-	h := NewPrintHandler(pm, inv, prn, tmpl, tags, notes, &JSONResponder{})
+	h := NewPrintHandler(pm, nil, inv, prn, tmpl, tags, notes, &JSONResponder{})
 	return h, inv
 }
 

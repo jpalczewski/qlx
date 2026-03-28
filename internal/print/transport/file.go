@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"os"
 )
 
@@ -13,7 +14,10 @@ func (t *FileTransport) Name() string {
 	return "usb"
 }
 
-func (t *FileTransport) Open(address string) error {
+func (t *FileTransport) Open(ctx context.Context, address string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	//nolint:gosec // G304: path from trusted CLI input
 	file, err := os.OpenFile(address, os.O_RDWR, 0)
 	if err != nil {
