@@ -472,11 +472,6 @@ func (h *PrintHandler) Capabilities(w http.ResponseWriter, r *http.Request) {
 
 	status := h.pm.GetStatus(id)
 
-	mediaType := "continuous"
-	if status.LabelHeightMm > 0 {
-		mediaType = "die-cut"
-	}
-
 	// Use model-derived width as fallback when RFID/status width is unknown
 	widthMm := status.LabelWidthMm
 	if widthMm == 0 {
@@ -484,19 +479,13 @@ func (h *PrintHandler) Capabilities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	webutil.JSON(w, http.StatusOK, map[string]any{
-		"density": map[string]int{
-			"min":     mi.DensityRange[0],
-			"max":     mi.DensityRange[1],
-			"default": mi.DensityDefault,
-		},
-		"copies":    map[string]int{"max": 100},
-		"cut_every": map[string]bool{"supported": mi.CutSupported},
-		"high_res":  map[string]bool{"supported": mi.HighResSupported},
-		"media": map[string]any{
-			"width_mm":  widthMm,
-			"height_mm": status.LabelHeightMm,
-			"type":      mediaType,
-		},
+		"density_range":      [2]int{mi.DensityRange[0], mi.DensityRange[1]},
+		"density_default":    mi.DensityDefault,
+		"copies_max":         100,
+		"cut_supported":      mi.CutSupported,
+		"high_res_supported": mi.HighResSupported,
+		"media_width_mm":     widthMm,
+		"media_height_mm":    status.LabelHeightMm,
 	})
 }
 

@@ -351,10 +351,16 @@ func TestCapabilities_OK(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if _, ok := resp["density"]; !ok {
-		t.Error("response missing 'density' field")
+	if _, ok := resp["density_range"]; !ok {
+		t.Error("response missing 'density_range' field")
 	}
-	if _, ok := resp["media"]; !ok {
-		t.Error("response missing 'media' field")
+	if _, ok := resp["density_default"]; !ok {
+		t.Error("response missing 'density_default' field")
+	}
+	if _, ok := resp["media_width_mm"]; !ok {
+		t.Error("response missing 'media_width_mm' field")
+	}
+	if _, ok := resp["media_height_mm"]; !ok {
+		t.Error("response missing 'media_height_mm' field")
 	}
 }
