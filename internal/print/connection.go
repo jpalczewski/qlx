@@ -265,7 +265,13 @@ func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID strin
 			}
 		}
 
-		// Connected
+		// Check if we were cancelled during connect
+		if ctx.Err() != nil {
+			session.Stop() // clean up the just-created session
+			return
+		}
+
+		// Connected — store session
 		backoffIdx = 0
 		cm.mu.Lock()
 		if pc := cm.printers[printerID]; pc != nil {
