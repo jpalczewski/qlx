@@ -251,7 +251,7 @@ func renderPreview(w http.ResponseWriter, templates *service.TemplateService,
 	data label.LabelData, templateName string, widthPx int, opts label.RenderOpts) {
 
 	if _, ok := label.GetSchema(templateName); ok {
-		img, err := label.Render(data, templateName, widthPx, 203, opts)
+		img, err := label.Render(data, templateName, label.MediaInfo{WidthPx: widthPx, DPI: 203}, opts)
 		if err != nil {
 			webutil.LogError("preview render failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})

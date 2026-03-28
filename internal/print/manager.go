@@ -164,7 +164,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return fmt.Errorf("model not found: %s", cfg.Model)
 	}
 
-	img, err := label.Render(data, templateName, modelInfo.PrintWidthPx, modelInfo.DPI, opts)
+	img, err := label.Render(data, templateName, label.MediaInfo{WidthPx: modelInfo.PrintWidthPx, DPI: modelInfo.DPI}, opts)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}

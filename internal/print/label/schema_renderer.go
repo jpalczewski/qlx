@@ -100,7 +100,8 @@ func formatChildren(children []LabelChild) string {
 // renderSchema renders a label image from a Schema definition and LabelData.
 // Elements are laid out vertically. QR is positioned at top-right, barcode at full-width bottom.
 // Note: QR is always placed at top-right when present — vertical QR placement is not supported.
-func renderSchema(schema Schema, data LabelData, widthPx int, opts RenderOpts) (image.Image, error) {
+func renderSchema(schema Schema, data LabelData, media MediaInfo, opts RenderOpts) (image.Image, error) {
+	widthPx := media.WidthPx
 	pad := schema.Padding
 	qrReserved := qrSizeForSchema(schema)
 
@@ -121,7 +122,17 @@ func renderSchema(schema Schema, data LabelData, widthPx int, opts RenderOpts) (
 		dateLineH = dateLine.lineH + 2 // 2px gap above the date
 	}
 
-	totalH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
+	contentH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
+
+	totalH := contentH
+	if media.HeightPx > 0 {
+		totalH = media.HeightPx
+		// Die-cut: if content overflows, truncate elements by priority
+		if contentH > totalH {
+			textElems = truncateForDieCut(textElems, qrSize, barcodeH, data.BarcodeID, pad, dateLineH, totalH)
+		}
+	}
+
 	img := newCanvas(widthPx, totalH)
 
 	drawTextElements(img, textElems, widthPx, pad, qrSize)
@@ -411,4 +422,34 @@ func qrSizeForSchema(schema Schema) int {
 		}
 	}
 	return 0
+}
+
+// truncateForDieCut removes lowest-priority elements until content fits within maxH.
+// Priority (lowest removed first): tags, children, description, location.
+// Title + QR/Barcode are always kept.
+func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID string, pad, dateLineH, maxH int) []resolvedText {
+	for len(elems) > 1 {
+		h := computeHeight(elems, qrSize, barcodeH, barcodeID, pad) + dateLineH
+		if h <= maxH {
+			return elems
+		}
+		// Remove last element (lowest priority)
+		elems = elems[:len(elems)-1]
+	}
+
+	// If still too tall with just the first element (title), truncate its lines
+	for len(elems) > 0 && len(elems[0].lines) > 1 {
+		h := computeHeight(elems, qrSize, barcodeH, barcodeID, pad) + dateLineH
+		if h <= maxH {
+			return elems
+		}
+		lines := elems[0].lines
+		last := lines[len(lines)-2]
+		if len(last) > 3 {
+			last = last[:len(last)-3] + "..."
+		}
+		elems[0].lines = append(lines[:len(lines)-2], last)
+	}
+
+	return elems
 }

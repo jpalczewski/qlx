@@ -12,7 +12,7 @@ func TestRenderSchema(t *testing.T) {
 		},
 	}
 	data := LabelData{Name: "Test Item", Description: "A test description"}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestRenderSchemaWithQR(t *testing.T) {
 		Location:  "Pokój → Półka → Pudełko",
 		QRContent: "https://qlx.local/item/123",
 	}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestRenderSchemaWithBarcode(t *testing.T) {
 		},
 	}
 	data := LabelData{Name: "Item", BarcodeID: "abc-123"}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestRenderSchemaTextWrapping(t *testing.T) {
 		},
 	}
 	data := LabelData{Name: "This is a very long title that should definitely wrap to multiple lines on a narrow label"}
-	img, err := renderSchema(schema, data, 200, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 200, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestRenderSchemaPolishChars(t *testing.T) {
 		Name:     "Kątówka ośmiokątna",
 		Location: "Łódź → Półka → Skrzynia żółta",
 	}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestRenderSchema_WithTags(t *testing.T) {
 			{Name: "arduino", Path: []string{"elektronika", "arduino"}},
 		},
 	}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestRenderSchema_WithTagsIgnoredByExistingSchemas(t *testing.T) {
 			{Name: "arduino", Path: []string{"elektronika", "arduino"}},
 		},
 	}
-	img, err := Render(data, "simple", 384, 203, RenderOpts{})
+	img, err := Render(data, "simple", MediaInfo{WidthPx: 384, HeightPx: 0, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestRenderSchema_WithTagsIgnoredByExistingSchemas(t *testing.T) {
 
 func TestRenderSchema_WithIcon(t *testing.T) {
 	data := LabelData{Name: "My Item", Icon: "package"}
-	img, err := Render(data, "simple", 384, 203, RenderOpts{})
+	img, err := Render(data, "simple", MediaInfo{WidthPx: 384, HeightPx: 0, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestRenderSchema_WithChildren(t *testing.T) {
 			{Name: "Item 3"},
 		},
 	}
-	img, err := renderSchema(schema, data, 384, RenderOpts{})
+	img, err := renderSchema(schema, data, MediaInfo{WidthPx: 384, DPI: 203}, RenderOpts{})
 	if err != nil {
 		t.Fatalf("renderSchema: %v", err)
 	}

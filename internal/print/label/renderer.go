@@ -20,15 +20,22 @@ type RenderOpts struct {
 // nowFunc is overridable for tests.
 var nowFunc = time.Now
 
+// MediaInfo describes the physical print media.
+type MediaInfo struct {
+	WidthPx  int // printhead width in pixels (384, 720)
+	HeightPx int // 0 = continuous (dynamic height); >0 = die-cut label height in px
+	DPI      int // 203, 300
+}
+
 // Render produces a label image from the given data using the named schema.
-// widthPx controls the image width; height is calculated automatically.
-// dpi is accepted for API compatibility but not used for rendering.
-func Render(data LabelData, template string, widthPx, dpi int, opts RenderOpts) (image.Image, error) {
+// media.WidthPx controls the image width; for continuous media (HeightPx==0) height is
+// calculated from content; for die-cut media (HeightPx>0) image is exactly HeightPx tall.
+func Render(data LabelData, template string, media MediaInfo, opts RenderOpts) (image.Image, error) {
 	schema, ok := GetSchema(template)
 	if !ok {
 		return nil, fmt.Errorf("unknown template %q: valid templates are %v", template, SchemaNames())
 	}
-	return renderSchema(schema, data, widthPx, opts)
+	return renderSchema(schema, data, media, opts)
 }
 
 // newCanvas creates a white RGBA image of the given dimensions.
