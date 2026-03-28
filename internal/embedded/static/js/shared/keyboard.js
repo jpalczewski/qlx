@@ -144,6 +144,7 @@
       if (containerEditLink) {
         var containerId = containerEditLink.getAttribute("href").replace("/containers/", "").replace("/edit", "");
         qlx.openMovePicker({ id: containerId, type: "container" });
+        return;
       }
     }
   }
