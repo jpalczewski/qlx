@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -60,7 +61,7 @@ func (h *AdhocHandler) Print(w http.ResponseWriter, r *http.Request) {
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
 
 	if _, ok := label.GetSchema(req.Template); ok {
-		if err := h.pm.Print(req.PrinterID, data, req.Template, opts); err != nil {
+		if err := h.pm.Print(req.PrinterID, data, req.Template, opts, encoder.PrintOpts{}); err != nil {
 			webutil.LogError("adhoc print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

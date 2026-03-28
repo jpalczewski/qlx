@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/erxyi/qlx/internal/print"
+	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/service"
@@ -208,7 +209,7 @@ func (h *PrintHandler) printOrClientRender(w http.ResponseWriter, data label.Lab
 	printerID, templateName string, opts label.RenderOpts) {
 
 	if _, ok := label.GetSchema(templateName); ok {
-		if err := h.pm.Print(printerID, data, templateName, opts); err != nil {
+		if err := h.pm.Print(printerID, data, templateName, opts, encoder.PrintOpts{}); err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -396,7 +397,7 @@ func (h *PrintHandler) PrintImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.pm.PrintImage(req.PrinterID, img); err != nil {
+	if err := h.pm.PrintImage(req.PrinterID, img, encoder.PrintOpts{}); err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
@@ -506,7 +507,7 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 
 	for _, tmplName := range req.Templates {
 		if _, ok := label.GetSchema(tmplName); ok {
-			if err := h.pm.Print(req.PrinterID, data, tmplName, opts); err != nil {
+			if err := h.pm.Print(req.PrinterID, data, tmplName, opts, encoder.PrintOpts{}); err != nil {
 				webutil.LogError("container print failed (schema %s): %v", tmplName, err)
 				webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				return

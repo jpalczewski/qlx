@@ -56,8 +56,8 @@ func DefaultTransportFactory() TransportFactoryFn {
 	}
 }
 
-// findModel returns the ModelInfo matching modelID, or nil if not found.
-func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
+// FindModel returns the ModelInfo matching modelID from an encoder, or nil if not found.
+func FindModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
 	for _, mi := range enc.Models() {
 		if mi.ID == modelID {
 			info := mi
@@ -65,6 +65,97 @@ func findModel(enc encoder.Encoder, modelID string) *encoder.ModelInfo {
 		}
 	}
 	return nil
+}
+
+// PxFromMm converts millimeters to pixels at the given DPI. Returns 0 if either is <= 0.
+func PxFromMm(mm, dpi int) int {
+	if mm <= 0 || dpi <= 0 {
+		return 0
+	}
+	return int(float64(mm) * float64(dpi) / 25.4)
+}
+
+// validatePrintOpts clamps values to valid ranges and applies defaults.
+func validatePrintOpts(opts encoder.PrintOpts, mi *encoder.ModelInfo) encoder.PrintOpts {
+	if opts.Density == 0 {
+		opts.Density = mi.DensityDefault
+	}
+	// Only clamp if range is set (non-zero bounds indicate density control)
+	if mi.DensityRange[0] != 0 || mi.DensityRange[1] != 0 {
+		if opts.Density < mi.DensityRange[0] {
+			opts.Density = mi.DensityRange[0]
+		}
+		if opts.Density > mi.DensityRange[1] {
+			opts.Density = mi.DensityRange[1]
+		}
+	}
+	if opts.Copies < 1 {
+		opts.Copies = 1
+	}
+	if opts.Copies > 100 {
+		opts.Copies = 100
+	}
+	if opts.CutEvery < 0 {
+		opts.CutEvery = 0
+	}
+	if opts.CutEvery > opts.Copies {
+		opts.CutEvery = opts.Copies
+	}
+	return opts
+}
+
+// printContext holds resolved printer resources for a print operation.
+type printContext struct {
+	cfg       *store.PrinterConfig
+	enc       encoder.Encoder
+	model     *encoder.ModelInfo
+	session   *PrinterSession
+	media     label.MediaInfo
+	printOpts encoder.PrintOpts
+}
+
+// resolveForPrint looks up printer config, encoder, model, session, and validates print options.
+func (m *PrinterManager) resolveForPrint(printerID string, opts encoder.PrintOpts) (*printContext, error) {
+	cfg := m.store.GetPrinter(printerID)
+	if cfg == nil {
+		return nil, fmt.Errorf("printer not found: %s", printerID)
+	}
+
+	enc, ok := m.encoders[cfg.Encoder]
+	if !ok {
+		return nil, fmt.Errorf("encoder not found: %s", cfg.Encoder)
+	}
+
+	modelInfo := FindModel(enc, cfg.Model)
+	if modelInfo == nil {
+		return nil, fmt.Errorf("model not found: %s", cfg.Model)
+	}
+
+	if m.cm.State(printerID) != StateConnected {
+		return nil, fmt.Errorf("printer %s not connected", printerID)
+	}
+	session := m.cm.Session(printerID)
+	if session == nil {
+		return nil, fmt.Errorf("printer %s: no active session", printerID)
+	}
+
+	validated := validatePrintOpts(opts, modelInfo)
+
+	status := session.Status()
+	media := label.MediaInfo{
+		WidthPx:  modelInfo.PrintWidthPx,
+		HeightPx: PxFromMm(status.LabelHeightMm, modelInfo.DPI),
+		DPI:      modelInfo.DPI,
+	}
+
+	return &printContext{
+		cfg:       cfg,
+		enc:       enc,
+		model:     modelInfo,
+		session:   session,
+		media:     media,
+		printOpts: validated,
+	}, nil
 }
 
 // RegisterEncoder adds an encoder. Must be called before use.
@@ -148,101 +239,55 @@ func (m *PrinterManager) AllStatuses() map[string]PrinterStatus {
 }
 
 // Print renders a label and sends it to the printer.
-func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string, opts label.RenderOpts) error {
-	cfg := m.store.GetPrinter(printerID)
-	if cfg == nil {
-		return fmt.Errorf("printer not found: %s", printerID)
+func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string, renderOpts label.RenderOpts, printOpts encoder.PrintOpts) error {
+	ctx, err := m.resolveForPrint(printerID, printOpts)
+	if err != nil {
+		return err
 	}
 
-	enc, ok := m.encoders[cfg.Encoder]
-	if !ok {
-		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
-	}
-
-	modelInfo := findModel(enc, cfg.Model)
-	if modelInfo == nil {
-		return fmt.Errorf("model not found: %s", cfg.Model)
-	}
-
-	img, err := label.Render(data, templateName, label.MediaInfo{WidthPx: modelInfo.PrintWidthPx, DPI: modelInfo.DPI}, opts)
+	img, err := label.Render(data, templateName, ctx.media, renderOpts)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}
 
-	if m.cm.State(printerID) != StateConnected {
-		return fmt.Errorf("printer %s not connected", printerID)
-	}
-	session := m.cm.Session(printerID)
-	if session == nil {
-		return fmt.Errorf("printer %s: no active session", printerID)
-	}
+	img = applyCalibrationOffset(img, ctx.cfg, ctx.media.WidthPx)
 
-	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
-
-	webutil.LogInfo("printing on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
-	printOpts := encoder.PrintOpts{
-		Density:  modelInfo.DensityDefault,
-		Copies:   1,
-		CutEvery: 1,
-	}
-	if err := session.Print(img, cfg.Model, printOpts); err != nil {
+	webutil.LogInfo("printing on %s (%s/%s)", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model)
+	if err := ctx.session.Print(img, ctx.cfg.Model, ctx.printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	webutil.LogInfo("print complete on %s", cfg.Name)
+	webutil.LogInfo("print complete on %s", ctx.cfg.Name)
 	return nil
 }
 
 // PrintImage sends a pre-rendered image directly to the printer, bypassing label rendering.
-func (m *PrinterManager) PrintImage(printerID string, img image.Image) error {
-	cfg := m.store.GetPrinter(printerID)
-	if cfg == nil {
-		return fmt.Errorf("printer not found: %s", printerID)
-	}
-
-	enc, ok := m.encoders[cfg.Encoder]
-	if !ok {
-		return fmt.Errorf("encoder not found: %s", cfg.Encoder)
-	}
-
-	modelInfo := findModel(enc, cfg.Model)
-	if modelInfo == nil {
-		return fmt.Errorf("model not found: %s", cfg.Model)
-	}
-
-	if m.cm.State(printerID) != StateConnected {
-		return fmt.Errorf("printer %s not connected", printerID)
-	}
-	session := m.cm.Session(printerID)
-	if session == nil {
-		return fmt.Errorf("printer %s: no active session", printerID)
+func (m *PrinterManager) PrintImage(printerID string, img image.Image, printOpts encoder.PrintOpts) error {
+	ctx, err := m.resolveForPrint(printerID, printOpts)
+	if err != nil {
+		return err
 	}
 
 	// Scale image to match printer printhead width if needed
 	imgWidth := img.Bounds().Dx()
-	if imgWidth != modelInfo.PrintWidthPx && modelInfo.PrintWidthPx > 0 {
-		scale := float64(modelInfo.PrintWidthPx) / float64(imgWidth)
+	if imgWidth != ctx.media.WidthPx && ctx.media.WidthPx > 0 {
+		scale := float64(ctx.media.WidthPx) / float64(imgWidth)
 		newH := int(float64(img.Bounds().Dy()) * scale)
-		dst := image.NewRGBA(image.Rect(0, 0, modelInfo.PrintWidthPx, newH))
+		dst := image.NewRGBA(image.Rect(0, 0, ctx.media.WidthPx, newH))
 		imagedraw.Draw(dst, dst.Bounds(), image.NewUniform(color.White), image.Point{}, imagedraw.Src)
 		draw.BiLinear.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 		img = dst
-		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, modelInfo.PrintWidthPx, cfg.Model)
+		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, ctx.media.WidthPx, ctx.cfg.Model)
 	}
 
-	img = applyCalibrationOffset(img, cfg, modelInfo.PrintWidthPx)
+	img = applyCalibrationOffset(img, ctx.cfg, ctx.media.WidthPx)
 
-	webutil.LogInfo("printing image on %s (%s/%s)", cfg.Name, cfg.Encoder, cfg.Model)
-	printOpts := encoder.PrintOpts{
-		Density:  modelInfo.DensityDefault,
-		Copies:   1,
-		CutEvery: 1,
-	}
-	if err := session.Print(img, cfg.Model, printOpts); err != nil {
+	webutil.LogInfo("printing image on %s (%s/%s)", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model)
+	if err := ctx.session.Print(img, ctx.cfg.Model, ctx.printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 
-	webutil.LogInfo("print image complete on %s", cfg.Name)
+	webutil.LogInfo("print image complete on %s", ctx.cfg.Name)
 	return nil
 }
 
