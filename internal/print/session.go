@@ -22,6 +22,7 @@ type PrinterSession struct {
 	mu       sync.Mutex
 	stop     chan struct{}
 	stopped  chan struct{}
+	stopOnce sync.Once
 	onUpdate func(printerID string, status PrinterStatus)
 }
 
@@ -96,21 +97,18 @@ func (s *PrinterSession) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop stops heartbeat and closes transport.
+// Stop stops heartbeat and closes transport. Safe to call concurrently.
 func (s *PrinterSession) Stop() {
-	select {
-	case <-s.stop:
-		return // already stopped
-	default:
+	s.stopOnce.Do(func() {
 		close(s.stop)
-	}
-	// Close transport first to unblock any in-flight BLE I/O,
-	// otherwise the heartbeat goroutine may hang on Read/Write
-	// and <-s.stopped would block forever.
-	_ = s.tr.Close()
-	<-s.stopped
-	s.updateStatus(func(st *PrinterStatus) {
-		st.Connected = false
+		// Close transport first to unblock any in-flight BLE I/O,
+		// otherwise the heartbeat goroutine may hang on Read/Write
+		// and <-s.stopped would block forever.
+		_ = s.tr.Close()
+		<-s.stopped
+		s.updateStatus(func(st *PrinterStatus) {
+			st.Connected = false
+		})
 	})
 }
 
