@@ -21,9 +21,24 @@ type TemplateFuncs struct {
 // LoadTemplates discovers and parses all HTML templates from the embedded FS.
 func LoadTemplates(fns TemplateFuncs) map[string]*template.Template {
 	layoutTmpl := loadLayout(fns)
-	mergeHTMLDir(layoutTmpl, "templates/partials")
-	mergeHTMLDir(layoutTmpl, "templates/components")
+	mergeSharedTemplateDirs(layoutTmpl)
 	return discoverPages(layoutTmpl)
+}
+
+// mergeSharedTemplateDirs auto-discovers top-level subdirectories under templates/
+// (excluding pages and layouts) and merges all .html files into tmpl.
+func mergeSharedTemplateDirs(tmpl *template.Template) {
+	entries, err := fs.ReadDir(embedded.Templates, "templates")
+	if err != nil {
+		panic(err)
+	}
+	skip := map[string]bool{"pages": true, "layouts": true}
+	for _, e := range entries {
+		if !e.IsDir() || skip[e.Name()] {
+			continue
+		}
+		mergeHTMLDir(tmpl, "templates/"+e.Name())
+	}
 }
 
 func loadLayout(fns TemplateFuncs) *template.Template {
