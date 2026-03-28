@@ -56,14 +56,23 @@
     var copiesEl = qs(form, "[data-copies]");
     var copies = copiesEl ? (parseInt(copiesEl.value, 10) || 1) : 1;
 
+    var densityWrap = qs(form, "[data-density-wrap]");
     var densityEl = qs(form, "[data-density]");
-    var density = densityEl ? (parseInt(densityEl.value, 10) || 0) : 0;
+    var density = (densityWrap && densityWrap.style.display !== "none" && densityEl)
+        ? (parseInt(densityEl.value, 10) || 0)
+        : 0;
 
+    var cutEveryWrap = qs(form, "[data-cut-every-wrap]");
     var cutEveryEl = qs(form, "[data-cut-every]");
-    var cutEvery = cutEveryEl ? (parseInt(cutEveryEl.value, 10) || 0) : 0;
+    var cutEvery = (cutEveryWrap && cutEveryWrap.style.display !== "none" && cutEveryEl)
+        ? (parseInt(cutEveryEl.value, 10) || 0)
+        : 0;
 
+    var highResWrap = qs(form, "[data-high-res-wrap]");
     var highResEl = qs(form, "[data-high-res]");
-    var highRes = highResEl ? highResEl.checked : false;
+    var highRes = (highResWrap && highResWrap.style.display !== "none" && highResEl)
+        ? highResEl.checked
+        : false;
 
     return {
       mode: mode,
@@ -524,7 +533,7 @@
     return fetch("/api/printers/" + encodeURIComponent(printerId) + "/capabilities", {
       headers: { "Accept": "application/json" }
     }).then(function (resp) {
-      if (!resp.ok) return null;
+      if (!resp.ok) { console.warn('fetchCapabilities: non-OK response', resp.status, printerId); return null; }
       return resp.json();
     }).catch(function (e) {
       console.warn("fetchCapabilities failed:", e);
