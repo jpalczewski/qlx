@@ -65,6 +65,12 @@ func (t *BLETransport) Open(ctx context.Context, address string) error {
 	var device bluetooth.Device
 	select {
 	case <-ctx.Done():
+		// Drain connectCh in background and disconnect if a device was obtained.
+		go func() {
+			if res := <-connectCh; res.err == nil {
+				res.device.Disconnect()
+			}
+		}()
 		return ctx.Err()
 	case res := <-connectCh:
 		if res.err != nil {
@@ -92,7 +98,7 @@ func (t *BLETransport) Open(ctx context.Context, address string) error {
 	case res := <-servicesCh:
 		if res.err != nil {
 			device.Disconnect()
-			return res.err
+			return fmt.Errorf("BLE discover services: %w", res.err)
 		}
 		services = res.services
 	}
@@ -119,7 +125,7 @@ func (t *BLETransport) Open(ctx context.Context, address string) error {
 	case res := <-charsCh:
 		if res.err != nil {
 			device.Disconnect()
-			return res.err
+			return fmt.Errorf("BLE discover characteristics: %w", res.err)
 		}
 		chars = res.chars
 	}
@@ -151,7 +157,7 @@ func (t *BLETransport) Open(ctx context.Context, address string) error {
 	case err := <-notifCh:
 		if err != nil {
 			device.Disconnect()
-			return err
+			return fmt.Errorf("BLE enable notifications: %w", err)
 		}
 	}
 
