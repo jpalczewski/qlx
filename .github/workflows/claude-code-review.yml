@@ -12,6 +12,7 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
+      actions: read
 
     steps:
       - name: Checkout repository
@@ -22,11 +23,11 @@ jobs:
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-          REPO: ${{ github.repository }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          use_sticky_comment: true
+          additional_permissions: |
+            actions: read
           prompt: |
             Review pull request #${{ github.event.number }} in ${{ github.repository }}.
 
@@ -36,7 +37,10 @@ jobs:
             - Code quality and maintainability
             - Adherence to project conventions (see CLAUDE.md)
 
-            Post your review as a comment using:
-            gh pr comment ${{ github.event.number }} --repo ${{ github.repository }} --body "..."
+            Also check CI status for this PR using:
+              gh run list --repo ${{ github.repository }} --branch ${{ github.head_ref }} --limit 5
+
+            If any CI run failed, include relevant log excerpts:
+              gh run view <run-id> --repo ${{ github.repository }} --log-failed
 
             Be concise. Only report real issues. If the code looks good, say so briefly.
