@@ -435,7 +435,7 @@ func qrSizeForSchema(schema Schema) int {
 //  3. description — lines truncated with ellipsis, then removed
 //  4. location — lines truncated with ellipsis, then removed
 //  5. title — truncated with ellipsis as last resort
-func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID string, pad, dateLineH, maxH int) []resolvedText {
+func truncateForDieCut(elems []resolvedText, qrSize, barcodeH int, barcodeID string, pad, dateLineH, maxH int) []resolvedText { //nolint:gocyclo // sequential priority-ordered truncation steps require many branches
 	fits := func() bool {
 		return computeHeight(elems, qrSize, barcodeH, barcodeID, pad)+dateLineH <= maxH
 	}
