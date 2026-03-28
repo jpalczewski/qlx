@@ -40,10 +40,10 @@ test.describe('Tree picker search', () => {
     await checkbox.click();
 
     // Action bar should appear with move button
-    await expect(page.locator('button:has-text("Przenieś do")')).toBeVisible();
+    await expect(page.locator('#action-bar button:has-text("Przenieś do")')).toBeVisible();
 
     // Open move picker
-    await page.click('button:has-text("Przenieś do")');
+    await page.click('#action-bar button:has-text("Przenieś do")');
     const dialog = page.locator('dialog#move-picker');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('.tree-label').first()).toBeVisible();
@@ -68,8 +68,8 @@ test.describe('Tree picker search', () => {
     await page.keyboard.press('s');
     const checkbox = page.locator(`[data-id="${itemId}"] input[type="checkbox"]`).first();
     await checkbox.click();
-    await expect(page.locator('button:has-text("Przenieś do")')).toBeVisible();
-    await page.click('button:has-text("Przenieś do")');
+    await expect(page.locator('#action-bar button:has-text("Przenieś do")')).toBeVisible();
+    await page.click('#action-bar button:has-text("Przenieś do")');
 
     const dialog = page.locator('dialog#move-picker');
     await expect(dialog).toBeVisible();
@@ -104,10 +104,10 @@ test.describe('Tree picker search', () => {
     await page.keyboard.press('s');
     const checkbox = page.locator(`[data-id="${itemId}"] input[type="checkbox"]`).first();
     await checkbox.click();
-    await expect(page.locator('button:has-text("Przenieś do")')).toBeVisible();
+    await expect(page.locator('#action-bar button:has-text("Przenieś do")')).toBeVisible();
 
     // Open picker
-    await page.click('button:has-text("Przenieś do")');
+    await page.click('#action-bar button:has-text("Przenieś do")');
     const dialog = page.locator('dialog#move-picker');
     await expect(dialog).toBeVisible();
 
