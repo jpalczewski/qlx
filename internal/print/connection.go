@@ -14,7 +14,9 @@ import (
 
 const (
 	connectTimeout = 15 * time.Second
-	maxRetries     = 10
+	// maxRetries is the number of consecutive failures before entering StateError (no auto-retry).
+	// Set to 0 to retry indefinitely.
+	maxRetries = 0
 )
 
 var backoffSteps = []time.Duration{5 * time.Second, 10 * time.Second, 30 * time.Second, 60 * time.Second}
@@ -250,17 +252,19 @@ func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID strin
 			if ctx.Err() != nil {
 				return
 			}
-			cm.mu.Lock()
-			pc := cm.printers[printerID]
-			if pc != nil {
-				pc.retries++
-				if pc.retries >= maxRetries {
-					cm.mu.Unlock()
-					cm.setState(printerID, StateError, err.Error())
-					return
+			if maxRetries > 0 {
+				cm.mu.Lock()
+				pc := cm.printers[printerID]
+				if pc != nil {
+					pc.retries++
+					if pc.retries >= maxRetries {
+						cm.mu.Unlock()
+						cm.setState(printerID, StateError, err.Error())
+						return
+					}
 				}
+				cm.mu.Unlock()
 			}
-			cm.mu.Unlock()
 
 			cm.setState(printerID, StateReconnecting, err.Error())
 			delay := backoffSteps[backoffIdx]
