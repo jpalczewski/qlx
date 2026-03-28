@@ -204,12 +204,22 @@ func (h *PrintHandler) buildNoteLabelData(noteID string) (label.LabelData, bool)
 	}, true
 }
 
+// printOptsFromRequest builds encoder.PrintOpts from request fields.
+func printOptsFromRequest(density, copies, cutEvery int, highRes bool) encoder.PrintOpts {
+	return encoder.PrintOpts{
+		Density:  density,
+		Copies:   copies,
+		CutEvery: cutEvery,
+		HighRes:  highRes,
+	}
+}
+
 // printOrClientRender prints a built-in schema or returns JSON for client-side designer rendering.
 func (h *PrintHandler) printOrClientRender(w http.ResponseWriter, data label.LabelData,
-	printerID, templateName string, opts label.RenderOpts) {
+	printerID, templateName string, opts label.RenderOpts, printOpts encoder.PrintOpts) {
 
 	if _, ok := label.GetSchema(templateName); ok {
-		if err := h.pm.Print(printerID, data, templateName, opts, encoder.PrintOpts{}); err != nil {
+		if err := h.pm.Print(printerID, data, templateName, opts, printOpts); err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -235,7 +245,8 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate})
+	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate}, pOpts)
 }
 
 // previewWidth extracts the width query parameter, defaulting to 384 (Niimbot B1).
@@ -246,13 +257,13 @@ func previewWidth(r *http.Request) int {
 	return 384
 }
 
-// renderPreview renders a label preview and writes the response.
+// renderPreviewWithMedia renders a label preview with full media info and writes the response.
 // For built-in schemas it returns a PNG image; for designer templates it returns JSON.
-func renderPreview(w http.ResponseWriter, templates *service.TemplateService,
-	data label.LabelData, templateName string, widthPx int, opts label.RenderOpts) {
+func renderPreviewWithMedia(w http.ResponseWriter, templates *service.TemplateService,
+	data label.LabelData, templateName string, media label.MediaInfo, opts label.RenderOpts) {
 
 	if _, ok := label.GetSchema(templateName); ok {
-		img, err := label.Render(data, templateName, label.MediaInfo{WidthPx: widthPx, DPI: 203}, opts)
+		img, err := label.Render(data, templateName, media, opts)
 		if err != nil {
 			webutil.LogError("preview render failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -263,6 +274,29 @@ func renderPreview(w http.ResponseWriter, templates *service.TemplateService,
 	}
 
 	respondClientRender(w, templates, templateName, data)
+}
+
+// previewMediaInfo builds MediaInfo from query params or printer session.
+// If printer_id is present and the printer is found, uses that printer's media info.
+// Otherwise falls back to width from query params (continuous, no die-cut).
+func (h *PrintHandler) previewMediaInfo(r *http.Request) label.MediaInfo {
+	if printerID := r.URL.Query().Get("printer_id"); printerID != "" {
+		status := h.pm.GetStatus(printerID)
+		cfg := h.printers.GetPrinter(printerID)
+		if cfg != nil {
+			enc := h.pm.Encoder(cfg.Encoder)
+			if enc != nil {
+				if mi := print.FindModel(enc, cfg.Model); mi != nil {
+					return label.MediaInfo{
+						WidthPx:  mi.PrintWidthPx,
+						HeightPx: print.PxFromMm(status.LabelHeightMm, mi.DPI),
+						DPI:      mi.DPI,
+					}
+				}
+			}
+		}
+	}
+	return label.MediaInfo{WidthPx: previewWidth(r), HeightPx: 0, DPI: 203}
 }
 
 // writePNG encodes an image as PNG and writes it to the response.
@@ -311,7 +345,7 @@ func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
 }
 
 // PreviewContainer handles GET /containers/{id}/preview — returns a label preview image.
@@ -330,7 +364,7 @@ func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) 
 	}
 
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
 }
 
 // PrintNote handles POST /notes/{id}/print.
@@ -347,7 +381,8 @@ func (h *PrintHandler) PrintNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate})
+	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate}, pOpts)
 }
 
 // PreviewNote handles GET /notes/{id}/preview — returns a label preview image.
@@ -365,7 +400,7 @@ func (h *PrintHandler) PreviewNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreview(w, h.templates, data, templateName, previewWidth(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
 }
 
 // PrintImage handles POST /print-image.
@@ -373,6 +408,10 @@ func (h *PrintHandler) PrintImage(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		PrinterID string `json:"printer_id"`
 		PNG       string `json:"png"`
+		Density   int    `json:"density"`
+		Copies    int    `json:"copies"`
+		CutEvery  int    `json:"cut_every"`
+		HighRes   bool   `json:"high_res"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -397,7 +436,8 @@ func (h *PrintHandler) PrintImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.pm.PrintImage(req.PrinterID, img, encoder.PrintOpts{}); err != nil {
+	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
+	if err := h.pm.PrintImage(req.PrinterID, img, pOpts); err != nil {
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
@@ -499,6 +539,7 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := label.RenderOpts{PrintDate: req.PrintDate}
+	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
 
 	if len(req.Templates) == 0 {
 		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "no templates selected"})
@@ -507,7 +548,7 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 
 	for _, tmplName := range req.Templates {
 		if _, ok := label.GetSchema(tmplName); ok {
-			if err := h.pm.Print(req.PrinterID, data, tmplName, opts, encoder.PrintOpts{}); err != nil {
+			if err := h.pm.Print(req.PrinterID, data, tmplName, opts, pOpts); err != nil {
 				webutil.LogError("container print failed (schema %s): %v", tmplName, err)
 				webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				return
