@@ -432,8 +432,10 @@ func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
 
 // Disconnect handles POST /printers/{id}/disconnect (JSON only).
 func (h *PrintHandler) Disconnect(w http.ResponseWriter, r *http.Request) {
-	if err := h.cm.Remove(r.PathValue("id")); err != nil {
-		webutil.LogError("disconnect printer: %v", err)
+	id := r.PathValue("id")
+	if err := h.cm.Remove(id); err != nil {
+		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+		return
 	}
 	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
