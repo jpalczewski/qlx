@@ -54,7 +54,7 @@ test.describe('Print options controls', () => {
 
     // Change printer selection to trigger a fresh capabilities fetch
     const capsPromise = page.waitForResponse(r =>
-      r.url().includes('/api/printers/') && r.url().includes('/capabilities')
+      r.url().includes('/printers/') && r.url().includes('/capabilities')
     );
     await form.locator('[data-print-printer]').selectOption(printerId);
     const capsResponse = await capsPromise;
