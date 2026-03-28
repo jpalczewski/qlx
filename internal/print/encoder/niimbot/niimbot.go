@@ -94,8 +94,9 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	}
 
 	// 3. PRINT_START (7-byte variant for B1)
+	copies := max(opts.Copies, 1)
 	printStartData := make([]byte, 7)
-	binary.BigEndian.PutUint16(printStartData[0:2], 1) // totalPages = 1
+	binary.BigEndian.PutUint16(printStartData[0:2], uint16(copies)) //nolint:gosec // G115: value validated in manager
 	// bytes 2-4: zeros
 	printStartData[5] = 0x00 // pageColor
 	printStartData[6] = 0x00
@@ -114,7 +115,7 @@ func (e *NiimbotEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	binary.BigEndian.PutUint16(pageSizeData[0:2], uint16(rows))
 	//nolint:gosec // G115: value range is validated by protocol constraints
 	binary.BigEndian.PutUint16(pageSizeData[2:4], uint16(m.PrintheadPx))
-	binary.BigEndian.PutUint16(pageSizeData[4:6], uint16(max(opts.Copies, 1))) //nolint:gosec // G115: value validated in manager
+	binary.BigEndian.PutUint16(pageSizeData[4:6], uint16(copies)) //nolint:gosec // G115: value validated in manager
 	if err := e.transceive(tr, cmdSetPageSize, pageSizeData, respOffsetStandard); err != nil {
 		return fmt.Errorf("SET_PAGE_SIZE: %w", err)
 	}
