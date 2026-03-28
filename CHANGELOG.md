@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.4.0](https://github.com/jpalczewski/qlx/compare/v0.3.0...v0.4.0) (2026-03-28)
+
+
+### Features
+
+* container export modal with CSV/JSON/Markdown ([#20](https://github.com/jpalczewski/qlx/issues/20)) ([#81](https://github.com/jpalczewski/qlx/issues/81)) ([2eab2a2](https://github.com/jpalczewski/qlx/commit/2eab2a2c05e35f39ffbf843899a2d324918b9ada))
+* **inventory:** move to container — keyboard shortcut m + UI buttons ([#94](https://github.com/jpalczewski/qlx/issues/94)) ([e6ed6ff](https://github.com/jpalczewski/qlx/commit/e6ed6fffa7b7bdc17dcc438bc919824d51f35ff1))
+* Notes (sticky annotations) — full stack ([#84](https://github.com/jpalczewski/qlx/issues/84)) ([1e2ef73](https://github.com/jpalczewski/qlx/commit/1e2ef736e7507ce1f72db5f67a25995290db18e6))
+* Phase 1a — template batch (fonts, container/ad-hoc print, calibration) ([#68](https://github.com/jpalczewski/qlx/issues/68)) ([a1de5bd](https://github.com/jpalczewski/qlx/commit/a1de5bddd4d94dde18c4a38d8d0169dfc62a542a))
+* print options & renderer pipeline ([#92](https://github.com/jpalczewski/qlx/issues/92)) ([c3d9638](https://github.com/jpalczewski/qlx/commit/c3d9638b10214377df004ce6535146d4ab8e20c1))
+* **print:** async printer startup — frontend available immediately ([#91](https://github.com/jpalczewski/qlx/issues/91)) ([5eab656](https://github.com/jpalczewski/qlx/commit/5eab6565d6e1e41890a92c8d6bd004a3b13d4519))
+* **print:** Brother QL-700 bidirectional USB via gousb ([#71](https://github.com/jpalczewski/qlx/issues/71)) ([4783973](https://github.com/jpalczewski/qlx/commit/47839733154bc63005c51a93dada0ecafe0e5bee))
+* **store:** migrate from JSON file store to SQLite ([#76](https://github.com/jpalczewski/qlx/issues/76)) ([c9b809d](https://github.com/jpalczewski/qlx/commit/c9b809d04b75f63224ac22c31e71da7fd06242f7))
+* **ui:** keyboard shortcuts for power users ([#31](https://github.com/jpalczewski/qlx/issues/31)) ([#87](https://github.com/jpalczewski/qlx/issues/87)) ([3d27d7b](https://github.com/jpalczewski/qlx/commit/3d27d7b2b3a98a23d0bba08828f922c28afefb5a))
+* **ui:** refactor print components and add label preview ([#80](https://github.com/jpalczewski/qlx/issues/80)) ([65f1acf](https://github.com/jpalczewski/qlx/commit/65f1acfb825fa3b79523f8e6a84ecb6e51378ea2))
+* **ui:** style tags as clickable pills with icon and color ([#85](https://github.com/jpalczewski/qlx/issues/85)) ([0ebf5bb](https://github.com/jpalczewski/qlx/commit/0ebf5bb21c66f4491d2102c6e83cd7de9bbddac1))
+
+
+### Bug Fixes
+
+* **ci:** fix Claude Code Review workflow prompt and remove broken plugin config ([4117ec3](https://github.com/jpalczewski/qlx/commit/4117ec3b3485fa67e95900072ac1353db531c3dc))
+* critical code quality issues ([#73](https://github.com/jpalczewski/qlx/issues/73)) ([cfddb9e](https://github.com/jpalczewski/qlx/commit/cfddb9e6d0920478005d3e55305300ccdc27b675))
+* **i18n:** translate hardcoded English strings to i18n system ([#93](https://github.com/jpalczewski/qlx/issues/93)) ([43f7a39](https://github.com/jpalczewski/qlx/commit/43f7a397bbf1f68fec5480e7218ec377efc761b8))
+* **store:** support map format in JSON migration ([#77](https://github.com/jpalczewski/qlx/issues/77)) ([538633a](https://github.com/jpalczewski/qlx/commit/538633ab08e4af0ec4024bad709aa9c42cae33a1))
+* **ui:** correct drag-drop HTTP method and re-init after partial swaps ([#78](https://github.com/jpalczewski/qlx/issues/78)) ([b8d3079](https://github.com/jpalczewski/qlx/commit/b8d30794575a357b255482d226a1f4206244edb1))
+* **ui:** tree picker search fix & reskin ([#88](https://github.com/jpalczewski/qlx/issues/88)) ([4892521](https://github.com/jpalczewski/qlx/commit/489252170a6ff71710c29ad35770af2dd5ee0880))
+
+
+### Miscellaneous
+
+* **handler:** auto-discover template subdirectories ([#89](https://github.com/jpalczewski/qlx/issues/89)) ([fb4c2d6](https://github.com/jpalczewski/qlx/commit/fb4c2d63a5c88cb8b9e780d171f9c80147c374bd)), closes [#44](https://github.com/jpalczewski/qlx/issues/44)
+
 ## [0.3.0](https://github.com/jpalczewski/qlx/compare/v0.2.0...v0.3.0) (2026-03-22)
 
 
