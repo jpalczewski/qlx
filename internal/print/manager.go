@@ -107,7 +107,6 @@ func validatePrintOpts(opts encoder.PrintOpts, mi *encoder.ModelInfo) encoder.Pr
 // printContext holds resolved printer resources for a print operation.
 type printContext struct {
 	cfg       *store.PrinterConfig
-	enc       encoder.Encoder // reserved for capability checks (e.g. capabilities endpoint)
 	model     *encoder.ModelInfo
 	session   *PrinterSession
 	media     label.MediaInfo
@@ -153,7 +152,6 @@ func (m *PrinterManager) resolveForPrint(printerID string, opts encoder.PrintOpt
 
 	return &printContext{
 		cfg:       cfg,
-		enc:       enc,
 		model:     modelInfo,
 		session:   session,
 		media:     media,

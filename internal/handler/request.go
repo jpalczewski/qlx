@@ -156,6 +156,10 @@ type AdhocPrintRequest struct {
 	PrinterID string `json:"printer_id" form:"printer_id"`
 	Template  string `json:"template" form:"template"`
 	PrintDate bool   `json:"print_date"`
+	Density   int    `json:"density"`
+	Copies    int    `json:"copies"`
+	CutEvery  int    `json:"cut_every"`
+	HighRes   bool   `json:"high_res"`
 }
 
 // TagAssignRequest is the input for assigning/removing tags.
