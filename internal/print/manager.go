@@ -25,6 +25,7 @@ type PrinterManager struct {
 	store    PrinterConfigStore
 	encoders map[string]encoder.Encoder
 	cm       *ConnectionManager
+	renderer DocumentRenderer
 }
 
 // NewPrinterManager creates a PrinterManager backed by the given store and ConnectionManager.
@@ -33,7 +34,19 @@ func NewPrinterManager(s PrinterConfigStore, cm *ConnectionManager) *PrinterMana
 		store:    s,
 		cm:       cm,
 		encoders: make(map[string]encoder.Encoder),
+		renderer: labelDocumentRenderer{},
 	}
+}
+
+// DocumentRenderer renders a label document for execution.
+type DocumentRenderer interface {
+	Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) (image.Image, error)
+}
+
+type labelDocumentRenderer struct{}
+
+func (labelDocumentRenderer) Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) (image.Image, error) {
+	return label.Render(data, template, media, opts)
 }
 
 // DefaultTransportFactory returns a TransportFactoryFn that creates transports by name.
@@ -246,7 +259,11 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 		return err
 	}
 
-	img, err := label.Render(data, templateName, ctx.media, renderOpts)
+	renderer := m.renderer
+	if renderer == nil {
+		renderer = labelDocumentRenderer{}
+	}
+	img, err := renderer.Render(data, templateName, ctx.media, renderOpts)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}

@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 
-	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -15,13 +14,13 @@ type ContainerHandler struct {
 	inventory *service.InventoryService
 	templates *service.TemplateService
 	printers  *service.PrinterService
-	pm        *print.PrinterManager
+	pm        connectedPrinterProvider
 	notes     *service.NoteService
 	resp      Responder
 }
 
 // NewContainerHandler creates a new ContainerHandler.
-func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm *print.PrinterManager, notes *service.NoteService, resp Responder) *ContainerHandler {
+func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, resp Responder) *ContainerHandler {
 	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
 }
 

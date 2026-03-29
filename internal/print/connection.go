@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/erxyi/qlx/internal/events"
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -44,8 +45,7 @@ type ConnectionManager struct {
 	mu       sync.RWMutex
 	printers map[string]*printerConn
 
-	sseMu      sync.Mutex
-	sseClients map[chan StateChange]struct{}
+	events *events.EventBroker[StateChange]
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -58,7 +58,7 @@ func NewConnectionManager(trFn TransportFactoryFn, encFn EncoderLookupFn) *Conne
 		transportFn: trFn,
 		encoderFn:   encFn,
 		printers:    make(map[string]*printerConn),
-		sseClients:  make(map[chan StateChange]struct{}),
+		events:      events.NewBroker[StateChange](32),
 	}
 }
 
@@ -73,12 +73,9 @@ func (cm *ConnectionManager) Stop() {
 		cm.cancel()
 	}
 	cm.wg.Wait()
-	cm.sseMu.Lock()
-	for ch := range cm.sseClients {
-		close(ch)
-		delete(cm.sseClients, ch)
+	if cm.events != nil {
+		cm.events.Close()
 	}
-	cm.sseMu.Unlock()
 }
 
 // Add starts managing a printer — begins connecting in background.
@@ -184,30 +181,32 @@ func (cm *ConnectionManager) Session(printerID string) *PrinterSession {
 // printers is sent as a snapshot before live events. The snapshot is written
 // atomically before the channel is registered for live events.
 func (cm *ConnectionManager) Subscribe() <-chan StateChange {
-	ch := make(chan StateChange, 32)
-	// Hold sseMu throughout: snapshot written BEFORE channel registered.
-	cm.sseMu.Lock()
-	cm.mu.RLock()
-	for id, pc := range cm.printers {
-		ch <- StateChange{PrinterID: id, State: pc.state, Message: pc.msg, Timestamp: time.Now()}
+	if cm.events == nil {
+		closed := make(chan StateChange)
+		close(closed)
+		return closed
 	}
-	cm.mu.RUnlock()
-	cm.sseClients[ch] = struct{}{}
-	cm.sseMu.Unlock()
-	return ch
+	return cm.events.SubscribeWithSnapshot(func(out chan<- StateChange) {
+		cm.mu.RLock()
+		defer cm.mu.RUnlock()
+		for id, pc := range cm.printers {
+			out <- StateChange{PrinterID: id, State: pc.state, Message: pc.msg, Timestamp: time.Now()}
+		}
+	}, snapshotBufferSize(len(cm.printers)))
 }
 
 // Unsubscribe removes a subscriber and closes its channel.
 func (cm *ConnectionManager) Unsubscribe(ch <-chan StateChange) {
-	cm.sseMu.Lock()
-	defer cm.sseMu.Unlock()
-	for c := range cm.sseClients {
-		if c == ch {
-			delete(cm.sseClients, c)
-			close(c)
-			break
-		}
+	if cm.events != nil {
+		cm.events.Unsubscribe(ch)
 	}
+}
+
+func snapshotBufferSize(n int) int {
+	if n < 32 {
+		return 32
+	}
+	return n + 8
 }
 
 func (cm *ConnectionManager) setState(printerID string, state ConnState, msg string) {
@@ -221,18 +220,8 @@ func (cm *ConnectionManager) setState(printerID string, state ConnState, msg str
 	if !ok {
 		return
 	}
-	cm.broadcast(StateChange{PrinterID: printerID, State: state, Message: msg, Timestamp: time.Now()})
-}
-
-func (cm *ConnectionManager) broadcast(evt StateChange) {
-	cm.sseMu.Lock()
-	defer cm.sseMu.Unlock()
-	for ch := range cm.sseClients {
-		select {
-		case ch <- evt:
-		default:
-			// slow client, drop
-		}
+	if cm.events != nil {
+		cm.events.Publish(StateChange{PrinterID: printerID, State: state, Message: msg, Timestamp: time.Now()})
 	}
 }
 
