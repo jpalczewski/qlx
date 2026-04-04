@@ -91,7 +91,8 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			if err := h.tags.AddItemTag(item.ID, tagID); err != nil {
-				webutil.LogError("add tag %s to item %s: %v", tagID, item.ID, err)
+				webutil.WriteError(w, http.StatusInternalServerError, fmt.Errorf("assign tag %s: %w", tagID, err))
+				return
 			}
 		}
 		// Re-fetch to include tag IDs in response
