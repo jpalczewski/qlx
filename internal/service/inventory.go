@@ -13,6 +13,7 @@ type InventoryService struct {
 	store interface {
 		store.ContainerStore
 		store.ItemStore
+		store.ExportStore
 	}
 }
 
@@ -20,6 +21,7 @@ type InventoryService struct {
 func NewInventoryService(s interface {
 	store.ContainerStore
 	store.ItemStore
+	store.ExportStore
 }) *InventoryService {
 	return &InventoryService{store: s}
 }
@@ -96,6 +98,11 @@ func (s *InventoryService) MoveContainer(id, newParentID string) error {
 // AllContainers returns all containers without filtering.
 func (s *InventoryService) AllContainers() []store.Container {
 	return s.store.AllContainers()
+}
+
+// AllItems returns every item in the store.
+func (s *InventoryService) AllItems() []store.Item {
+	return s.store.AllItems()
 }
 
 // --- Item read methods (passthrough) ---
