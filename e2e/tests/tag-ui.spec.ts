@@ -276,8 +276,8 @@ test.describe('Tag UI improvements', () => {
     // Item appears in list
     await expect(page.locator('.item-list')).toContainText('Untagged Item');
 
-    // No + button inside the item list (item has no tags)
-    await expect(page.locator('.item-list .tag-add')).toHaveCount(0);
+    // + button is always visible in the item list, even with no tags
+    await expect(page.locator('.item-list .tag-add')).toHaveCount(1);
   });
 
   test('item detail always shows tag + button even with no tags', async ({ page, app }) => {
