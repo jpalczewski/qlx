@@ -21,8 +21,8 @@ import (
 
 // PrintHandler handles HTTP requests for printer management and print operations.
 type PrintHandler struct {
-	pm        *print.PrinterManager
-	cm        *print.ConnectionManager
+	pm        printHandlerPrinterDeps
+	cm        printHandlerConnectionDeps
 	inventory *service.InventoryService
 	printers  *service.PrinterService
 	templates *service.TemplateService
@@ -32,7 +32,7 @@ type PrintHandler struct {
 }
 
 // NewPrintHandler creates a new PrintHandler.
-func NewPrintHandler(pm *print.PrinterManager, cm *print.ConnectionManager, inv *service.InventoryService,
+func NewPrintHandler(pm printHandlerPrinterDeps, cm printHandlerConnectionDeps, inv *service.InventoryService,
 	prn *service.PrinterService, tmpl *service.TemplateService, tags *service.TagService,
 	notes *service.NoteService, resp Responder) *PrintHandler {
 	return &PrintHandler{pm: pm, cm: cm, inventory: inv, printers: prn, templates: tmpl, tags: tags, notes: notes, resp: resp}
@@ -492,6 +492,10 @@ func (h *PrintHandler) Capabilities(w http.ResponseWriter, r *http.Request) {
 // Connect handles POST /printers/{id}/connect (JSON only).
 // If the printer is already managed by ConnectionManager, it triggers a reconnect instead.
 func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
+	if h.cm == nil {
+		webutil.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "printer connections unavailable"})
+		return
+	}
 	id := r.PathValue("id")
 	cfg := h.printers.GetPrinter(id)
 	if cfg == nil {
@@ -511,6 +515,10 @@ func (h *PrintHandler) Connect(w http.ResponseWriter, r *http.Request) {
 
 // Disconnect handles POST /printers/{id}/disconnect (JSON only).
 func (h *PrintHandler) Disconnect(w http.ResponseWriter, r *http.Request) {
+	if h.cm == nil {
+		webutil.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "printer connections unavailable"})
+		return
+	}
 	id := r.PathValue("id")
 	if err := h.cm.Remove(id); err != nil {
 		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
@@ -521,6 +529,10 @@ func (h *PrintHandler) Disconnect(w http.ResponseWriter, r *http.Request) {
 
 // ReconnectPrinter handles POST /printers/{id}/reconnect (JSON only).
 func (h *PrintHandler) ReconnectPrinter(w http.ResponseWriter, r *http.Request) {
+	if h.cm == nil {
+		webutil.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "printer connections unavailable"})
+		return
+	}
 	id := r.PathValue("id")
 	if err := h.cm.Reconnect(id); err != nil {
 		webutil.JSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
@@ -531,6 +543,10 @@ func (h *PrintHandler) ReconnectPrinter(w http.ResponseWriter, r *http.Request) 
 
 // Events handles GET /printers/events (SSE stream, no content negotiation).
 func (h *PrintHandler) Events(w http.ResponseWriter, r *http.Request) {
+	if h.cm == nil {
+		http.Error(w, "printer event stream unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -640,7 +656,11 @@ func (h *PrintHandler) printersVM() PrintersData {
 	printersList := h.printers.AllPrinters()
 	printers := make([]PrinterWithState, len(printersList))
 	for i, p := range printersList {
-		state, msg := h.cm.StateInfo(p.ID)
+		var state print.ConnState
+		var msg string
+		if h.cm != nil {
+			state, msg = h.cm.StateInfo(p.ID)
+		}
 		printers[i] = PrinterWithState{
 			PrinterConfig: p,
 			State:         string(state),
@@ -648,11 +668,13 @@ func (h *PrintHandler) printersVM() PrintersData {
 		}
 	}
 	var encoders []EncoderData
-	for name, enc := range h.pm.AvailableEncoders() {
-		encoders = append(encoders, EncoderData{
-			Name:   name,
-			Models: enc.Models(),
-		})
+	if h.pm != nil {
+		for name, enc := range h.pm.AvailableEncoders() {
+			encoders = append(encoders, EncoderData{
+				Name:   name,
+				Models: enc.Models(),
+			})
+		}
 	}
 	return PrintersData{
 		Printers: printers,

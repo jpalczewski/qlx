@@ -2,6 +2,7 @@ package print
 
 import (
 	"context"
+	"fmt"
 	"image"
 	"testing"
 	"time"
@@ -48,6 +49,19 @@ func (m *mockEncoder) Heartbeat(_ transport.Transport) (encoder.HeartbeatResult,
 
 func (m *mockEncoder) RfidInfo(_ context.Context, _ transport.Transport) (encoder.RfidResult, error) {
 	return encoder.RfidResult{}, nil
+}
+
+type spyRenderer struct {
+	called bool
+	err    error
+}
+
+func (s *spyRenderer) Render(_ label.LabelData, _ string, media label.MediaInfo, _ label.RenderOpts) (image.Image, error) {
+	s.called = true
+	if s.err != nil {
+		return nil, s.err
+	}
+	return image.NewRGBA(image.Rect(0, 0, media.WidthPx, 10)), nil
 }
 
 func newTestPrintStore(t *testing.T) *sqlite.SQLiteStore {
@@ -130,6 +144,48 @@ func TestPrinterManager_Print(t *testing.T) {
 
 	if len(mockTr.Written) == 0 {
 		t.Error("expected data to be written to transport, got none")
+	}
+}
+
+func TestPrinterManager_Print_UsesRenderer(t *testing.T) {
+	mgr, s, _, cm := newManagerWithMock(t)
+	renderer := &spyRenderer{}
+	mgr.renderer = renderer
+
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
+	}
+
+	if err := mgr.Print(printer.ID, label.LabelData{Name: "Test"}, "simple", label.RenderOpts{}, encoder.PrintOpts{}); err != nil {
+		t.Fatalf("Print() returned unexpected error: %v", err)
+	}
+	if !renderer.called {
+		t.Fatal("expected custom renderer to be used")
+	}
+}
+
+func TestPrinterManager_Print_RendererError(t *testing.T) {
+	mgr, s, _, cm := newManagerWithMock(t)
+	mgr.renderer = &spyRenderer{err: fmt.Errorf("boom")}
+
+	printer := s.AddPrinter("Test Printer", "mock", "mock-model", "mock", "/dev/null")
+	if err := cm.Add(*printer); err != nil {
+		t.Fatalf("cm.Add: %v", err)
+	}
+	if !waitForState(cm, printer.ID, StateConnected, 2*time.Second) {
+		t.Fatalf("printer did not reach connected state")
+	}
+
+	err := mgr.Print(printer.ID, label.LabelData{Name: "Test"}, "simple", label.RenderOpts{}, encoder.PrintOpts{})
+	if err == nil {
+		t.Fatal("expected renderer error, got nil")
+	}
+	if got := err.Error(); got != "render: boom" {
+		t.Fatalf("error = %q, want %q", got, "render: boom")
 	}
 }
 
