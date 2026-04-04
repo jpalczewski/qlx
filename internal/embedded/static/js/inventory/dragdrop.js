@@ -166,6 +166,10 @@
       });
   }
 
+  // Expose initDragDrop so other modules (e.g. tokenized quick-entry) can
+  // trigger re-initialization after adding elements to the DOM.
+  qlx.initDragDrop = initDragDrop;
+
   // Init on page load
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {

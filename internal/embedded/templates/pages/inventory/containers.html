@@ -147,10 +147,19 @@
 <script src="/static/label-print.js"></script>
 {{ end }}
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  var el = document.querySelector(".qe-tokenized");
-  if (!el) return;
-  new qlx.TokenizedQuickEntry({ el: el });
-});
+(function() {
+  function initQE() {
+    var el = document.querySelector(".qe-tokenized");
+    if (!el) return;
+    new qlx.TokenizedQuickEntry({ el: el });
+  }
+  // On initial full page load, DOM may not be ready yet.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initQE);
+  } else {
+    // After HTMX swap the script is re-executed inline and DOM is already ready.
+    initQE();
+  }
+})();
 </script>
 {{ end }}

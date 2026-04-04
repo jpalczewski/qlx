@@ -88,12 +88,12 @@
   }
 
   function focusItemEntry() {
-    var input = document.querySelector(".items .quick-entry input[name='name']");
+    var input = document.querySelector(".qe-input");
     if (input) /** @type {HTMLElement} */ (input).focus();
   }
 
   function focusContainerEntry() {
-    var input = document.querySelector(".containers .quick-entry input[name='name']");
+    var input = document.querySelector(".qe-input");
     if (input) /** @type {HTMLElement} */ (input).focus();
   }
 

@@ -12,14 +12,17 @@ test.describe('Inventory management', () => {
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
-    // Use the quick entry form
-    const quickEntry = page.locator('.quick-entry input[name="name"]').first();
-    await quickEntry.fill(containerName);
+    // Switch to container mode (Tab), then type name and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(containerName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/containers') && r.request().method() === 'POST'
     );
-    await quickEntry.press('Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     // Quick entry appends to list, stays on same page
@@ -39,13 +42,17 @@ test.describe('Inventory management', () => {
     await expect(page.locator('h2')).toContainText(containerName);
 
     subContainerName = `Sub ${Date.now()}`;
-    const quickEntry = page.locator('.quick-entry input[name="name"]').first();
-    await quickEntry.fill(subContainerName);
+    // Switch to container mode (Tab), then type name and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(subContainerName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/containers') && r.request().method() === 'POST'
     );
-    await quickEntry.press('Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     await expect(page.locator('#container-list')).toContainText(subContainerName);
@@ -57,13 +64,16 @@ test.describe('Inventory management', () => {
     await expect(page.locator('h2')).toContainText(containerName);
 
     itemName = `Item ${Date.now()}`;
-    const itemQuickEntry = page.locator('.quick-entry input[name="name"]').last();
-    await itemQuickEntry.fill(itemName);
+    // Item mode is default — just click input, type name, and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(itemName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/items') && r.request().method() === 'POST'
     );
-    await itemQuickEntry.press('Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     await expect(page.locator('#item-list')).toContainText(itemName);

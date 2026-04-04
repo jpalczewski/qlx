@@ -299,6 +299,7 @@
           });
         }
         if (qlx.invalidateContainerCache) qlx.invalidateContainerCache();
+        if (qlx.initDragDrop) qlx.initDragDrop();
         resetInput();
       }).catch(function (err) {
         console.error("quick-entry submit failed:", err);

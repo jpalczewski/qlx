@@ -686,12 +686,17 @@ test.describe('Quick entry HTMX flow', () => {
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
 
     const name = `QE-${Date.now()}`;
-    await page.fill('.containers .quick-entry input[name="name"]', name);
+    // Switch to container mode (Tab), then type name and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(name);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/containers') && r.request().method() === 'POST'
     );
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     // Should have exactly one #container-list, not two
