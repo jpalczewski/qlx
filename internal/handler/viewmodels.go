@@ -153,6 +153,25 @@ type DebugToolsData struct {
 // SettingsData is the view model for the settings page.
 type SettingsData struct{}
 
+// StatsViewModel is the view model for the /stats page.
+type StatsViewModel struct {
+	Containers     int       `json:"containers"`
+	RootContainers int       `json:"root_containers"`
+	Items          int       `json:"items"`
+	TotalQty       int       `json:"total_qty"`
+	Tags           []TagStat `json:"tags"`
+}
+
+// TagStat holds usage statistics for a single tag.
+type TagStat struct {
+	Name           string `json:"name"`
+	Color          string `json:"color"`
+	Icon           string `json:"icon"`
+	ItemCount      int    `json:"item_count"`
+	ContainerCount int    `json:"container_count"`
+	TotalUses      int    `json:"total_uses"`
+}
+
 // NotesTabData is the view model for the notes tab partial.
 type NotesTabData struct {
 	Notes       []store.Note
