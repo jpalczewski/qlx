@@ -146,10 +146,19 @@ func TestStatsHandler_Page_SortsByTotalUsesDesc(t *testing.T) {
 	h := NewStatsHandler(inv, tagSvc, &JSONResponder{})
 
 	// Create two tags; tagB gets more uses than tagA
-	tagA, _ := tagSvc.CreateTag("", "TagA", "", "")
-	tagB, _ := tagSvc.CreateTag("", "TagB", "", "")
+	tagA, err := tagSvc.CreateTag("", "TagA", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tagB, err := tagSvc.CreateTag("", "TagB", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	c, _ := inv.CreateContainer("", "C1", "", "", "")
+	c, err := inv.CreateContainer("", "C1", "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// TagA: 1 container; TagB: 2 containers
 	if err := tagSvc.AddContainerTag(c.ID, tagA.ID); err != nil {
