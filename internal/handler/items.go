@@ -74,6 +74,11 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		req.Quantity = 1
 	}
 
+	if invalidID := h.findInvalidTagID(req.TagIDs); invalidID != "" {
+		h.resp.RespondError(w, r, fmt.Errorf("tag not found: %s", invalidID))
+		return
+	}
+
 	item, err := h.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity, req.Color, req.Icon)
 	if err != nil {
 		h.resp.RespondError(w, r, err)
@@ -192,6 +197,19 @@ func (h *ItemHandler) itemDetailData(item *store.Item) map[string]any {
 		"path":       h.inventory.ContainerPath(item.ContainerID),
 		"qr_content": "/items/" + item.ID,
 	}
+}
+
+// findInvalidTagID returns the first tag ID in ids that does not exist, or empty string if all are valid.
+func (h *ItemHandler) findInvalidTagID(ids []string) string {
+	if h.tags == nil {
+		return ""
+	}
+	for _, id := range ids {
+		if id != "" && h.tags.GetTag(id) == nil {
+			return id
+		}
+	}
+	return ""
 }
 
 // itemDetailVM builds the full view model for the item detail page.
