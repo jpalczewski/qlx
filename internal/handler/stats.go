@@ -50,10 +50,12 @@ func (h *StatsHandler) buildVM() StatsViewModel {
 
 	tagStats := make([]TagStat, 0, len(allTags))
 	for _, t := range allTags {
+		// TagItemStats returns (itemCount, totalQty, err); qty is not relevant for the stats page.
 		itemCount, _, err := h.tags.TagItemStats(t.ID)
 		if err != nil {
 			continue
 		}
+		// TODO: replace per-tag ContainersByTag calls with a bulk query when tag counts grow large.
 		containerCount := len(h.tags.ContainersByTag(t.ID))
 		tagStats = append(tagStats, TagStat{
 			Name:           t.Name,
@@ -65,7 +67,7 @@ func (h *StatsHandler) buildVM() StatsViewModel {
 		})
 	}
 
-	sort.Slice(tagStats, func(i, j int) bool {
+	sort.SliceStable(tagStats, func(i, j int) bool {
 		return tagStats[i].TotalUses > tagStats[j].TotalUses
 	})
 	if len(tagStats) > 20 {

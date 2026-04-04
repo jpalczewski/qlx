@@ -152,12 +152,24 @@ func TestStatsHandler_Page_SortsByTotalUsesDesc(t *testing.T) {
 	c, _ := inv.CreateContainer("", "C1", "", "", "")
 
 	// TagA: 1 container; TagB: 2 containers
-	tagSvc.AddContainerTag(c.ID, tagA.ID)
+	if err := tagSvc.AddContainerTag(c.ID, tagA.ID); err != nil {
+		t.Fatal(err)
+	}
 
-	c2, _ := inv.CreateContainer("", "C3", "", "", "")
-	c3, _ := inv.CreateContainer("", "C4", "", "", "")
-	tagSvc.AddContainerTag(c2.ID, tagB.ID)
-	tagSvc.AddContainerTag(c3.ID, tagB.ID)
+	c2, err := inv.CreateContainer("", "C3", "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c3, err := inv.CreateContainer("", "C4", "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tagSvc.AddContainerTag(c2.ID, tagB.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := tagSvc.AddContainerTag(c3.ID, tagB.ID); err != nil {
+		t.Fatal(err)
+	}
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
