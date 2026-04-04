@@ -22,24 +22,63 @@ func newTestStatsHandler(t *testing.T) *StatsHandler {
 	return NewStatsHandler(inv, tags, &JSONResponder{})
 }
 
-func TestStatsHandler_Page_EmptyStore(t *testing.T) {
-	h := newTestStatsHandler(t)
+func newTestStatsDB(t *testing.T) (*sqlite.SQLiteStore, *service.InventoryService, *service.TagService, *StatsHandler) {
+	t.Helper()
+	db, err := sqlite.New(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	inv := service.NewInventoryService(db)
+	tags := service.NewTagService(db)
+	return db, inv, tags, NewStatsHandler(inv, tags, &JSONResponder{})
+}
 
+// seedStatsData creates 2 containers, 2 items (qty 5+3), and 1 tag assigned to root1.
+func seedStatsData(t *testing.T, inv *service.InventoryService, tags *service.TagService) {
+	t.Helper()
+	root1, err := inv.CreateContainer("", "Root1", "", "red", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = inv.CreateContainer(root1.ID, "Child1", "", "blue", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = inv.CreateItem(root1.ID, "Item1", "", 5, "red", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = inv.CreateItem(root1.ID, "Item2", "", 3, "blue", ""); err != nil {
+		t.Fatal(err)
+	}
+	tag, err := tags.CreateTag("", "Electronics", "blue", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tags.AddContainerTag(root1.ID, tag.ID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func getStatsVM(t *testing.T, h *StatsHandler) StatsViewModel {
+	t.Helper()
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
-
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/stats", nil)
 	mux.ServeHTTP(w, r)
-
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
 	}
-
 	var vm StatsViewModel
 	if err := json.NewDecoder(w.Body).Decode(&vm); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
+	return vm
+}
+
+func TestStatsHandler_Page_EmptyStore(t *testing.T) {
+	h := newTestStatsHandler(t)
+	vm := getStatsVM(t, h)
 
 	if vm.Containers != 0 {
 		t.Errorf("expected 0 containers, got %d", vm.Containers)
@@ -50,63 +89,18 @@ func TestStatsHandler_Page_EmptyStore(t *testing.T) {
 	if vm.TotalQty != 0 {
 		t.Errorf("expected 0 total qty, got %d", vm.TotalQty)
 	}
+	if vm.RootContainers != 0 {
+		t.Errorf("expected 0 root containers, got %d", vm.RootContainers)
+	}
+	if len(vm.Tags) != 0 {
+		t.Errorf("expected 0 tags, got %d", len(vm.Tags))
+	}
 }
 
 func TestStatsHandler_Page_WithData(t *testing.T) {
-	db, err := sqlite.New(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	inv := service.NewInventoryService(db)
-	tags := service.NewTagService(db)
-	h := NewStatsHandler(inv, tags, &JSONResponder{})
-
-	// Create containers
-	root1, err := inv.CreateContainer("", "Root1", "", "red", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = inv.CreateContainer(root1.ID, "Child1", "", "blue", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create items
-	_, err = inv.CreateItem(root1.ID, "Item1", "", 5, "red", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = inv.CreateItem(root1.ID, "Item2", "", 3, "blue", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a tag and assign it
-	tag, err := tags.CreateTag("", "Electronics", "blue", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := tags.AddContainerTag(root1.ID, tag.ID); err != nil {
-		t.Fatal(err)
-	}
-
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/stats", nil)
-	mux.ServeHTTP(w, r)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d; body: %s", w.Code, w.Body.String())
-	}
-
-	var vm StatsViewModel
-	if err := json.NewDecoder(w.Body).Decode(&vm); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
+	_, inv, tags, h := newTestStatsDB(t)
+	seedStatsData(t, inv, tags)
+	vm := getStatsVM(t, h)
 
 	if vm.Containers != 2 {
 		t.Errorf("expected 2 containers, got %d", vm.Containers)
@@ -135,15 +129,7 @@ func TestStatsHandler_Page_WithData(t *testing.T) {
 }
 
 func TestStatsHandler_Page_SortsByTotalUsesDesc(t *testing.T) {
-	db, err := sqlite.New(":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	inv := service.NewInventoryService(db)
-	tagSvc := service.NewTagService(db)
-	h := NewStatsHandler(inv, tagSvc, &JSONResponder{})
+	_, inv, tagSvc, h := newTestStatsDB(t)
 
 	// Create two tags; tagB gets more uses than tagA
 	tagA, err := tagSvc.CreateTag("", "TagA", "", "")
@@ -180,15 +166,7 @@ func TestStatsHandler_Page_SortsByTotalUsesDesc(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/stats", nil)
-	mux.ServeHTTP(w, r)
-
-	var vm StatsViewModel
-	json.NewDecoder(w.Body).Decode(&vm)
+	vm := getStatsVM(t, h)
 
 	if len(vm.Tags) < 2 {
 		t.Fatalf("expected at least 2 tag stats, got %d", len(vm.Tags))
