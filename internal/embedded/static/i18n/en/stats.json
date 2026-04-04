@@ -1,0 +1,14 @@
+{
+  "stats.title": "Statistics",
+  "stats.refresh": "Refresh",
+  "stats.containers": "Containers",
+  "stats.root_containers": "Root Containers",
+  "stats.items": "Items",
+  "stats.total_qty": "Total Quantity",
+  "stats.tags_title": "Tag Usage (top 20)",
+  "stats.tag": "Tag",
+  "stats.tag_items": "Items",
+  "stats.tag_containers": "Containers",
+  "stats.tag_total": "Total Uses",
+  "stats.no_tags": "No tags defined yet."
+}

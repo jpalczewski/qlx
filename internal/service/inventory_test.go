@@ -22,6 +22,8 @@ type mockInventoryStore struct {
 	updateItem        func(id, name, desc string, qty int, color, icon string) (*store.Item, error)
 	deleteItem        func(id string) (string, error)
 	moveItem          func(id, containerID string) error
+	allItems          func() []store.Item
+	allContainers     func() []store.Container
 }
 
 func (m *mockInventoryStore) GetContainer(id string) *store.Container {
@@ -73,8 +75,27 @@ func (m *mockInventoryStore) ContainerPath(id string) []store.Container {
 	return nil
 }
 func (m *mockInventoryStore) AllContainers() []store.Container {
+	if m.allContainers != nil {
+		return m.allContainers()
+	}
 	return nil
 }
+
+func (m *mockInventoryStore) AllItems() []store.Item {
+	if m.allItems != nil {
+		return m.allItems()
+	}
+	return nil
+}
+
+func (m *mockInventoryStore) ExportItems(containerID string, recursive bool) ([]store.ExportItem, error) {
+	return nil, nil
+}
+
+func (m *mockInventoryStore) ExportContainerTree(containerID string) ([]store.Container, error) {
+	return nil, nil
+}
+
 func (m *mockInventoryStore) GetItem(id string) *store.Item {
 	if m.getItem != nil {
 		return m.getItem(id)

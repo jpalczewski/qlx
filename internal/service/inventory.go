@@ -13,6 +13,7 @@ type InventoryService struct {
 	store interface {
 		store.ContainerStore
 		store.ItemStore
+		store.ExportStore
 	}
 }
 
@@ -20,6 +21,7 @@ type InventoryService struct {
 func NewInventoryService(s interface {
 	store.ContainerStore
 	store.ItemStore
+	store.ExportStore
 }) *InventoryService {
 	return &InventoryService{store: s}
 }
@@ -99,6 +101,11 @@ func (s *InventoryService) AllContainers() []store.Container {
 }
 
 // --- Item read methods (passthrough) ---
+
+// AllItems returns every item in the store.
+func (s *InventoryService) AllItems() []store.Item {
+	return s.store.AllItems()
+}
 
 // GetItem returns the item with the given ID, or nil.
 func (s *InventoryService) GetItem(id string) *store.Item {

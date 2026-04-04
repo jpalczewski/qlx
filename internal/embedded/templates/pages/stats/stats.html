@@ -1,0 +1,60 @@
+{{ define "stats" }}
+<div class="stats-page">
+  <div class="stats-header">
+    <h1>{{.T "stats.title"}}</h1>
+    <button class="btn btn-secondary"
+            hx-get="/stats"
+            hx-target="#content">{{.T "stats.refresh"}}</button>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-value">{{.Data.Containers}}</div>
+      <div class="stat-label">{{.T "stats.containers"}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{.Data.RootContainers}}</div>
+      <div class="stat-label">{{.T "stats.root_containers"}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{.Data.Items}}</div>
+      <div class="stat-label">{{.T "stats.items"}}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{.Data.TotalQty}}</div>
+      <div class="stat-label">{{.T "stats.total_qty"}}</div>
+    </div>
+  </div>
+
+  {{ if .Data.Tags }}
+  <h2>{{.T "stats.tags_title"}}</h2>
+  <table class="stats-tags-table">
+    <thead>
+      <tr>
+        <th>{{.T "stats.tag"}}</th>
+        <th class="stats-num">{{.T "stats.tag_items"}}</th>
+        <th class="stats-num">{{.T "stats.tag_containers"}}</th>
+        <th class="stats-num">{{.T "stats.tag_total"}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .Data.Tags }}
+      <tr>
+        <td>
+          <span class="tag-chip"{{ if .Color }} style="background-color: {{ paletteHex .Color }}22; border-color: {{ paletteHex .Color }}"{{ end }}>
+            {{ if .Icon }}<span class="entity-icon">{{ icon .Icon }}</span>{{ end }}
+            <span class="tag-name">{{.Name}}</span>
+          </span>
+        </td>
+        <td class="stats-num">{{.ItemCount}}</td>
+        <td class="stats-num">{{.ContainerCount}}</td>
+        <td class="stats-num">{{.TotalUses}}</td>
+      </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ else }}
+  <p class="empty-state">{{.T "stats.no_tags"}}</p>
+  {{ end }}
+</div>
+{{ end }}
