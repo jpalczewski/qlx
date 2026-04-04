@@ -100,12 +100,12 @@ func (s *InventoryService) AllContainers() []store.Container {
 	return s.store.AllContainers()
 }
 
+// --- Item read methods (passthrough) ---
+
 // AllItems returns every item in the store.
 func (s *InventoryService) AllItems() []store.Item {
 	return s.store.AllItems()
 }
-
-// --- Item read methods (passthrough) ---
 
 // GetItem returns the item with the given ID, or nil.
 func (s *InventoryService) GetItem(id string) *store.Item {
