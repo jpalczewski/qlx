@@ -45,7 +45,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 	resp := handler.NewHTMLResponder(tmplMap, translations)
 
 	// Create domain handlers
-	containerHandler := handler.NewContainerHandler(inventory, templates, printers, pm, notes, resp)
+	containerHandler := handler.NewContainerHandler(inventory, templates, printers, pm, notes, tags, resp)
 
 	registrars := []handler.RouteRegistrar{
 		containerHandler,

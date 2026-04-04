@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,12 +19,13 @@ type ContainerHandler struct {
 	printers  *service.PrinterService
 	pm        connectedPrinterProvider
 	notes     *service.NoteService
+	tags      *service.TagService
 	resp      Responder
 }
 
 // NewContainerHandler creates a new ContainerHandler.
-func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, resp Responder) *ContainerHandler {
-	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
+func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, tags *service.TagService, resp Responder) *ContainerHandler {
+	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, tags: tags, resp: resp}
 }
 
 // RegisterRoutes registers container routes on the given mux.
@@ -82,11 +84,35 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.resp.RespondError(w, r, err)
 		return
 	}
+	// BindRequest uses r.FormValue which only returns the first value for multi-value
+	// fields; read tag_ids slice directly from the parsed form.
+	if r.Form != nil {
+		req.TagIDs = r.Form["tag_ids"]
+	}
+
+	if invalidID := h.findInvalidContainerTagID(req.TagIDs); invalidID != "" {
+		h.resp.RespondError(w, r, fmt.Errorf("tag not found: %s", invalidID))
+		return
+	}
 
 	container, err := h.inventory.CreateContainer(req.ParentID, req.Name, req.Description, req.Color, req.Icon)
 	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
+	}
+
+	if h.tags != nil {
+		for _, tagID := range req.TagIDs {
+			if tagID == "" {
+				continue
+			}
+			if err := h.tags.AddContainerTag(container.ID, tagID); err != nil {
+				webutil.WriteError(w, http.StatusInternalServerError, fmt.Errorf("assign tag %s: %w", tagID, err))
+				return
+			}
+		}
+		// Re-fetch to include tag IDs in response
+		container = h.inventory.GetContainer(container.ID)
 	}
 
 	// Quick-entry: HX-Target is "container-list" with beforeend swap — return single <li>
@@ -99,6 +125,19 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	h.resp.Respond(w, r, http.StatusCreated, container, "containers", func() any {
 		return h.containerListVM(req.ParentID)
 	})
+}
+
+// findInvalidContainerTagID returns the first tag ID in ids that does not exist, or empty string if all are valid.
+func (h *ContainerHandler) findInvalidContainerTagID(ids []string) string {
+	if h.tags == nil {
+		return ""
+	}
+	for _, id := range ids {
+		if id != "" && h.tags.GetTag(id) == nil {
+			return id
+		}
+	}
+	return ""
 }
 
 // Update handles PUT /containers/{id}.

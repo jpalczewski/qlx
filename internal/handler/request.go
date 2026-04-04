@@ -60,11 +60,12 @@ func isJSONBody(r *http.Request) bool {
 
 // CreateContainerRequest is the input for container creation.
 type CreateContainerRequest struct {
-	ParentID    string `json:"parent_id" form:"parent_id"`
-	Name        string `json:"name" form:"name"`
-	Description string `json:"description" form:"description"`
-	Color       string `json:"color" form:"color"`
-	Icon        string `json:"icon" form:"icon"`
+	ParentID    string   `json:"parent_id" form:"parent_id"`
+	Name        string   `json:"name" form:"name"`
+	Description string   `json:"description" form:"description"`
+	Color       string   `json:"color" form:"color"`
+	Icon        string   `json:"icon" form:"icon"`
+	TagIDs      []string `json:"tag_ids" form:"tag_ids"`
 }
 
 // UpdateContainerRequest is the input for container updates.

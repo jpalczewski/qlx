@@ -17,7 +17,7 @@ func newTestContainerHandler(t *testing.T) (*ContainerHandler, *service.Inventor
 	s := newHandlerTestStore(t)
 	inv := service.NewInventoryService(s)
 	notes := service.NewNoteService(s)
-	h := NewContainerHandler(inv, nil, nil, nil, notes, &JSONResponder{})
+	h := NewContainerHandler(inv, nil, nil, nil, notes, nil, &JSONResponder{})
 	return h, inv
 }
 
