@@ -5,5 +5,6 @@
         <span class="name"><span class="color-dot"{{ if .Data.Color }} style="background-color: {{ paletteHex .Data.Color }}"{{ end }}></span><span class="entity-icon">{{ if .Data.Icon }}{{ icon .Data.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Data.Name }}</span>
     </a>
     {{ if gt .Data.Quantity 1 }}<span class="badge">x{{ .Data.Quantity }}</span>{{ end }}
+    {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.ID "ObjectType" "item" "Tags" (resolveTags .Data.TagIDs)) }}
 </li>
 {{ end }}

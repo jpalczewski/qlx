@@ -186,43 +186,28 @@ func (h *TagHandler) AddItemTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item := h.inventory.GetItem(id)
-	if item == nil {
-		h.resp.RespondError(w, r, store.ErrItemNotFound)
+	chips, err := h.itemChips(id)
+	if err != nil {
+		h.resp.RespondError(w, r, err)
 		return
 	}
-
-	chips := TagChipsData{
-		ObjectID:   id,
-		ObjectType: "item",
-		Tags:       h.resolveTagIDs(item.TagIDs),
-	}
-
 	h.respondTagChips(w, r, chips)
 }
 
 // RemoveItemTag handles DELETE /items/{id}/tags/{tag_id}.
 func (h *TagHandler) RemoveItemTag(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	tagID := r.PathValue("tag_id")
 
-	if err := h.tags.RemoveItemTag(id, tagID); err != nil {
+	if err := h.tags.RemoveItemTag(id, r.PathValue("tag_id")); err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}
 
-	item := h.inventory.GetItem(id)
-	if item == nil {
-		h.resp.RespondError(w, r, store.ErrItemNotFound)
+	chips, err := h.itemChips(id)
+	if err != nil {
+		h.resp.RespondError(w, r, err)
 		return
 	}
-
-	chips := TagChipsData{
-		ObjectID:   id,
-		ObjectType: "item",
-		Tags:       h.resolveTagIDs(item.TagIDs),
-	}
-
 	h.respondTagChips(w, r, chips)
 }
 
@@ -241,44 +226,47 @@ func (h *TagHandler) AddContainerTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	container := h.inventory.GetContainer(id)
-	if container == nil {
-		h.resp.RespondError(w, r, store.ErrContainerNotFound)
+	chips, err := h.containerChips(id)
+	if err != nil {
+		h.resp.RespondError(w, r, err)
 		return
 	}
-
-	chips := TagChipsData{
-		ObjectID:   id,
-		ObjectType: "container",
-		Tags:       h.resolveTagIDs(container.TagIDs),
-	}
-
 	h.respondTagChips(w, r, chips)
 }
 
 // RemoveContainerTag handles DELETE /containers/{id}/tags/{tag_id}.
 func (h *TagHandler) RemoveContainerTag(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	tagID := r.PathValue("tag_id")
 
-	if err := h.tags.RemoveContainerTag(id, tagID); err != nil {
+	if err := h.tags.RemoveContainerTag(id, r.PathValue("tag_id")); err != nil {
 		h.resp.RespondError(w, r, err)
 		return
 	}
 
-	container := h.inventory.GetContainer(id)
-	if container == nil {
-		h.resp.RespondError(w, r, store.ErrContainerNotFound)
+	chips, err := h.containerChips(id)
+	if err != nil {
+		h.resp.RespondError(w, r, err)
 		return
 	}
-
-	chips := TagChipsData{
-		ObjectID:   id,
-		ObjectType: "container",
-		Tags:       h.resolveTagIDs(container.TagIDs),
-	}
-
 	h.respondTagChips(w, r, chips)
+}
+
+// itemChips fetches the item and builds the TagChipsData for it.
+func (h *TagHandler) itemChips(id string) (TagChipsData, error) {
+	item := h.inventory.GetItem(id)
+	if item == nil {
+		return TagChipsData{}, store.ErrItemNotFound
+	}
+	return TagChipsData{ObjectID: id, ObjectType: "item", Tags: h.resolveTagIDs(item.TagIDs)}, nil
+}
+
+// containerChips fetches the container and builds the TagChipsData for it.
+func (h *TagHandler) containerChips(id string) (TagChipsData, error) {
+	container := h.inventory.GetContainer(id)
+	if container == nil {
+		return TagChipsData{}, store.ErrContainerNotFound
+	}
+	return TagChipsData{ObjectID: id, ObjectType: "container", Tags: h.resolveTagIDs(container.TagIDs)}, nil
 }
 
 // respondTagChips sends tag chips as JSON or renders the tag-chips partial HTML.

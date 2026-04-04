@@ -55,7 +55,7 @@
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
-                {{ if .TagIDs }}{{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "container" "Tags" (resolveTags .TagIDs)) }}{{ end }}
+                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "container" "Tags" (resolveTags .TagIDs)) }}
             </li>
             {{ else }}
             <li class="empty-state">{{$.T "inventory.no_subcontainers"}}</li>
@@ -91,7 +91,7 @@
                     <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
                     {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
                 </a>
-                {{ if .TagIDs }}{{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}{{ end }}
+                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
             </li>
             {{ else }}
             <li class="empty-state">{{$.T "inventory.no_items"}}</li>

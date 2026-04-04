@@ -26,19 +26,11 @@
       var ac = qlx.TagAutocomplete({
         anchor: input,
         onSelect: function (tag) {
-          // POST assign tag — response is the tag-chips partial HTML
-          fetch("/" + objectType + "s/" + objectId + "/tags", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: "tag_id=" + encodeURIComponent(tag.id)
-          }).then(function (resp) {
-            if (resp.ok) {
-              var returnUrl = "/" + objectType + "s/" + objectId;
-              htmx.ajax("GET", returnUrl, { target: "#content" });
-            }
-            cleanup();
-          }).catch(function () {
-            cleanup();
+          cleanup();
+          htmx.ajax("POST", "/" + objectType + "s/" + objectId + "/tags", {
+            target: "#tag-chips-" + objectId,
+            swap: "outerHTML",
+            values: { tag_id: tag.id }
           });
         },
         onCancel: function () {
