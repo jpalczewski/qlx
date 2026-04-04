@@ -166,24 +166,29 @@
     }
 
     function onKeydown(e) {
-      if (!dropdown) return;
+      if (!dropdown) return false;
       var options = dropdown.querySelectorAll("[role=option]");
       if (e.key === "ArrowDown") {
         e.preventDefault();
         activeIndex = Math.min(activeIndex + 1, options.length - 1);
         highlightOption(options);
+        return true;
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         activeIndex = Math.max(activeIndex - 1, 0);
         highlightOption(options);
+        return true;
       } else if (e.key === "Enter" && activeIndex >= 0) {
         e.preventDefault();
         options[activeIndex].dispatchEvent(new MouseEvent("mousedown"));
+        return true;
       } else if (e.key === "Escape") {
         e.preventDefault();
         close();
         onCancel();
+        return true;
       }
+      return false;
     }
 
     function highlightOption(options) {
@@ -231,7 +236,9 @@
       dropdown.appendChild(err);
     }
 
-    return { open: open, close: close };
+    function isOpen() { return dropdown !== null; }
+
+    return { open: open, close: close, update: update, onKeydown: onKeydown, isOpen: isOpen };
   };
 
   qlx.invalidateTagCache = invalidateCache;
