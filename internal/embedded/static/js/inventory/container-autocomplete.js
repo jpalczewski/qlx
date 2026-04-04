@@ -7,10 +7,16 @@
   function fetchContainers() {
     if (cache) return Promise.resolve(cache);
     return fetch("/api/containers/flat", { headers: { "Accept": "application/json" } })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
       .then(function (containers) {
         cache = containers || [];
         return cache;
+      })
+      .catch(function () {
+        return [];
       });
   }
 
@@ -114,24 +120,29 @@
     }
 
     function onKeydown(e) {
-      if (!dropdown) return;
+      if (!dropdown) return false;
       var options = dropdown.querySelectorAll("[role=option]");
       if (e.key === "ArrowDown") {
         e.preventDefault();
         activeIndex = Math.min(activeIndex + 1, options.length - 1);
         highlightOption(options);
+        return true;
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         activeIndex = Math.max(activeIndex - 1, 0);
         highlightOption(options);
+        return true;
       } else if (e.key === "Enter" && activeIndex >= 0) {
         e.preventDefault();
         options[activeIndex].dispatchEvent(new MouseEvent("mousedown"));
+        return true;
       } else if (e.key === "Escape") {
         e.preventDefault();
         close();
         onCancel();
+        return true;
       }
+      return false;
     }
 
     function update(query) {
