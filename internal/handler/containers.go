@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
@@ -34,6 +36,7 @@ func (h *ContainerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /containers/{id}/items", h.Items)
 	mux.HandleFunc("PATCH /containers/{id}/move", h.Move)
 	mux.HandleFunc("GET /containers/{id}/edit", h.Edit)
+	mux.HandleFunc("GET /api/containers/flat", h.FlatList)
 }
 
 // List handles GET /containers?parent_id=X.
@@ -187,6 +190,50 @@ func (h *ContainerHandler) Edit(w http.ResponseWriter, r *http.Request) {
 			ParentID:  container.ParentID,
 		}
 	})
+}
+
+// FlatList returns all containers as a flat list with ancestor paths.
+func (h *ContainerHandler) FlatList(w http.ResponseWriter, r *http.Request) {
+	all := h.inventory.AllContainers()
+	byID := make(map[string]*store.Container, len(all))
+	for i := range all {
+		byID[all[i].ID] = &all[i]
+	}
+
+	result := make([]FlatContainer, 0, len(all))
+	for _, c := range all {
+		path := buildContainerPath(byID, c.ID)
+		result = append(result, FlatContainer{
+			ID:   c.ID,
+			Name: c.Name,
+			Icon: c.Icon,
+			Path: path,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		webutil.LogError("FlatList encode: %v", err)
+	}
+}
+
+// buildContainerPath returns the ancestor path string (e.g. "Root / Parent") for the given container ID.
+func buildContainerPath(byID map[string]*store.Container, id string) string {
+	c := byID[id]
+	if c == nil || c.ParentID == "" {
+		return ""
+	}
+	var parts []string
+	cur := c.ParentID
+	for cur != "" {
+		p := byID[cur]
+		if p == nil {
+			break
+		}
+		parts = append([]string{p.Name}, parts...)
+		cur = p.ParentID
+	}
+	return strings.Join(parts, " / ")
 }
 
 // containerListVM builds the full view model for the container list page.
