@@ -77,12 +77,13 @@ type UpdateContainerRequest struct {
 
 // CreateItemRequest is the input for item creation.
 type CreateItemRequest struct {
-	ContainerID string `json:"container_id" form:"container_id"`
-	Name        string `json:"name" form:"name"`
-	Description string `json:"description" form:"description"`
-	Quantity    int    `json:"quantity" form:"quantity"`
-	Color       string `json:"color" form:"color"`
-	Icon        string `json:"icon" form:"icon"`
+	ContainerID string   `json:"container_id" form:"container_id"`
+	Name        string   `json:"name" form:"name"`
+	Description string   `json:"description" form:"description"`
+	Quantity    int      `json:"quantity" form:"quantity"`
+	Color       string   `json:"color" form:"color"`
+	Icon        string   `json:"icon" form:"icon"`
+	TagIDs      []string `json:"tag_ids" form:"tag_ids"`
 }
 
 // UpdateItemRequest is the input for item updates.

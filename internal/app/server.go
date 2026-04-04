@@ -49,7 +49,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 
 	registrars := []handler.RouteRegistrar{
 		containerHandler,
-		handler.NewItemHandler(inventory, templates, printers, pm, notes, resp),
+		handler.NewItemHandler(inventory, templates, printers, pm, notes, tags, resp),
 		handler.NewTagHandler(tags, inventory, resp),
 		handler.NewBulkHandler(bulk),
 		handler.NewSearchHandler(search, resp),

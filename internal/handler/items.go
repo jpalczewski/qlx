@@ -17,12 +17,13 @@ type ItemHandler struct {
 	printers  *service.PrinterService
 	pm        connectedPrinterProvider
 	notes     *service.NoteService
+	tags      *service.TagService
 	resp      Responder
 }
 
 // NewItemHandler creates a new ItemHandler.
-func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, resp Responder) *ItemHandler {
-	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
+func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, tags *service.TagService, resp Responder) *ItemHandler {
+	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, tags: tags, resp: resp}
 }
 
 // RegisterRoutes registers item routes on the given mux.
@@ -58,6 +59,11 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.resp.RespondError(w, r, err)
 		return
 	}
+	// BindRequest uses r.FormValue which only returns the first value for multi-value
+	// fields; read tag_ids slice directly from the parsed form.
+	if r.Form != nil {
+		req.TagIDs = r.Form["tag_ids"]
+	}
 
 	if req.ContainerID == "" {
 		h.resp.RespondError(w, r, fmt.Errorf("%w: container_id is required", store.ErrInvalidContainer))
@@ -72,6 +78,19 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
+	}
+
+	if h.tags != nil {
+		for _, tagID := range req.TagIDs {
+			if tagID == "" {
+				continue
+			}
+			if err := h.tags.AddItemTag(item.ID, tagID); err != nil {
+				webutil.LogError("add tag %s to item %s: %v", tagID, item.ID, err)
+			}
+		}
+		// Re-fetch to include tag IDs in response
+		item = h.inventory.GetItem(item.ID)
 	}
 
 	// Quick-entry: HX-Target is "item-list" with beforeend swap — return single <li>
