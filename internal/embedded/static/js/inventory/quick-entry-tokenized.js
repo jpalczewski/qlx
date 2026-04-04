@@ -444,5 +444,13 @@
     // ------------------------------------------------------------------
 
     resetInput();
+
+    // Expose API on the DOM element so external code (e.g. keyboard.js) can
+    // switch modes without needing direct access to the closure.
+    el._qe = {
+      switchMode: function (m) {
+        if (mode !== m) toggleMode();
+      }
+    };
   };
 })();

@@ -45,21 +45,17 @@
         <div id="tab-panel-contents" class="tab-panel active" data-tab="contents">
     {{ end }}
 
+    {{- if .Data.Container }}
     <div class="qe-tokenized"
-      {{- if .Data.Container }}
       data-prefill-container-id="{{ .Data.Container.ID }}"
       data-prefill-container-name="{{ .Data.Container.Name }}"
-      data-prefill-container-icon="{{ .Data.Container.Icon }}"
-      {{- end }}
-      {{- if .Data.DefaultContainerID }}
-      data-default-container-id="{{ .Data.DefaultContainerID }}"
-      data-default-container-name="{{ .Data.DefaultContainerName }}"
-      {{- end }}>
+      data-prefill-container-icon="{{ .Data.Container.Icon }}">
       <button type="button" class="qe-type-toggle" title="Tab: item/kontener">🏷</button>
       <div class="qe-input" contenteditable="true" role="textbox" spellcheck="false"
            data-placeholder="Nowy item... (x5 #tag ↵)"></div>
       <button type="button" class="qe-submit" title="Enter">↵</button>
     </div>
+    {{- end }}
 
     <section class="containers">
         <h3>{{.T "inventory.subcontainers"}}</h3>

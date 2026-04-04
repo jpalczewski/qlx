@@ -88,11 +88,15 @@
   }
 
   function focusItemEntry() {
+    var el = document.querySelector(".qe-tokenized");
+    if (el && el._qe) el._qe.switchMode("item");
     var input = document.querySelector(".qe-input");
     if (input) /** @type {HTMLElement} */ (input).focus();
   }
 
   function focusContainerEntry() {
+    var el = document.querySelector(".qe-tokenized");
+    if (el && el._qe) el._qe.switchMode("container");
     var input = document.querySelector(".qe-input");
     if (input) /** @type {HTMLElement} */ (input).focus();
   }

@@ -91,7 +91,7 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if invalidID := h.findInvalidContainerTagID(req.TagIDs); invalidID != "" {
-		h.resp.RespondError(w, r, fmt.Errorf("tag not found: %s", invalidID))
+		h.resp.RespondError(w, r, fmt.Errorf("%w: %s", store.ErrTagNotFound, invalidID))
 		return
 	}
 
