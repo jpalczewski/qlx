@@ -1,0 +1,14 @@
+{
+  "stats.title": "Statystyki",
+  "stats.refresh": "Odśwież",
+  "stats.containers": "Kontenery",
+  "stats.root_containers": "Kontenery główne",
+  "stats.items": "Itemy",
+  "stats.total_qty": "Łączna ilość",
+  "stats.tags_title": "Użycie tagów (top 20)",
+  "stats.tag": "Tag",
+  "stats.tag_items": "Itemy",
+  "stats.tag_containers": "Kontenery",
+  "stats.tag_total": "Suma użyć",
+  "stats.no_tags": "Brak tagów."
+}
