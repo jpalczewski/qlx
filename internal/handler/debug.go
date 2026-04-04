@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
@@ -22,13 +21,13 @@ import (
 
 // DebugHandler handles debug tool pages.
 type DebugHandler struct {
-	pm       *print.PrinterManager
+	pm       debugPrinterDeps
 	printers *service.PrinterService
 	resp     Responder
 }
 
 // NewDebugHandler creates a new DebugHandler.
-func NewDebugHandler(pm *print.PrinterManager, prn *service.PrinterService, resp Responder) *DebugHandler {
+func NewDebugHandler(pm debugPrinterDeps, prn *service.PrinterService, resp Responder) *DebugHandler {
 	return &DebugHandler{pm: pm, printers: prn, resp: resp}
 }
 

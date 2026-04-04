@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -25,12 +24,12 @@ var previewSampleData = map[string]string{
 // TemplateHandler handles HTTP requests for label template CRUD operations.
 type TemplateHandler struct {
 	templates *service.TemplateService
-	pm        *print.PrinterManager
+	pm        encoderCatalog
 	resp      Responder
 }
 
 // NewTemplateHandler creates a new TemplateHandler.
-func NewTemplateHandler(templates *service.TemplateService, pm *print.PrinterManager, resp Responder) *TemplateHandler {
+func NewTemplateHandler(templates *service.TemplateService, pm encoderCatalog, resp Responder) *TemplateHandler {
 	return &TemplateHandler{templates: templates, pm: pm, resp: resp}
 }
 
@@ -212,6 +211,9 @@ func (h *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // collectPrinterModels gathers model info from all available encoders.
 func (h *TemplateHandler) collectPrinterModels() []encoder.ModelInfo {
 	var models []encoder.ModelInfo
+	if h.pm == nil {
+		return models
+	}
 	for _, enc := range h.pm.AvailableEncoders() {
 		models = append(models, enc.Models()...)
 	}

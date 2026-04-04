@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/erxyi/qlx/internal/print"
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
@@ -12,14 +11,14 @@ import (
 
 // AdhocHandler handles HTTP requests for ad-hoc label printing.
 type AdhocHandler struct {
-	pm        *print.PrinterManager
+	pm        labelPrinter
 	printers  *service.PrinterService
 	templates *service.TemplateService
 	resp      Responder
 }
 
 // NewAdhocHandler creates a new AdhocHandler.
-func NewAdhocHandler(pm *print.PrinterManager, prn *service.PrinterService,
+func NewAdhocHandler(pm labelPrinter, prn *service.PrinterService,
 	tmpl *service.TemplateService, resp Responder) *AdhocHandler {
 	return &AdhocHandler{pm: pm, printers: prn, templates: tmpl, resp: resp}
 }
