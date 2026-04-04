@@ -13,7 +13,12 @@ import (
 // if Content-Type is application/json. Uses `form` struct tags for form field mapping,
 // falling back to `json` tags.
 func BindRequest(r *http.Request, req any) error {
-	_ = r.ParseForm()
+	ct := r.Header.Get("Content-Type")
+	if strings.Contains(ct, "multipart/form-data") {
+		_ = r.ParseMultipartForm(32 << 20)
+	} else {
+		_ = r.ParseForm()
+	}
 
 	v := reflect.ValueOf(req).Elem()
 	t := v.Type()
