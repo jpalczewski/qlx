@@ -20,14 +20,16 @@ func (p PageData) T(key string) string {
 
 // ContainerListData is the view model for the container list page.
 type ContainerListData struct {
-	Children  []store.Container
-	Items     []store.Item
-	Container *store.Container
-	Path      []store.Container
-	Printers  []store.PrinterConfig
-	Templates []store.Template
-	Schemas   []string
-	NoteCount int
+	Children             []store.Container
+	Items                []store.Item
+	Container            *store.Container
+	Path                 []store.Container
+	Printers             []store.PrinterConfig
+	Templates            []store.Template
+	Schemas              []string
+	NoteCount            int
+	DefaultContainerID   string
+	DefaultContainerName string
 }
 
 // ItemDetailData is the view model for the item detail page.
