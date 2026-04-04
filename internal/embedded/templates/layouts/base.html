@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="/static/css/dialogs/export.css">
     <link rel="stylesheet" href="/static/css/search/search.css">
     <link rel="stylesheet" href="/static/css/settings/settings.css">
+    <link rel="stylesheet" href="/static/css/stats/stats.css">
     <link rel="stylesheet" href="/static/css/layout/responsive.css">
     <script src="/static/htmx.min.js"></script>
     <script src="/static/js/shared/namespace.js" defer></script>
@@ -65,6 +66,7 @@
         <a href="/printers" hx-get="/printers" hx-target="#content">{{.T "nav.printers"}}</a>
         <a href="/templates" hx-get="/templates" hx-target="#content">{{.T "nav.templates"}}</a>
         <a href="/tags" hx-get="/tags" hx-target="#content">{{.T "nav.tags"}}</a>
+        <a href="/stats" hx-get="/stats" hx-target="#content">{{.T "nav.stats"}}</a>
         <a href="/quick-print" hx-get="/quick-print" hx-target="#content">{{.T "nav.quick_print"}}</a>
         <input type="search" id="global-search" placeholder="{{.T "nav.search_placeholder"}}"
                hx-get="/search" hx-trigger="input changed delay:300ms"

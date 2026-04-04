@@ -58,6 +58,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 		handler.NewExportHandler(export, inventory),
 		handler.NewNoteHandler(notes, inventory, resp),
 		handler.NewPartialsHandler(inventory, search, tags, resp),
+		handler.NewStatsHandler(inventory, tags, resp),
 		handler.NewSettingsHandler(resp),
 		handler.NewI18nHandler(translations),
 		handler.NewAdhocHandler(pm, printers, templates, resp),
