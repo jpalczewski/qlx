@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.5.0](https://github.com/jpalczewski/qlx/compare/v0.4.0...v0.5.0) (2026-04-05)
+
+
+### Features
+
+* **inventory:** tokenized quick entry with [@container](https://github.com/container) and #tag tokens ([#105](https://github.com/jpalczewski/qlx/issues/105)) ([99b99f2](https://github.com/jpalczewski/qlx/commit/99b99f2e9fd8d386b88772dca38c94101929c64b))
+* **stats:** add statistics page ([#104](https://github.com/jpalczewski/qlx/issues/104)) ([0493bc5](https://github.com/jpalczewski/qlx/commit/0493bc5dd4fab5796ac9716850edcc6b3818cf27))
+
+
+### Bug Fixes
+
+* correct Brother capabilities endpoint URL ([#97](https://github.com/jpalczewski/qlx/issues/97)) ([2c42633](https://github.com/jpalczewski/qlx/commit/2c42633265610cd29dc997cacf3c705eae5f58f7))
+* **print:** correct capabilities endpoint URL ([#95](https://github.com/jpalczewski/qlx/issues/95)) ([7e9edf1](https://github.com/jpalczewski/qlx/commit/7e9edf18d80a5764323232ef82f08048659f6a5d))
+* **tags:** show + button on items/containers with no tags ([#103](https://github.com/jpalczewski/qlx/issues/103)) ([78520a4](https://github.com/jpalczewski/qlx/commit/78520a457d766ffcadc5cfcaa5de8104e2b89ae3))
+
+
+### Miscellaneous
+
+* **print:** split event broker and handler ports ([#101](https://github.com/jpalczewski/qlx/issues/101)) ([cb75738](https://github.com/jpalczewski/qlx/commit/cb7573884e36da692a282a6892c894b807d15844))
+
 ## [0.4.0](https://github.com/jpalczewski/qlx/compare/v0.3.0...v0.4.0) (2026-03-28)
 
 
