@@ -1,0 +1,194 @@
+/* Tokenized quick entry component */
+
+/* Outer wrapper */
+.qe-tokenized {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Type toggle button (📦/🏷) */
+.qe-type-toggle {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    color: var(--color-text);
+    transition: border-color 0.2s;
+}
+.qe-type-toggle:hover {
+    border-color: var(--color-accent);
+}
+
+/* Contenteditable input area */
+.qe-input {
+    flex: 1;
+    min-height: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-bg-card);
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    cursor: text;
+    position: relative;
+    transition: border-color 0.2s;
+    outline: none;
+}
+.qe-input:focus-within {
+    border-color: var(--color-accent);
+    border-style: solid;
+}
+
+/* Placeholder via data attribute when input is empty */
+.qe-input[data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+
+/* Submit button (↵) */
+.qe-submit {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s;
+}
+.qe-submit:hover {
+    color: var(--color-accent);
+}
+
+/* Inline token chips */
+.qe-token {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Container token — blue/accent */
+.qe-token--container {
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* Tag token — green/success */
+.qe-token--tag {
+    background: color-mix(in srgb, var(--color-success, #2ea84a) 15%, transparent);
+    color: var(--color-success, #2ea84a);
+    border: 1px solid color-mix(in srgb, var(--color-success, #2ea84a) 35%, transparent);
+}
+
+/* Default/inbox placeholder token — muted dashed */
+.qe-token--default {
+    opacity: 0.65;
+    border: 1px dashed var(--color-border);
+    color: var(--color-text-muted);
+    background: transparent;
+}
+
+/* × remove button inside a token */
+.qe-token-remove {
+    cursor: pointer;
+    opacity: 0.5;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    line-height: 1;
+    color: inherit;
+    transition: opacity 0.15s;
+}
+.qe-token-remove:hover {
+    opacity: 1;
+}
+
+/* Icon inside token */
+.qe-token-icon {
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+/* Container AC dropdown — positioned relative to .qe-input */
+.qe-input .container-ac-dropdown,
+.qe-input .tag-ac-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    margin-top: 2px;
+}
+
+/* Container autocomplete dropdown */
+.container-ac-dropdown {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 16rem;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0.25rem 0;
+}
+
+/* Above variant */
+.container-ac-dropdown--above {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 2px;
+}
+
+/* Individual option row */
+.container-ac-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.container-ac-option:hover,
+.container-ac-option.active {
+    background: var(--color-bg-alt);
+}
+
+/* Icon column */
+.container-ac-icon {
+    flex-shrink: 0;
+    width: 1.2rem;
+    text-align: center;
+}
+
+/* Name column */
+.container-ac-name {
+    flex: 1;
+}
+
+/* Path/breadcrumb column */
+.container-ac-path {
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+}

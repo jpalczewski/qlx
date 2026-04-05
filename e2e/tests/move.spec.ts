@@ -5,16 +5,22 @@ test.describe('Move to Container', () => {
   test('m opens move picker on item detail page', async ({ page, app }) => {
     // Create container + item
     await page.goto(`${app.baseURL}/`);
-    await page.fill('.containers .quick-entry input[name="name"]', 'Source');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type('Source');
     const cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
     await page.click('#container-list a:has-text("Source")');
     await expect(page.locator('h2')).toContainText('Source');
 
-    await page.fill('.items .quick-entry input[name="name"]', 'TestItem');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('TestItem');
     const ir = page.waitForResponse(r => r.url().includes('/items') && r.request().method() === 'POST');
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await ir;
 
     // Navigate to item detail
@@ -28,16 +34,22 @@ test.describe('Move to Container', () => {
 
   test('m opens move picker for kb-active item in list', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
-    await page.fill('.containers .quick-entry input[name="name"]', 'NavTest');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type('NavTest');
     const cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
     await page.click('#container-list a:has-text("NavTest")');
     await expect(page.locator('h2')).toContainText('NavTest');
 
-    await page.fill('.items .quick-entry input[name="name"]', 'MoveMe');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('MoveMe');
     const ir = page.waitForResponse(r => r.url().includes('/items') && r.request().method() === 'POST');
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await ir;
 
     // Arrow down to highlight item, then press m
@@ -51,22 +63,30 @@ test.describe('Move to Container', () => {
   test('Move to button on item detail moves item', async ({ page, app }) => {
     // Create source + target containers
     await page.goto(`${app.baseURL}/`);
-    await page.fill('.containers .quick-entry input[name="name"]', 'MoveSource');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type('MoveSource');
     let cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
 
-    await page.fill('.containers .quick-entry input[name="name"]', 'MoveTarget');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('MoveTarget');
     cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
 
     // Create item in source
     await page.click('#container-list a:has-text("MoveSource")');
     await expect(page.locator('h2')).toContainText('MoveSource');
-    await page.fill('.items .quick-entry input[name="name"]', 'Movable');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('Movable');
     const ir = page.waitForResponse(r => r.url().includes('/items') && r.request().method() === 'POST');
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await ir;
 
     // Go to item detail
@@ -92,14 +112,20 @@ test.describe('Move to Container', () => {
     await page.goto(`${app.baseURL}/`);
 
     // Create two containers
-    await page.fill('.containers .quick-entry input[name="name"]', 'ChildBox');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type('ChildBox');
     let cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
 
-    await page.fill('.containers .quick-entry input[name="name"]', 'ParentBox');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('ParentBox');
     cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
 
     // Go to ChildBox detail
@@ -123,9 +149,13 @@ test.describe('Move to Container', () => {
 
   test('m on container detail with no selection moves the container', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
-    await page.fill('.containers .quick-entry input[name="name"]', 'KeyMoveBox');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type('KeyMoveBox');
     const cr = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await cr;
 
     await page.click('#container-list a:has-text("KeyMoveBox")');

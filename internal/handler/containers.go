@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/erxyi/qlx/internal/print/label"
 	"github.com/erxyi/qlx/internal/service"
@@ -16,12 +19,13 @@ type ContainerHandler struct {
 	printers  *service.PrinterService
 	pm        connectedPrinterProvider
 	notes     *service.NoteService
+	tags      *service.TagService
 	resp      Responder
 }
 
 // NewContainerHandler creates a new ContainerHandler.
-func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, resp Responder) *ContainerHandler {
-	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
+func NewContainerHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, tags *service.TagService, resp Responder) *ContainerHandler {
+	return &ContainerHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, tags: tags, resp: resp}
 }
 
 // RegisterRoutes registers container routes on the given mux.
@@ -34,6 +38,7 @@ func (h *ContainerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /containers/{id}/items", h.Items)
 	mux.HandleFunc("PATCH /containers/{id}/move", h.Move)
 	mux.HandleFunc("GET /containers/{id}/edit", h.Edit)
+	mux.HandleFunc("GET /api/containers/flat", h.FlatList)
 }
 
 // List handles GET /containers?parent_id=X.
@@ -79,11 +84,35 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.resp.RespondError(w, r, err)
 		return
 	}
+	// BindRequest uses r.FormValue which only returns the first value for multi-value
+	// fields; read tag_ids slice directly from the parsed form.
+	if r.Form != nil {
+		req.TagIDs = r.Form["tag_ids"]
+	}
+
+	if invalidID := h.findInvalidContainerTagID(req.TagIDs); invalidID != "" {
+		h.resp.RespondError(w, r, fmt.Errorf("%w: %s", store.ErrTagNotFound, invalidID))
+		return
+	}
 
 	container, err := h.inventory.CreateContainer(req.ParentID, req.Name, req.Description, req.Color, req.Icon)
 	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
+	}
+
+	if h.tags != nil {
+		for _, tagID := range req.TagIDs {
+			if tagID == "" {
+				continue
+			}
+			if err := h.tags.AddContainerTag(container.ID, tagID); err != nil {
+				webutil.WriteError(w, http.StatusInternalServerError, fmt.Errorf("assign tag %s: %w", tagID, err))
+				return
+			}
+		}
+		// Re-fetch to include tag IDs in response
+		container = h.inventory.GetContainer(container.ID)
 	}
 
 	// Quick-entry: HX-Target is "container-list" with beforeend swap — return single <li>
@@ -96,6 +125,19 @@ func (h *ContainerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	h.resp.Respond(w, r, http.StatusCreated, container, "containers", func() any {
 		return h.containerListVM(req.ParentID)
 	})
+}
+
+// findInvalidContainerTagID returns the first tag ID in ids that does not exist, or empty string if all are valid.
+func (h *ContainerHandler) findInvalidContainerTagID(ids []string) string {
+	if h.tags == nil {
+		return ""
+	}
+	for _, id := range ids {
+		if id != "" && h.tags.GetTag(id) == nil {
+			return id
+		}
+	}
+	return ""
 }
 
 // Update handles PUT /containers/{id}.
@@ -187,6 +229,50 @@ func (h *ContainerHandler) Edit(w http.ResponseWriter, r *http.Request) {
 			ParentID:  container.ParentID,
 		}
 	})
+}
+
+// FlatList returns all containers as a flat list with ancestor paths.
+func (h *ContainerHandler) FlatList(w http.ResponseWriter, r *http.Request) {
+	all := h.inventory.AllContainers()
+	byID := make(map[string]*store.Container, len(all))
+	for i := range all {
+		byID[all[i].ID] = &all[i]
+	}
+
+	result := make([]FlatContainer, 0, len(all))
+	for _, c := range all {
+		path := buildContainerPath(byID, c.ID)
+		result = append(result, FlatContainer{
+			ID:   c.ID,
+			Name: c.Name,
+			Icon: c.Icon,
+			Path: path,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		webutil.LogError("FlatList encode: %v", err)
+	}
+}
+
+// buildContainerPath returns the ancestor path string (e.g. "Root / Parent") for the given container ID.
+func buildContainerPath(byID map[string]*store.Container, id string) string {
+	c := byID[id]
+	if c == nil || c.ParentID == "" {
+		return ""
+	}
+	var parts []string
+	cur := c.ParentID
+	for cur != "" {
+		p := byID[cur]
+		if p == nil {
+			break
+		}
+		parts = append([]string{p.Name}, parts...)
+		cur = p.ParentID
+	}
+	return strings.Join(parts, " / ")
 }
 
 // containerListVM builds the full view model for the container list page.

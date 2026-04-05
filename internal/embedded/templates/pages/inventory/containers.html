@@ -45,9 +45,22 @@
         <div id="tab-panel-contents" class="tab-panel active" data-tab="contents">
     {{ end }}
 
+    <div class="qe-tokenized"
+      data-default-container-id="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}"
+      {{- if .Data.Container }}
+      data-prefill-container-id="{{ .Data.Container.ID }}"
+      data-prefill-container-name="{{ .Data.Container.Name }}"
+      data-prefill-container-icon="{{ .Data.Container.Icon }}"
+      {{- end }}>
+      <button type="button" class="qe-type-toggle" title="Tab: item/kontener">🏷</button>
+      <div class="qe-input" contenteditable="true" role="textbox" spellcheck="false"
+           data-placeholder="Nowy item... (x5 #tag ↵)"></div>
+      <button type="button" class="qe-submit" title="Enter">↵</button>
+    </div>
+
     <section class="containers">
         <h3>{{.T "inventory.subcontainers"}}</h3>
-        <ul id="container-list" class="container-list">
+        <ul id="container-list" class="inventory-list container-list">
             {{ range .Data.Children }}
             <li draggable="true" data-id="{{ .ID }}" data-type="container">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
@@ -61,29 +74,15 @@
             <li class="empty-state">{{$.T "inventory.no_subcontainers"}}</li>
             {{ end }}
         </ul>
-        <form class="quick-entry"
-              hx-post="/containers"
-              hx-target="#container-list"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) { var wasOpen = this.hasAttribute('data-desc-open'); this.reset(); if(wasOpen) this.setAttribute('data-desc-open',''); this.querySelector('input[name=name]').focus(); }">
-            <input type="hidden" name="parent_id" value="{{ if .Data.Container }}{{ .Data.Container.ID }}{{ end }}">
-            <span class="quick-entry-icon">+</span>
-            <input type="text" name="name" placeholder="{{.T "inventory.new_container_placeholder"}}" required>
-            <button type="submit" class="quick-entry-submit">↵</button>
-            <div class="quick-entry-desc">
-                <button type="button" class="quick-entry-desc-trigger">
-                    <span class="quick-entry-desc-arrow">▸</span> {{.T "form.description"}}
-                </button>
-                <div class="quick-entry-desc-body">
-                    <textarea name="description" rows="2" placeholder="{{.T "form.description"}}..."></textarea>
-                </div>
-            </div>
-        </form>
     </section>
+
+    {{- if and .Data.Children .Data.Items }}
+    <hr class="inventory-separator">
+    {{- end }}
 
     <section class="items">
         <h3>{{.T "inventory.items"}}</h3>
-        <ul id="item-list" class="item-list">
+        <ul id="item-list" class="inventory-list item-list">
             {{ range .Data.Items }}
             <li draggable="true" data-id="{{ .ID }}" data-type="item">
                 <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
@@ -97,27 +96,6 @@
             <li class="empty-state">{{$.T "inventory.no_items"}}</li>
             {{ end }}
         </ul>
-        {{ if .Data.Container }}
-        <form class="quick-entry"
-              hx-post="/items"
-              hx-target="#item-list"
-              hx-swap="beforeend"
-              hx-on::after-request="if(event.detail.successful) { var wasOpen = this.hasAttribute('data-desc-open'); this.reset(); if(wasOpen) this.setAttribute('data-desc-open',''); this.querySelector('input[name=name]').focus(); }">
-            <input type="hidden" name="container_id" value="{{ .Data.Container.ID }}">
-            <span class="quick-entry-icon">+</span>
-            <input type="text" name="name" placeholder="{{.T "inventory.new_item_placeholder"}}" required>
-            <input type="number" name="quantity" value="1" min="1">
-            <button type="submit" class="quick-entry-submit">↵</button>
-            <div class="quick-entry-desc">
-                <button type="button" class="quick-entry-desc-trigger">
-                    <span class="quick-entry-desc-arrow">▸</span> {{.T "form.description"}}
-                </button>
-                <div class="quick-entry-desc-body">
-                    <textarea name="description" rows="2" placeholder="{{.T "form.description"}}..."></textarea>
-                </div>
-            </div>
-        </form>
-        {{ end }}
     </section>
 
     {{ if .Data.Container }}
@@ -165,4 +143,20 @@
 <script src="/static/label-dither.js"></script>
 <script src="/static/label-print.js"></script>
 {{ end }}
+<script>
+(function() {
+  function initQE() {
+    var el = document.querySelector(".qe-tokenized");
+    if (!el) return;
+    new qlx.TokenizedQuickEntry({ el: el });
+  }
+  // On initial full page load, DOM may not be ready yet.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initQE);
+  } else {
+    // After HTMX swap the script is re-executed inline and DOM is already ready.
+    initQE();
+  }
+})();
+</script>
 {{ end }}

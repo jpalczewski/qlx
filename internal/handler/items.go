@@ -17,12 +17,13 @@ type ItemHandler struct {
 	printers  *service.PrinterService
 	pm        connectedPrinterProvider
 	notes     *service.NoteService
+	tags      *service.TagService
 	resp      Responder
 }
 
 // NewItemHandler creates a new ItemHandler.
-func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, resp Responder) *ItemHandler {
-	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, resp: resp}
+func NewItemHandler(inv *service.InventoryService, tmpl *service.TemplateService, prn *service.PrinterService, pm connectedPrinterProvider, notes *service.NoteService, tags *service.TagService, resp Responder) *ItemHandler {
+	return &ItemHandler{inventory: inv, templates: tmpl, printers: prn, pm: pm, notes: notes, tags: tags, resp: resp}
 }
 
 // RegisterRoutes registers item routes on the given mux.
@@ -58,6 +59,11 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.resp.RespondError(w, r, err)
 		return
 	}
+	// BindRequest uses r.FormValue which only returns the first value for multi-value
+	// fields; read tag_ids slice directly from the parsed form.
+	if r.Form != nil {
+		req.TagIDs = r.Form["tag_ids"]
+	}
 
 	if req.ContainerID == "" {
 		h.resp.RespondError(w, r, fmt.Errorf("%w: container_id is required", store.ErrInvalidContainer))
@@ -68,10 +74,29 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 		req.Quantity = 1
 	}
 
+	if invalidID := h.findInvalidTagID(req.TagIDs); invalidID != "" {
+		h.resp.RespondError(w, r, fmt.Errorf("%w: %s", store.ErrTagNotFound, invalidID))
+		return
+	}
+
 	item, err := h.inventory.CreateItem(req.ContainerID, req.Name, req.Description, req.Quantity, req.Color, req.Icon)
 	if err != nil {
 		h.resp.RespondError(w, r, err)
 		return
+	}
+
+	if h.tags != nil {
+		for _, tagID := range req.TagIDs {
+			if tagID == "" {
+				continue
+			}
+			if err := h.tags.AddItemTag(item.ID, tagID); err != nil {
+				webutil.WriteError(w, http.StatusInternalServerError, fmt.Errorf("assign tag %s: %w", tagID, err))
+				return
+			}
+		}
+		// Re-fetch to include tag IDs in response
+		item = h.inventory.GetItem(item.ID)
 	}
 
 	// Quick-entry: HX-Target is "item-list" with beforeend swap — return single <li>
@@ -173,6 +198,19 @@ func (h *ItemHandler) itemDetailData(item *store.Item) map[string]any {
 		"path":       h.inventory.ContainerPath(item.ContainerID),
 		"qr_content": "/items/" + item.ID,
 	}
+}
+
+// findInvalidTagID returns the first tag ID in ids that does not exist, or empty string if all are valid.
+func (h *ItemHandler) findInvalidTagID(ids []string) string {
+	if h.tags == nil {
+		return ""
+	}
+	for _, id := range ids {
+		if id != "" && h.tags.GetTag(id) == nil {
+			return id
+		}
+	}
+	return ""
 }
 
 // itemDetailVM builds the full view model for the item detail page.

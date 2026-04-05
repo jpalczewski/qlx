@@ -25,26 +25,35 @@ test.describe('Drag and drop', () => {
     const targetName = `DnD-T-${Date.now()}`;
     const itemName   = `DnD-I-${Date.now()}`;
 
-    // Create parent and navigate into it
+    // Create parent container via API and navigate into it
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.quick-entry input[name="name"]', parentName);
-    await page.press('.quick-entry input[name="name"]', 'Enter');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(parentName);
+    await page.keyboard.press('Enter');
     await r1;
     await page.click(`#container-list a:has-text("${parentName}")`);
     await expect(page.locator('h2')).toContainText(parentName);
 
-    // Create item
+    // Create item (item mode is default)
     const r2 = page.waitForResponse(r => r.url().includes('/items') && r.request().method() === 'POST');
-    await page.fill('.items .quick-entry input[name="name"]', itemName);
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(itemName);
+    await page.keyboard.press('Enter');
     await r2;
     await expect(page.locator('#item-list')).toContainText(itemName);
 
-    // Create target sub-container
+    // Create target sub-container (switch to container mode)
     const r3 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.containers .quick-entry input[name="name"]', targetName);
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(targetName);
+    await page.keyboard.press('Enter');
     await r3;
     await expect(page.locator('#container-list')).toContainText(targetName);
 
@@ -67,20 +76,30 @@ test.describe('Drag and drop', () => {
 
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.quick-entry input[name="name"]', rootName);
-    await page.press('.quick-entry input[name="name"]', 'Enter');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(rootName);
+    await page.keyboard.press('Enter');
     await r1;
     await page.click(`#container-list a:has-text("${rootName}")`);
     await expect(page.locator('h2')).toContainText(rootName);
 
     const r2 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.containers .quick-entry input[name="name"]', sourceName);
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(sourceName);
+    await page.keyboard.press('Enter');
     await r2;
 
     const r3 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.containers .quick-entry input[name="name"]', destName);
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    // mode is already 'container' from the previous entry — no Tab needed
+    await page.keyboard.press('End');
+    await page.keyboard.type(destName);
+    await page.keyboard.press('Enter');
     await r3;
     await expect(page.locator('#container-list')).toContainText(sourceName);
     await expect(page.locator('#container-list')).toContainText(destName);
@@ -111,23 +130,32 @@ test.describe('Drag and drop', () => {
 
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.quick-entry input[name="name"]', parentName);
-    await page.press('.quick-entry input[name="name"]', 'Enter');
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(parentName);
+    await page.keyboard.press('Enter');
     await r1;
     await page.click(`#container-list a:has-text("${parentName}")`);
     await expect(page.locator('h2')).toContainText(parentName);
 
-    // Create item
+    // Create item (item mode is default)
     const r2 = page.waitForResponse(r => r.url().includes('/items') && r.request().method() === 'POST');
-    await page.fill('.items .quick-entry input[name="name"]', itemName);
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(itemName);
+    await page.keyboard.press('Enter');
     await r2;
     await expect(page.locator('#item-list')).toContainText(itemName);
 
     // Add sub-container via quick-entry — partial HTMX swap into #container-list
     const r3 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
-    await page.fill('.containers .quick-entry input[name="name"]', newContName);
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(newContName);
+    await page.keyboard.press('Enter');
     await r3;
     await expect(page.locator('#container-list')).toContainText(newContName);
 

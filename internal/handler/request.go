@@ -13,7 +13,12 @@ import (
 // if Content-Type is application/json. Uses `form` struct tags for form field mapping,
 // falling back to `json` tags.
 func BindRequest(r *http.Request, req any) error {
-	_ = r.ParseForm()
+	ct := r.Header.Get("Content-Type")
+	if strings.Contains(ct, "multipart/form-data") {
+		_ = r.ParseMultipartForm(32 << 20)
+	} else {
+		_ = r.ParseForm()
+	}
 
 	v := reflect.ValueOf(req).Elem()
 	t := v.Type()
@@ -60,11 +65,12 @@ func isJSONBody(r *http.Request) bool {
 
 // CreateContainerRequest is the input for container creation.
 type CreateContainerRequest struct {
-	ParentID    string `json:"parent_id" form:"parent_id"`
-	Name        string `json:"name" form:"name"`
-	Description string `json:"description" form:"description"`
-	Color       string `json:"color" form:"color"`
-	Icon        string `json:"icon" form:"icon"`
+	ParentID    string   `json:"parent_id" form:"parent_id"`
+	Name        string   `json:"name" form:"name"`
+	Description string   `json:"description" form:"description"`
+	Color       string   `json:"color" form:"color"`
+	Icon        string   `json:"icon" form:"icon"`
+	TagIDs      []string `json:"tag_ids" form:"tag_ids"`
 }
 
 // UpdateContainerRequest is the input for container updates.
@@ -77,12 +83,13 @@ type UpdateContainerRequest struct {
 
 // CreateItemRequest is the input for item creation.
 type CreateItemRequest struct {
-	ContainerID string `json:"container_id" form:"container_id"`
-	Name        string `json:"name" form:"name"`
-	Description string `json:"description" form:"description"`
-	Quantity    int    `json:"quantity" form:"quantity"`
-	Color       string `json:"color" form:"color"`
-	Icon        string `json:"icon" form:"icon"`
+	ContainerID string   `json:"container_id" form:"container_id"`
+	Name        string   `json:"name" form:"name"`
+	Description string   `json:"description" form:"description"`
+	Quantity    int      `json:"quantity" form:"quantity"`
+	Color       string   `json:"color" form:"color"`
+	Icon        string   `json:"icon" form:"icon"`
+	TagIDs      []string `json:"tag_ids" form:"tag_ids"`
 }
 
 // UpdateItemRequest is the input for item updates.

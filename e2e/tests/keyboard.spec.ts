@@ -4,6 +4,8 @@ test.describe('Keyboard Shortcuts — Global', () => {
 
   test('/ focuses global search', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
+    // Click heading to ensure the contenteditable quick-entry input is not focused
+    await page.locator('h1').click();
     await page.keyboard.press('/');
     await expect(page.locator('#global-search')).toBeFocused();
   });
@@ -16,12 +18,16 @@ test.describe('Keyboard Shortcuts — Global', () => {
 
   test('? opens help overlay', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
+    // Click heading to ensure the contenteditable quick-entry input is not focused
+    await page.locator('h1').click();
     await page.keyboard.type('?');
     await expect(page.locator('#keyboard-help')).toBeVisible();
   });
 
   test('Escape closes help overlay', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
+    // Click heading to ensure the contenteditable quick-entry input is not focused
+    await page.locator('h1').click();
     await page.keyboard.type('?');
     await expect(page.locator('#keyboard-help')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -45,6 +51,8 @@ test.describe('Keyboard Shortcuts — Global', () => {
 
   test('shortcuts ignored when dialog is open', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
+    // Click heading to ensure the contenteditable quick-entry input is not focused
+    await page.locator('h1').click();
     await page.keyboard.type('?');
     await expect(page.locator('#keyboard-help')).toBeVisible();
     await page.keyboard.press('s');
@@ -55,6 +63,8 @@ test.describe('Keyboard Shortcuts — Global', () => {
 
   test('g opens container navigator', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
+    // Click heading to ensure the contenteditable quick-entry input is not focused
+    await page.locator('h1').click();
     await page.keyboard.press('g');
     await expect(page.locator('#container-nav-picker')).toBeVisible();
   });
@@ -68,21 +78,28 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   test('setup: create container with items', async ({ page, app }) => {
     containerName = `KB Test ${Date.now()}`;
     await page.goto(`${app.baseURL}/`);
-    await page.fill('.containers .quick-entry input[name="name"]', containerName);
+    // Switch to container mode (Tab), then type name and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(containerName);
     const resp = page.waitForResponse(r =>
       r.url().includes('/containers') && r.request().method() === 'POST'
     );
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await resp;
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
     for (const name of ['Item A', 'Item B']) {
-      await page.fill('.items .quick-entry input[name="name"]', name);
+      await input.click();
+      await page.keyboard.press('End');
+      await page.keyboard.type(name);
       const itemResp = page.waitForResponse(r =>
         r.url().includes('/items') && r.request().method() === 'POST'
       );
-      await page.press('.items .quick-entry input[name="name"]', 'Enter');
+      await page.keyboard.press('Enter');
       await itemResp;
     }
     await expect(page.locator('#item-list li:not(.empty-state)')).toHaveCount(2);
@@ -92,16 +109,20 @@ test.describe('Keyboard Shortcuts — Container View', () => {
     await page.goto(`${app.baseURL}/`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
+    // Ensure the qe-input is not already focused before pressing shortcut
+    await page.locator('h2').click();
     await page.keyboard.press('i');
-    await expect(page.locator('.items .quick-entry input[name="name"]')).toBeFocused();
+    await expect(page.locator('.qe-input')).toBeFocused();
   });
 
   test('c focuses container quick-entry', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
+    // Ensure the qe-input is not already focused before pressing shortcut
+    await page.locator('h2').click();
     await page.keyboard.press('c');
-    await expect(page.locator('.containers .quick-entry input[name="name"]')).toBeFocused();
+    await expect(page.locator('.qe-input')).toBeFocused();
   });
 
   test('s toggles selection mode', async ({ page, app }) => {

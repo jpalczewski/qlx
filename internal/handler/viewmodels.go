@@ -172,6 +172,14 @@ type TagStat struct {
 	TotalUses      int    `json:"total_uses"`
 }
 
+// FlatContainer is a flattened container with its ancestor path for autocomplete.
+type FlatContainer struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Icon string `json:"icon"`
+	Path string `json:"path"`
+}
+
 // NotesTabData is the view model for the notes tab partial.
 type NotesTabData struct {
 	Notes       []store.Note

@@ -10,12 +10,17 @@ test.describe('Quick Entry', () => {
     await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
-    await page.fill('.containers .quick-entry input[name="name"]', containerName);
+    // Switch to container mode (Tab), then type name and submit
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('Tab'); // switch to container mode
+    await page.keyboard.press('End');
+    await page.keyboard.type(containerName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/containers') && r.request().method() === 'POST'
     );
-    await page.press('.containers .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     // Container should appear in list without full page reload
@@ -30,12 +35,15 @@ test.describe('Quick Entry', () => {
     await expect(page.locator('h2')).toContainText(containerName);
 
     const itemName = `QE Item ${Date.now()}`;
-    await page.fill('.items .quick-entry input[name="name"]', itemName);
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(itemName);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/items') && r.request().method() === 'POST'
     );
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     await expect(page.locator('#item-list')).toContainText(itemName);
@@ -47,12 +55,15 @@ test.describe('Quick Entry', () => {
     await expect(page.locator('h2')).toContainText(containerName);
 
     const itemName2 = `QE Item2 ${Date.now()}`;
-    await page.fill('.items .quick-entry input[name="name"]', itemName2);
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(itemName2);
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/items') && r.request().method() === 'POST'
     );
-    await page.press('.items .quick-entry input[name="name"]', 'Enter');
+    await page.keyboard.press('Enter');
     await responsePromise;
 
     await expect(page.locator('#item-list')).toContainText(itemName2);
