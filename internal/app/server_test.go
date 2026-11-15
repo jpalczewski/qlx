@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -45,6 +46,39 @@ func TestRoot_RenderModes(t *testing.T) {
 	}
 	if strings.Contains(fragRes.Body.String(), "<!DOCTYPE html>") {
 		t.Fatal("expected HTML fragment for HTMX / request")
+	}
+}
+
+func TestWorkingSet_Wiring(t *testing.T) {
+	mem := newAppTestStore(t)
+	srv := NewServer(mem, qlprint.NewPrinterManager(mem, nil), nil)
+	c := mem.CreateContainer("", "Wiring Box", "", "", "")
+
+	do := func(method, target string, hdr map[string]string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest(method, target, nil)
+		for k, v := range hdr {
+			r.Header.Set(k, v)
+		}
+		w := httptest.NewRecorder()
+		srv.ServeHTTP(w, r)
+		return w
+	}
+
+	if w := do("POST", "/api/working-set/pins/"+c.ID, map[string]string{"HX-Request": "true"}); w.Code != 204 || w.Header().Get("HX-Trigger") != "workingSetChanged" {
+		t.Fatalf("pin: status %d trigger %q", w.Code, w.Header().Get("HX-Trigger"))
+	}
+	if w := do("GET", "/partials/rail", map[string]string{"HX-Request": "true"}); w.Code != 200 || !strings.Contains(w.Body.String(), "Wiring Box") {
+		t.Fatalf("rail: status %d body %s", w.Code, w.Body.String())
+	}
+
+	// GET / JSON keeps returning the plain container list.
+	w := do("GET", "/", map[string]string{"Accept": "application/json"})
+	var containers []map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &containers); err != nil {
+		t.Fatalf("GET / JSON must be a container array: %v (%s)", err, w.Body.String())
+	}
+	if len(containers) != 1 || containers[0]["id"] != c.ID {
+		t.Fatalf("unexpected containers: %v", containers)
 	}
 }
 

@@ -36,11 +36,13 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 	templates := service.NewTemplateService(s)
 	export := service.NewExportService(s)
 	notes := service.NewNoteService(s)
+	workingSet := service.NewWorkingSetService(s)
 
 	// Build responder with template rendering
 	tmplMap := handler.LoadTemplates(handler.TemplateFuncs{
 		ResolveTags: tags.ResolveTagIDs,
 		GetTag:      tags.GetTag,
+		IsPinned:    workingSet.IsPinned,
 	})
 	resp := handler.NewHTMLResponder(tmplMap, translations)
 
@@ -58,6 +60,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 		handler.NewExportHandler(export, inventory),
 		handler.NewNoteHandler(notes, inventory, resp),
 		handler.NewPartialsHandler(inventory, search, tags, resp),
+		handler.NewWorkingSetHandler(workingSet, resp),
 		handler.NewStatsHandler(inventory, tags, resp),
 		handler.NewSettingsHandler(resp),
 		handler.NewI18nHandler(translations),

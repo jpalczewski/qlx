@@ -1,0 +1,28 @@
+{{ define "rail" }}
+<aside class="working-set-rail" id="working-set-rail" aria-label="{{ .T "rail.title" }}">
+    <div class="rail-section" data-rail="pins">
+        <div role="heading" aria-level="3" class="rail-heading">{{ .T "rail.pinned" }}</div>
+        {{ if .Data.Pins }}
+        <ul class="rail-list">
+            {{ range .Data.Pins }}
+            <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content">{{ .Container.Name }}</a> <span class="rail-count">{{ .ItemCount }}</span></li>
+            {{ end }}
+        </ul>
+        {{ else }}
+        <p class="rail-empty">{{ .T "rail.no_pins" }}</p>
+        {{ end }}
+    </div>
+    <div class="rail-section" data-rail="recents">
+        <div role="heading" aria-level="3" class="rail-heading">{{ .T "rail.recent" }}</div>
+        {{ if .Data.Recents }}
+        <ul class="rail-list">
+            {{ range .Data.Recents }}
+            <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content">{{ .Container.Name }}</a> <span class="rail-count">{{ .ItemCount }}</span></li>
+            {{ end }}
+        </ul>
+        {{ else }}
+        <p class="rail-empty">{{ .T "rail.no_recents" }}</p>
+        {{ end }}
+    </div>
+</aside>
+{{ end }}
