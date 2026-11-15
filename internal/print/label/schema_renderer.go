@@ -19,12 +19,45 @@ type resolvedText struct {
 	lineH    int
 	iconName string // single icon for title slot
 	slot     string // "title", "description", "location", "tags", "children"
+
+	// Ink-tight layout used by fitted text (zero values mean the legacy layout,
+	// where every line occupies lineH and the baseline is at the line's bottom).
+	firstBaseline int // distance from the element top to the first baseline
+	bottom        int // extent below the last baseline
+
+	// Fit bookkeeping, set only for elements with Fit == "fill".
+	fit    bool
+	text   string
+	elem   Element
+	family string
+}
+
+// height returns the vertical space the element occupies.
+func (rt resolvedText) height() int {
+	if rt.firstBaseline == 0 {
+		return len(rt.lines) * rt.lineH
+	}
+	if len(rt.lines) == 0 {
+		return 0
+	}
+	return rt.firstBaseline + (len(rt.lines)-1)*rt.lineH + rt.bottom
+}
+
+// baselineOffset returns the distance from the element top to the baseline of line i.
+func (rt resolvedText) baselineOffset(i int) int {
+	if rt.firstBaseline == 0 {
+		return (i + 1) * rt.lineH
+	}
+	return rt.firstBaseline + i*rt.lineH
 }
 
 // effectiveFontFamily returns the font to use for an element.
 func effectiveFontFamily(el Element, schema Schema) string {
 	if el.FontFamily != "" {
 		return el.FontFamily
+	}
+	if fitEnabled(el) && schema.FontFamily == "" {
+		return fitDefaultFont
 	}
 	if schema.FontFamily != "" {
 		return schema.FontFamily
@@ -123,20 +156,30 @@ func renderSchema(schema Schema, data LabelData, media MediaInfo, opts RenderOpt
 		dateLineH = dateLine.lineH + 2 // 2px gap above the date
 	}
 
+	if media.HeightPx > 0 {
+		textElems = fitElements(textElems, fitArea{
+			widthPx: widthPx, totalH: media.HeightPx, pad: pad, qrReserved: qrReserved,
+			qrSize: qrSize, barcodeH: barcodeH, barcodeID: data.BarcodeID, dateLineH: dateLineH,
+		})
+	}
+
 	contentH := computeHeight(textElems, qrSize, barcodeH, data.BarcodeID, pad) + dateLineH
 
 	totalH := contentH
+	topOffset := 0
 	if media.HeightPx > 0 {
 		totalH = media.HeightPx
 		// Die-cut: if content overflows, truncate elements by priority
 		if contentH > totalH {
 			textElems = truncateForDieCut(textElems, qrSize, barcodeH, data.BarcodeID, pad, dateLineH, totalH)
+		} else if schema.VAlign == "middle" {
+			topOffset = (totalH - contentH) / 2
 		}
 	}
 
 	img := newCanvas(widthPx, totalH)
 
-	drawTextElements(img, textElems, widthPx, pad, qrSize)
+	drawTextElements(img, textElems, widthPx, pad, qrSize, topOffset)
 
 	if err := maybeDrawQR(img, data.QRContent, widthPx, pad, qrSize); err != nil {
 		return nil, err
@@ -234,7 +277,14 @@ func resolveSlotText(el Element, text string, schema Schema, widthPx, pad, qrRes
 	if IsBasicFont(ff) {
 		text = TransliteratePL(text)
 	}
-	return resolveTextElement(el, text, ff, widthPx, pad, qrReserved)
+	rt, err := resolveTextElement(el, text, ff, widthPx, pad, qrReserved)
+	if err != nil {
+		return resolvedText{}, err
+	}
+	if fitEnabled(el) {
+		rt.fit, rt.text, rt.elem, rt.family = true, text, el, ff
+	}
+	return rt, nil
 }
 
 // resolveTagsSlot resolves a tags slot element. Returns (rt, true, nil) if tags were rendered,
@@ -320,7 +370,7 @@ func resolveTextElement(el Element, text, fontFamily string, widthPx, pad, qrRes
 func computeHeight(textElems []resolvedText, qrSize, barcodeH int, barcodeID string, pad int) int {
 	textH := pad
 	for _, te := range textElems {
-		textH += len(te.lines) * te.lineH
+		textH += te.height()
 	}
 	textH += pad
 
@@ -335,20 +385,22 @@ func computeHeight(textElems []resolvedText, qrSize, barcodeH int, barcodeID str
 }
 
 // drawTextElements renders all resolved text rows onto the image.
-func drawTextElements(img *image.RGBA, textElems []resolvedText, widthPx, pad, qrSize int) {
-	y := pad
+func drawTextElements(img *image.RGBA, textElems []resolvedText, widthPx, pad, qrSize, topOffset int) {
+	y := pad + topOffset
 	for _, te := range textElems {
 		for i, line := range te.lines {
-			baseline := y + te.lineH
+			baseline := y + te.baselineOffset(i)
 			xOffset := 0
 
 			// Draw inline icon before first line of title.
 			if i == 0 && te.iconName != "" {
-				iconSize := te.lineH - 2
+				iconSize, iconY := te.lineH-2, y+1
+				if te.firstBaseline > 0 { // fitted text: icon spans the cap height
+					iconSize, iconY = te.firstBaseline, y
+				}
 				if iconSize > 0 {
 					iconImg, err := RasterizeIcon(te.iconName, iconSize)
 					if err == nil && iconImg != nil {
-						iconY := y + 1
 						draw.Draw(img, image.Rect(pad, iconY, pad+iconSize, iconY+iconSize),
 							iconImg, image.Point{}, draw.Over)
 						xOffset = iconSize + 4
@@ -358,8 +410,8 @@ func drawTextElements(img *image.RGBA, textElems []resolvedText, widthPx, pad, q
 
 			x := alignedX(te.face, line, te.align, widthPx, pad, qrSize)
 			drawTextFace(img, x+xOffset, baseline, line, te.col, te.face)
-			y += te.lineH
 		}
+		y += te.height()
 	}
 }
 

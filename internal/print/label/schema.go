@@ -16,7 +16,8 @@ import (
 type Schema struct {
 	Name       string    `json:"name"`
 	Padding    int       `json:"padding"`
-	FontFamily string    `json:"font_family"` // "basic" = Go basicfont (ASCII-only); default = Terminus
+	VAlign     string    `json:"valign"`      // die-cut media only: "top" (default) or "middle"
+	FontFamily string    `json:"font_family"` // "basic" = Go basicfont (ASCII-only); default = Spleen (bitmap)
 	Elements   []Element `json:"elements"`
 }
 
@@ -32,6 +33,9 @@ type Element struct {
 	Height     int     `json:"height"`      // px for barcode
 	ShowPath   string  `json:"show_path"`   // tags only: "auto"|"true"|"false" (default "auto")
 	ShowIcons  *bool   `json:"show_icons"`  // render inline icons (default true for title/children/tags)
+	Fit        string  `json:"fit"`         // title/description/location only: "none" (default) or "fill" (see fit.go)
+	MinSize    int     `json:"min_size"`    // fit only: smallest font px before wrapping (default: a quarter of the area height, at least 16)
+	MaxSize    int     `json:"max_size"`    // fit only: largest font px (default: derived from the area height)
 }
 
 // parseSchema parses JSON bytes into a Schema, applying defaults.
