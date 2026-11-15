@@ -24,6 +24,13 @@ const (
 	usbReadTimeout = 2 * time.Second
 )
 
+// usbWriteTimeout bounds one bulk OUT transfer. It is generous so that a
+// legitimately full printer buffer during a long job does not trip it, while a
+// printer that stopped accepting data (for example in a "cannot feed" error)
+// fails within this time instead of blocking forever. A var so tests can
+// override it.
+var usbWriteTimeout = 10 * time.Second
+
 // GoUSBTransport provides bidirectional USB communication via gousb (libusb).
 // Requires the "usb" build tag and libusb installed on the host system.
 type GoUSBTransport struct {
@@ -34,7 +41,7 @@ type GoUSBTransport struct {
 	inEP  *gousb.InEndpoint
 	outEP *gousb.OutEndpoint
 
-	// closeCtx is cancelled by Close() to abort in-flight USB reads
+	// closeCtx is cancelled by Close() to abort in-flight USB reads and writes
 	// before releasing libusb resources. Prevents SIGSEGV on shutdown.
 	closeCtx    context.Context
 	closeCancel context.CancelFunc
@@ -161,30 +168,37 @@ func autoDetachDefault(goos string) bool {
 	return goos == "linux"
 }
 
-// Write sends data to the USB bulk OUT endpoint.
+// Write sends data to the USB bulk OUT endpoint. It fails with an error
+// wrapping ErrTimeout if the printer does not accept the data within
+// usbWriteTimeout, and returns early if Close() is called.
 func (t *GoUSBTransport) Write(data []byte) (int, error) {
 	if t.outEP == nil {
 		return 0, errors.New("gousb: not connected")
 	}
-	return t.outEP.Write(data)
+	ctx, cancel := ioContext(t.closeCtx, usbWriteTimeout)
+	defer cancel()
+	n, err := t.outEP.WriteContext(ctx, data)
+	return n, classifyIOError("gousb write", ctx, usbWriteTimeout, err)
 }
 
-// Read reads data from the USB bulk IN endpoint with a timeout.
+// Read reads data from the USB bulk IN endpoint. It fails with an error
+// wrapping ErrTimeout after usbReadTimeout, and returns early on Close().
 func (t *GoUSBTransport) Read(buf []byte) (int, error) {
 	if t.inEP == nil {
 		return 0, errors.New("gousb: no IN endpoint (write-only device)")
 	}
-	ctx, cancel := context.WithTimeout(t.closeCtx, usbReadTimeout)
+	ctx, cancel := ioContext(t.closeCtx, usbReadTimeout)
 	defer cancel()
-	return t.inEP.ReadContext(ctx, buf)
+	n, err := t.inEP.ReadContext(ctx, buf)
+	return n, classifyIOError("gousb read", ctx, usbReadTimeout, err)
 }
 
 // Close cancels in-flight reads and releases all USB resources.
 func (t *GoUSBTransport) Close() error {
 	if t.closeCancel != nil {
-		t.closeCancel() // cancel any in-flight ReadContext
+		t.closeCancel() // cancel any in-flight ReadContext/WriteContext
 	}
-	// Brief yield so the cancelled ReadContext returns before we free libusb resources.
+	// Brief yield so the cancelled transfer returns before we free libusb resources.
 	time.Sleep(50 * time.Millisecond)
 	t.cleanup()
 	return nil
