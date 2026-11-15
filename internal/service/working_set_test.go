@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -37,7 +39,7 @@ func TestWorkingSetService_Snapshot(t *testing.T) {
 		}
 	}
 
-	snap := svc.Snapshot()
+	snap := svc.Snapshot(10)
 	if len(snap.Pins) != 1 || snap.Pins[0].Container.ID != pinned.ID || snap.Pins[0].ItemCount != 1 || !snap.Pins[0].Pinned {
 		t.Errorf("pins = %+v", snap.Pins)
 	}
@@ -49,7 +51,7 @@ func TestWorkingSetService_Snapshot(t *testing.T) {
 	}
 }
 
-func TestWorkingSetService_IsPinnedCache(t *testing.T) {
+func TestWorkingSetService_IsPinned(t *testing.T) {
 	svc, db := newWorkingSetFixture(t)
 	c := db.CreateContainer("", "C", "", "", "")
 
@@ -67,6 +69,59 @@ func TestWorkingSetService_IsPinnedCache(t *testing.T) {
 	}
 	if svc.IsPinned(c.ID) {
 		t.Error("should not be pinned after Unpin")
+	}
+}
+
+func TestWorkingSetService_SnapshotRecentLimit(t *testing.T) {
+	svc, db := newWorkingSetFixture(t)
+	base := time.UnixMilli(1_700_000_000_000)
+	for i := 0; i < 30; i++ {
+		c := db.CreateContainer("", fmt.Sprintf("C%d", i), "", "", "")
+		if err := db.RecordContainerOpen(c.ID, base.Add(time.Duration(i)*time.Millisecond)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for limit, want := range map[int]int{0: 0, 3: 3, 25: 25, 100: 30} {
+		if got := len(svc.Snapshot(limit).Recents); got != want {
+			t.Errorf("Snapshot(%d) recents = %d, want %d", limit, got, want)
+		}
+	}
+}
+
+func TestWorkingSetService_IsPinnedConsistentAndRaceFree(t *testing.T) {
+	svc, db := newWorkingSetFixture(t)
+	a := db.CreateContainer("", "A", "", "", "")
+	b := db.CreateContainer("", "B", "", "", "")
+	_ = svc.Pin(a.ID)
+	_ = svc.Pin(b.ID)
+	if err := svc.ReorderPins([]string{b.ID, a.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.IsPinned(a.ID) || !svc.IsPinned(b.ID) {
+		t.Fatal("both should stay pinned after reorder")
+	}
+	if _, err := db.DeleteContainer(a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if svc.IsPinned(a.ID) {
+		t.Error("deleted container must not be pinned")
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 20; j++ {
+				_ = svc.Unpin(b.ID)
+				_ = svc.IsPinned(b.ID)
+				_ = svc.Pin(b.ID)
+			}
+		}()
+	}
+	wg.Wait()
+	if !svc.IsPinned(b.ID) {
+		t.Error("b should end pinned")
 	}
 }
 

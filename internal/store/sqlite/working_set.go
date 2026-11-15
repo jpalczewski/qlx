@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -40,12 +41,35 @@ func (s *SQLiteStore) UnpinContainer(id string) error {
 // pinned are ignored; pinned containers not listed keep their relative order
 // after the listed ones.
 func (s *SQLiteStore) ReorderPins(ids []string) error {
-	current := s.Pins()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.Query(`SELECT container_id FROM container_pins ORDER BY position, created_at, container_id`)
+	if err != nil {
+		return err
+	}
+	var current []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		current = append(current, id)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return err
+	}
+	_ = rows.Close()
+
 	pinned := make(map[string]bool, len(current))
 	for _, id := range current {
 		pinned[id] = true
 	}
-
 	ordered := make([]string, 0, len(current))
 	seen := make(map[string]bool, len(current))
 	for _, id := range ids {
@@ -60,11 +84,6 @@ func (s *SQLiteStore) ReorderPins(ids []string) error {
 		}
 	}
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
 	for i, id := range ordered {
 		if _, err := tx.Exec(`UPDATE container_pins SET position = ? WHERE container_id = ?`, i, id); err != nil {
 			return err
@@ -104,19 +123,26 @@ func (s *SQLiteStore) RecordContainerOpen(id string, at time.Time) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	// Delete + re-insert (instead of upsert) so the row gets a fresh, strictly
+	// increasing rowid. Ordering by rowid breaks ties between opens that land
+	// in the same millisecond, keeping call order.
+	count := 0
+	err = tx.QueryRow(`SELECT open_count FROM container_recents WHERE container_id = ?`, id).Scan(&count)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM container_recents WHERE container_id = ?`, id); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(`
 		INSERT INTO container_recents (container_id, last_opened_at, open_count)
-		VALUES (?, ?, 1)
-		ON CONFLICT(container_id) DO UPDATE SET
-			last_opened_at = excluded.last_opened_at,
-			open_count = open_count + 1`,
-		id, at.UnixMilli()); err != nil {
+		VALUES (?, ?, ?)`, id, at.UnixMilli(), count+1); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(`
 		DELETE FROM container_recents WHERE container_id NOT IN (
 			SELECT container_id FROM container_recents
-			ORDER BY last_opened_at DESC, container_id
+			ORDER BY last_opened_at DESC, rowid DESC
 			LIMIT ?)`, store.MaxRecentContainers); err != nil {
 		return err
 	}
@@ -130,7 +156,7 @@ func (s *SQLiteStore) RecentContainers(limit int) []store.RecentContainer {
 	}
 	rows, err := s.db.Query(`
 		SELECT container_id, last_opened_at, open_count FROM container_recents
-		ORDER BY last_opened_at DESC, container_id LIMIT ?`, limit)
+		ORDER BY last_opened_at DESC, rowid DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil
 	}

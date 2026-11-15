@@ -1,0 +1,21 @@
+{{ define "rail-list" }}
+<ul class="rail-list">
+    {{ range .Entries }}
+    <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">{{ .Container.Name }}</a>{{ with .ParentPath }} <span class="rail-path">{{ . }}</span>{{ end }} <span class="rail-count">{{ .ItemCount }}</span></li>
+    {{ end }}
+</ul>
+{{ end }}
+
+{{ define "rail-section" }}
+<div class="rail-section" data-rail="{{ .Key }}">
+    <div role="heading" aria-level="3" class="rail-heading">{{ .Heading }}</div>
+    {{ if .Entries }}{{ template "rail-list" . }}{{ else }}<p class="rail-empty">{{ .Empty }}</p>{{ end }}
+</div>
+{{ end }}
+
+{{ define "rail" }}
+<aside class="working-set-rail" id="working-set-rail" aria-label="{{ .T "rail.title" }}">
+    {{ template "rail-section" dict "Key" "pins" "Heading" (.T "rail.pinned") "Empty" (.T "rail.no_pins") "Entries" .Data.Pins }}
+    {{ template "rail-section" dict "Key" "recents" "Heading" (.T "rail.recent") "Empty" (.T "rail.no_recents") "Entries" .Data.Recents }}
+</aside>
+{{ end }}

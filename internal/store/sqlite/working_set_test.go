@@ -176,3 +176,31 @@ func TestWorkingSet_ContainerItemCounts(t *testing.T) {
 		t.Errorf("nil ids: %v", got)
 	}
 }
+
+func TestWorkingSet_SameMillisecondOpensKeepCallOrder(t *testing.T) {
+	db := testStore(t)
+	at := time.UnixMilli(1_700_000_000_000)
+	var ids []string
+	for i := 0; i < 5; i++ {
+		c := db.CreateContainer("", fmt.Sprintf("C%d", i), "", "", "")
+		ids = append(ids, c.ID)
+		if err := db.RecordContainerOpen(c.ID, at); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Re-open the first one in the same millisecond: it becomes the newest.
+	if err := db.RecordContainerOpen(ids[0], at); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{ids[0], ids[4], ids[3], ids[2], ids[1]}
+	var got []string
+	for _, r := range db.RecentContainers(10) {
+		got = append(got, r.ContainerID)
+		if r.ContainerID == ids[0] && r.OpenCount != 2 {
+			t.Errorf("open_count = %d, want 2", r.OpenCount)
+		}
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("order = %v, want %v", got, want)
+	}
+}

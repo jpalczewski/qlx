@@ -11,5 +11,6 @@ type Store interface {
 	TemplateStore
 	ExportStore
 	NoteStore
+	WorkingSetStore
 	Close() error
 }

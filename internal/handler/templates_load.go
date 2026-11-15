@@ -16,6 +16,8 @@ import (
 type TemplateFuncs struct {
 	ResolveTags func([]string) []store.Tag
 	GetTag      func(string) *store.Tag
+	// IsPinned reports whether a container is pinned (working set).
+	IsPinned func(string) bool
 }
 
 // LoadTemplates discovers and parses all HTML templates from the embedded FS.
@@ -78,6 +80,7 @@ func loadLayout(fns TemplateFuncs) *template.Template {
 			}
 			return c.Hex
 		},
+		"IsPinned":       fns.IsPinned,
 		"allColors":      palette.AllColors,
 		"iconCategories": palette.IconCategories,
 	}).Parse(string(content)))
