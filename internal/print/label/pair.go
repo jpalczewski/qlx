@@ -34,7 +34,7 @@ type PairResult struct {
 // RenderPages renders data with the named template and returns one image per
 // label to print. Every schema template yields exactly one page, identical to
 // Render; PairTemplate yields exactly two (page 1 = identity, page 2 =
-// context). Use RenderPair to also learn about last-resort warnings.
+// context), or only page 1 when opts.FirstPageOnly is set. Use RenderPair to also learn about last-resort warnings.
 func RenderPages(data LabelData, template string, media MediaInfo, opts RenderOpts) ([]image.Image, error) {
 	if template == PairTemplate {
 		res, err := RenderPair(data, media, opts)
@@ -43,6 +43,9 @@ func RenderPages(data LabelData, template string, media MediaInfo, opts RenderOp
 		}
 		if len(res.Warnings) > 0 {
 			webutil.LogInfo("label: pair template used last resorts for %q: %v", data.Name, res.Warnings)
+		}
+		if opts.FirstPageOnly {
+			return res.Pages[:1], nil
 		}
 		return res.Pages, nil
 	}
