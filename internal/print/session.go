@@ -213,6 +213,18 @@ func (s *PrinterSession) Status() PrinterStatus {
 // refuses with the *encoder.StatusError only if the condition persists, and
 // with ErrPrinterNotResponding if the printer does not answer the status query.
 func (s *PrinterSession) Print(img image.Image, model string, opts encoder.PrintOpts) error {
+	return s.PrintPages([]image.Image{img}, model, opts)
+}
+
+// PrintPages prints a sequence of pages as one set, opts.Copies times, with
+// the pages of a set adjacent. opts.CutEvery counts sets. Encoders that
+// implement encoder.PagedEncoder print it as one job (one cut per set);
+// other encoders are driven page by page without cuts. It has the same
+// preflight and failure semantics as Print.
+func (s *PrinterSession) PrintPages(pages []image.Image, model string, opts encoder.PrintOpts) error {
+	if len(pages) == 0 {
+		return errors.New("no pages to print")
+	}
 	if s.notResponding() {
 		return ErrPrinterNotResponding
 	}
@@ -231,7 +243,7 @@ func (s *PrinterSession) Print(img image.Image, model string, opts encoder.Print
 		}
 	}
 	s.track.failed.Store(false)
-	err := s.enc.Encode(img, model, opts, s.tr)
+	err := s.encodePagesLocked(pages, model, opts)
 	// Without a heartbeat nothing else notices a dead link, so a transport
 	// failure while printing ends the session and the manager reconnects.
 	broke := err != nil && s.querier == nil && s.track.failed.Load()
@@ -248,6 +260,29 @@ func (s *PrinterSession) Print(img image.Image, model string, opts encoder.Print
 		s.fail()
 	}
 	return err
+}
+
+// encodePagesLocked sends pages to the encoder. s.mu must be held.
+func (s *PrinterSession) encodePagesLocked(pages []image.Image, model string, opts encoder.PrintOpts) error {
+	if pe, ok := s.enc.(encoder.PagedEncoder); ok {
+		return pe.EncodePages(pages, model, opts, s.tr)
+	}
+	if len(pages) == 1 {
+		return s.enc.Encode(pages[0], model, opts, s.tr)
+	}
+	// No paged job support (and so no cutter): one job per page, the set
+	// repeated Copies times in order.
+	single := opts
+	single.Copies = 1
+	single.CutEvery = 0
+	for range max(opts.Copies, 1) {
+		for _, pg := range pages {
+			if err := s.enc.Encode(pg, model, single, s.tr); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // notResponding reports whether the heartbeat is currently timing out.

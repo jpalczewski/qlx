@@ -19,5 +19,6 @@
   "printers.density": "Gęstość",
   "printers.cut_every": "Tnij co N etykiet (0=wył.)",
   "printers.high_res": "Wysoka rozdzielczość",
-  "printers.transport_unavailable": "(niedostępne w tej wersji)"
+  "printers.transport_unavailable": "(niedostępne w tej wersji)",
+  "printers.cut_every_pair": "Tnij co N par (0=wył.)"
 }
