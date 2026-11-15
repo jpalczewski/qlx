@@ -11,7 +11,11 @@
   "home.browse_tree": "Przeglądaj drzewo segregatorów",
   "home.card_print": "Drukuj",
   "home.card_add_label": "Dodaj przedmiot do",
-  "home.card_add_placeholder": "Dodaj przedmiot, np. kabel x5",
+  "home.card_add_placeholder": "kabel x5",
   "home.card_add_done": "Dodano: {name}",
-  "home.empty": "Nic jeszcze tu nie ma. Przypnij segregator gwiazdką na jego stronie, a pojawi się tutaj. Otwarte segregatory trafiają do ostatnich."
+  "home.empty": "Nic jeszcze tu nie ma. Przypnij segregator gwiazdką na jego stronie, a pojawi się tutaj. Otwarte segregatory trafiają do ostatnich.",
+  "home.card_add_open": "Dodaj przedmiot",
+  "home.count_one": "{n} przedmiot",
+  "home.count_few": "{n} przedmioty",
+  "home.count_many": "{n} przedmiotów"
 }

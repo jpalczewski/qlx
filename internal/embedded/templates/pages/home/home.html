@@ -2,20 +2,25 @@
 <li class="home-card" data-container-id="{{ .Entry.Container.ID }}">
     <a class="home-card-link" href="/containers/{{ .Entry.Container.ID }}" hx-get="/containers/{{ .Entry.Container.ID }}" hx-target="#content">
         <span class="home-card-name">{{ if .Entry.Container.Color }}<span class="color-dot" style="background-color: {{ paletteHex .Entry.Container.Color }}"></span>{{ end }}<span class="entity-icon">{{ if .Entry.Container.Icon }}{{ icon .Entry.Container.Icon }}{{ else }}{{ icon "package" }}{{ end }}</span><span class="home-card-name-text">{{ .Entry.Container.Name }}</span></span>
-        <span class="home-card-path">{{ with .Entry.ParentPath }}{{ . }}{{ else }}&nbsp;{{ end }}</span>
+        {{ with .Entry.ParentPath }}<span class="home-card-path" title="{{ . }}">{{ . }}</span>{{ end }}
     </a>
-    <span class="home-card-count" title="{{ .CountLabel }}">{{ .Entry.ItemCount }}</span>
-    <button type="button" class="home-card-pin pin-toggle" data-pin-toggle="{{ .Entry.Container.ID }}"
-            aria-pressed="{{ if .Entry.Pinned }}true{{ else }}false{{ end }}"
-            data-label-pin="{{ .PinLabel }}" data-label-unpin="{{ .UnpinLabel }}"
-            aria-label="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"
-            title="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"><span aria-hidden="true" class="pin-star">{{ if .Entry.Pinned }}★{{ else }}☆{{ end }}</span></button>
-    <a class="home-card-print" href="/containers/{{ .Entry.Container.ID }}?print=1" hx-get="/containers/{{ .Entry.Container.ID }}?print=1" hx-target="#content"
-       data-intent="print" aria-label="{{ .PrintLabel }}: {{ .Entry.Container.Name }}" title="{{ .PrintLabel }}">{{ .PrintLabel }}</a>
-    <form class="home-card-add" autocomplete="off">
-        <input type="text" class="home-card-add-input" maxlength="200"
-               placeholder="{{ .AddPlaceholder }}" aria-label="{{ .AddLabel }}: {{ .Entry.Container.Name }}">
-    </form>
+    <span class="home-card-count" data-count="{{ .Entry.ItemCount }}">{{ .Count }}</span>
+    <div class="home-card-actions">
+        <button type="button" class="home-card-pin pin-toggle" data-pin-toggle="{{ .Entry.Container.ID }}"
+                aria-pressed="{{ if .Entry.Pinned }}true{{ else }}false{{ end }}"
+                data-label-pin="{{ .PinLabel }}" data-label-unpin="{{ .UnpinLabel }}"
+                aria-label="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"
+                title="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"><span aria-hidden="true" class="pin-star">{{ if .Entry.Pinned }}★{{ else }}☆{{ end }}</span></button>
+        <a class="home-card-print" href="/containers/{{ .Entry.Container.ID }}?print=1" hx-get="/containers/{{ .Entry.Container.ID }}?print=1" hx-target="#content"
+           data-intent="print" aria-label="{{ .PrintLabel }}: {{ .Entry.Container.Name }}" title="{{ .PrintLabel }}: {{ .Entry.Container.Name }}"><span aria-hidden="true" class="home-card-print-icon">{{ icon "printer" }}</span></a>
+    </div>
+    <div class="home-card-add-area">
+        <button type="button" class="home-card-add-toggle" aria-expanded="false">+ {{ .AddOpen }}</button>
+        <form class="home-card-add" autocomplete="off" hidden>
+            <input type="text" class="home-card-add-input" maxlength="200"
+                   placeholder="{{ .AddPlaceholder }}" aria-label="{{ .AddLabel }}: {{ .Entry.Container.Name }}">
+        </form>
+    </div>
 </li>
 {{ end }}
 
@@ -38,7 +43,7 @@
         <section class="home-section" data-home="pins">
             <h2>{{.T "home.pinned"}}</h2>
             <ul class="home-grid">
-                {{ range .Data.Pins }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") }}{{ end }}
+                {{ range .Data.Pins }}{{ template "home-card" dict "Entry" . "Count" ($.Plural "home.count" .ItemCount) "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") "AddOpen" ($.T "home.card_add_open") }}{{ end }}
             </ul>
         </section>
         {{ end }}
@@ -46,7 +51,7 @@
         <section class="home-section" data-home="recents">
             <h2>{{.T "home.recent"}}</h2>
             <ul class="home-grid">
-                {{ range .Data.Recents }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") }}{{ end }}
+                {{ range .Data.Recents }}{{ template "home-card" dict "Entry" . "Count" ($.Plural "home.count" .ItemCount) "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") "AddOpen" ($.T "home.card_add_open") }}{{ end }}
             </ul>
         </section>
         {{ end }}

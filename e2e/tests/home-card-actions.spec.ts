@@ -38,14 +38,17 @@ test.describe('Start screen card actions', () => {
     await page.goto(`${app.baseURL}/`);
 
     const card = page.locator(`.home-card[data-container-id="${c.id}"]`);
-    await expect(card.locator('.home-card-count')).toHaveText('1');
+    await expect(card.locator('.home-card-count')).toHaveText('1 przedmiot');
+    // The field is collapsed until the "+ Dodaj przedmiot" trigger is used.
+    await card.getByRole('button', { name: '+ Dodaj przedmiot' }).click();
     const input = card.getByRole('textbox', { name: `Dodaj przedmiot do: ${c.name}` });
+    await expect(input).toBeFocused();
     await input.fill('Spare cable');
     const response = page.waitForResponse((r) => r.url().endsWith('/items') && r.request().method() === 'POST');
     await input.press('Enter');
     expect((await response).status()).toBe(201);
 
-    await expect(card.locator('.home-card-count')).toHaveText('2');
+    await expect(card.locator('.home-card-count')).toHaveText('2 przedmioty');
     await expect(input).toHaveValue('');
     await expect(page.locator('.toast-success')).toContainText('Dodano: Spare cable');
     // No page reload: the start screen is still the document.
@@ -60,10 +63,11 @@ test.describe('Start screen card actions', () => {
     await page.goto(`${app.baseURL}/`);
 
     const card = page.locator(`.home-card[data-container-id="${c.id}"]`);
+    await card.locator('.home-card-add-toggle').click();
     const input = card.locator('.home-card-add-input');
     await input.fill('Screws x5');
     await input.press('Enter');
-    await expect(card.locator('.home-card-count')).toHaveText('1');
+    await expect(card.locator('.home-card-count')).toHaveText('1 przedmiot');
 
     const items = await itemsOf(page, app.baseURL, c.id);
     expect(items).toHaveLength(1);
@@ -81,13 +85,72 @@ test.describe('Start screen card actions', () => {
     await page.goto(`${app.baseURL}/`);
 
     const card = page.locator(`.home-card[data-container-id="${c.id}"]`);
+    await card.locator('.home-card-add-toggle').click();
     const input = card.locator('.home-card-add-input');
     await input.fill('Lost thing');
     await input.press('Enter');
 
     await expect(page.locator('.toast-error')).toContainText('Nie udało się dodać');
     await expect(input).toHaveValue('Lost thing');
-    await expect(card.locator('.home-card-count')).toHaveText('0');
+    await expect(card.locator('.home-card-count')).toHaveText('0 przedmiotów');
+  });
+
+  test('quick-add is collapsed, opens by keyboard, Esc collapses', async ({ page, app }) => {
+    const c = await createContainer(page, app.baseURL, uniq('Kbd Box'));
+    await pin(page, app.baseURL, c.id);
+    await page.goto(`${app.baseURL}/`);
+
+    const card = page.locator(`.home-card[data-container-id="${c.id}"]`);
+    const toggle = card.getByRole('button', { name: '+ Dodaj przedmiot' });
+    const input = card.locator('.home-card-add-input');
+    await expect(input).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(input).toBeFocused();
+    await expect(input).toHaveAttribute('placeholder', 'kabel x5');
+
+    await page.keyboard.press('Escape');
+    await expect(input).toBeHidden();
+    await expect(toggle).toBeFocused();
+
+    await page.keyboard.press('Enter');
+    await input.fill('Keyboard thing');
+    const response = page.waitForResponse((r) => r.url().endsWith('/items') && r.request().method() === 'POST');
+    await page.keyboard.press('Enter');
+    expect((await response).status()).toBe(201);
+    await expect(card.locator('.home-card-count')).toHaveText('1 przedmiot');
+  });
+
+  test('count is spelled with Polish plural forms', async ({ page, app }) => {
+    const cases: [number, string][] = [[0, '0 przedmiotów'], [1, '1 przedmiot'], [3, '3 przedmioty'], [5, '5 przedmiotów']];
+    const ids: [string, string][] = [];
+    for (const [n, text] of cases) {
+      const c = await createContainer(page, app.baseURL, uniq(`Plural ${n}`));
+      for (let i = 0; i < n; i++) await createItem(page, app.baseURL, c.id, `Thing ${i}`);
+      await pin(page, app.baseURL, c.id);
+      ids.push([c.id, text]);
+    }
+    await page.goto(`${app.baseURL}/`);
+    for (const [id, text] of ids) {
+      await expect(page.locator(`.home-card[data-container-id="${id}"] .home-card-count`)).toHaveText(text);
+    }
+  });
+
+  test('a long name wraps instead of being cut off when the card is wide', async ({ page, app }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // Short enough for two lines even in a narrow multi-column grid, too long for one.
+    const name = `Segregator medyczny ${Date.now() % 100000}`;
+    const c = await createContainer(page, app.baseURL, name);
+    await pin(page, app.baseURL, c.id);
+    await page.goto(`${app.baseURL}/`);
+
+    const text = page.locator(`.home-card[data-container-id="${c.id}"] .home-card-name-text`);
+    await expect(text).toHaveText(name);
+    const m = await text.evaluate((el) => ({ sh: el.scrollHeight, ch: el.clientHeight, sw: el.scrollWidth, cw: el.clientWidth }));
+    expect(m.sh - m.ch, JSON.stringify(m)).toBeLessThanOrEqual(1);
+    expect(m.sw - m.cw, JSON.stringify(m)).toBeLessThanOrEqual(1);
   });
 
   test('print shortcut opens the container with the print panel focused', async ({ page, app }) => {

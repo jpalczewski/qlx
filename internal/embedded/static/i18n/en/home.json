@@ -11,7 +11,11 @@
   "home.browse_tree": "Browse the container tree",
   "home.card_print": "Print",
   "home.card_add_label": "Add an item to",
-  "home.card_add_placeholder": "Add an item, e.g. cable x5",
+  "home.card_add_placeholder": "cable x5",
   "home.card_add_done": "Added: {name}",
-  "home.empty": "Nothing here yet. Pin a container with the star on its page and it will show up here. Containers you open are listed under recent."
+  "home.empty": "Nothing here yet. Pin a container with the star on its page and it will show up here. Containers you open are listed under recent.",
+  "home.card_add_open": "Add item",
+  "home.count_one": "{n} item",
+  "home.count_few": "{n} items",
+  "home.count_many": "{n} items"
 }

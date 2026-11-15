@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
@@ -16,6 +19,21 @@ type PageData struct {
 // T returns the translation for key in the active language.
 func (p PageData) T(key string) string {
 	return p.translator.Get(p.Lang, key)
+}
+
+// Plural returns the translation of base+"_one"/"_few"/"_many" matching n in
+// the active language, with "{n}" replaced by the number. Polish uses all
+// three forms (1 / 2-4 except 12-14 / the rest); other languages use "_one"
+// for 1 and "_many" otherwise.
+func (p PageData) Plural(base string, n int) string {
+	form := "many"
+	switch {
+	case n == 1:
+		form = "one"
+	case p.Lang == "pl" && n%10 >= 2 && n%10 <= 4 && (n%100 < 12 || n%100 > 14):
+		form = "few"
+	}
+	return strings.ReplaceAll(p.translator.Get(p.Lang, base+"_"+form), "{n}", strconv.Itoa(n))
 }
 
 // ContainerListData is the view model for the container list page.
