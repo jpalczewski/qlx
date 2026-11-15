@@ -1,7 +1,7 @@
 {{ define "rail-list" }}
 <ul class="rail-list">
     {{ range .Entries }}
-    <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">{{ .Container.Name }}</a>{{ if ne .Path .Container.Name }} <span class="rail-path">{{ .Path }}</span>{{ end }} <span class="rail-count">{{ .ItemCount }}</span></li>
+    <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">{{ .Container.Name }}</a>{{ with .ParentPath }} <span class="rail-path">{{ . }}</span>{{ end }} <span class="rail-count">{{ .ItemCount }}</span></li>
     {{ end }}
 </ul>
 {{ end }}

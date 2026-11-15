@@ -35,6 +35,15 @@ type WorkingSetEntry struct {
 	OpenCount    int
 }
 
+// ParentPath returns Path without the container's own name ("Parent / Child"),
+// or "" for a root container.
+func (e WorkingSetEntry) ParentPath() string {
+	if !strings.HasSuffix(e.Path, e.Container.Name) {
+		return ""
+	}
+	return strings.TrimSuffix(strings.TrimSuffix(e.Path, e.Container.Name), " / ")
+}
+
 // WorkingSetSnapshot is the data needed to render the working set.
 type WorkingSetSnapshot struct {
 	Pins    []WorkingSetEntry

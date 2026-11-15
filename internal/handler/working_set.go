@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -131,8 +132,11 @@ func (h *WorkingSetHandler) ReorderPins(w http.ResponseWriter, r *http.Request) 
 	}
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxReorderBody))
 	err := dec.Decode(&body)
-	if err == nil && dec.More() {
-		err = errors.New("unexpected data after JSON value")
+	if err == nil {
+		var extra json.RawMessage
+		if dec.Decode(&extra) != io.EOF {
+			err = errors.New("unexpected data after JSON value")
+		}
 	}
 	if err == nil && (body.IDs == nil || *body.IDs == nil) {
 		err = errors.New(`"ids" is required`)
@@ -185,7 +189,25 @@ func (h *WorkingSetHandler) QuickSwitch(w http.ResponseWriter, r *http.Request) 
 // Rail handles GET /partials/rail — the working set rail HTML fragment.
 func (h *WorkingSetHandler) Rail(w http.ResponseWriter, r *http.Request) {
 	snap := h.limitedSnapshot(r)
-	if !h.resp.RenderPartial(w, r, "rail", "rail", snap) && webutil.WantsJSON(r) {
+	tw := &writeTracker{ResponseWriter: w}
+	if !h.resp.RenderPartial(tw, r, "rail", "rail", snap) && !tw.wrote {
+		// The responder cannot render HTML (e.g. JSON-only) and wrote nothing.
 		webutil.JSON(w, http.StatusOK, snapshotJSON(snap))
 	}
+}
+
+// writeTracker records whether anything was written to the response.
+type writeTracker struct {
+	http.ResponseWriter
+	wrote bool
+}
+
+func (t *writeTracker) WriteHeader(code int) {
+	t.wrote = true
+	t.ResponseWriter.WriteHeader(code)
+}
+
+func (t *writeTracker) Write(b []byte) (int, error) {
+	t.wrote = true
+	return t.ResponseWriter.Write(b)
 }

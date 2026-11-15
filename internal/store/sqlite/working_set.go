@@ -41,12 +41,35 @@ func (s *SQLiteStore) UnpinContainer(id string) error {
 // pinned are ignored; pinned containers not listed keep their relative order
 // after the listed ones.
 func (s *SQLiteStore) ReorderPins(ids []string) error {
-	current := s.Pins()
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rows, err := tx.Query(`SELECT container_id FROM container_pins ORDER BY position, created_at, container_id`)
+	if err != nil {
+		return err
+	}
+	var current []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		current = append(current, id)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return err
+	}
+	_ = rows.Close()
+
 	pinned := make(map[string]bool, len(current))
 	for _, id := range current {
 		pinned[id] = true
 	}
-
 	ordered := make([]string, 0, len(current))
 	seen := make(map[string]bool, len(current))
 	for _, id := range ids {
@@ -61,11 +84,6 @@ func (s *SQLiteStore) ReorderPins(ids []string) error {
 		}
 	}
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
 	for i, id := range ordered {
 		if _, err := tx.Exec(`UPDATE container_pins SET position = ? WHERE container_id = ?`, i, id); err != nil {
 			return err

@@ -78,6 +78,9 @@ func TestWorkingSet_PinUnpin(t *testing.T) {
 		{"reorder missing ids", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{}`, 400, false},
 		{"reorder null ids", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":null}`, 400, false},
 		{"reorder trailing data", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":[]} {"x":1}`, 400, false},
+		{"reorder stray brace", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":[]}}`, 400, false},
+		{"reorder stray bracket", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":[]}]`, 400, false},
+		{"reorder trailing whitespace ok", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, "{\"ids\":[]}\n", 204, true},
 		{"reorder oversized", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":["` + strings.Repeat("a", maxReorderBody) + `"]}`, 413, false},
 	}
 	for _, tc := range tests {
@@ -371,7 +374,27 @@ func TestWorkingSet_RailShowsPath(t *testing.T) {
 	e.do("POST", "/api/working-set/pins/"+e.box.ID, "")
 	w := httptest.NewRecorder()
 	e.mux.ServeHTTP(w, httptest.NewRequest("GET", "/partials/rail", nil))
-	if !strings.Contains(w.Body.String(), "Shelf / Blue Box") {
-		t.Errorf("rail should show container path:\n%s", w.Body.String())
+	body := w.Body.String()
+	if !strings.Contains(body, `<span class="rail-path">Shelf</span>`) {
+		t.Errorf("rail should show the parent path:\n%s", body)
+	}
+	// Root container: no rail-path.
+	e.do("POST", "/api/working-set/pins/"+e.drawer.ID, "")
+	w = httptest.NewRecorder()
+	e.mux.ServeHTTP(w, httptest.NewRequest("GET", "/partials/rail", nil))
+	if strings.Count(w.Body.String(), `class="rail-path"`) != 1 {
+		t.Errorf("root container must not render rail-path:\n%s", w.Body.String())
+	}
+}
+
+func TestWorkingSet_RailNonHTMLResponderFallsBackToJSON(t *testing.T) {
+	e := newWSEnv(t, nil) // JSONResponder cannot render HTML
+	e.do("POST", "/api/working-set/pins/"+e.drawer.ID, "")
+	r := httptest.NewRequest("GET", "/partials/rail", nil)
+	r.Header.Set("Accept", "*/*")
+	w := httptest.NewRecorder()
+	e.mux.ServeHTTP(w, r)
+	if snap := decodeSnapshot(t, w); len(snap.Pins) != 1 {
+		t.Errorf("pins = %+v", snap.Pins)
 	}
 }
