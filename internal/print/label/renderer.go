@@ -14,7 +14,10 @@ import (
 
 // RenderOpts controls optional rendering behaviour.
 type RenderOpts struct {
-	PrintDate bool // append "Wydrukowano: DATE" at bottom
+	PrintDate bool // append "Wydrukowano: DATE" at bottom (pair template: date in the bars)
+	// PrintDescription enables the item description on the paired template
+	// (it is an option, off by default). Schema templates ignore it.
+	PrintDescription bool
 }
 
 // nowFunc is overridable for tests.
@@ -24,7 +27,7 @@ var nowFunc = time.Now
 type MediaInfo struct {
 	WidthPx  int // printhead width in pixels (384, 720)
 	HeightPx int // 0 = continuous (dynamic height); >0 = die-cut label height in px
-	DPI      int // 203, 300; used by encoder and manager, not consumed by renderer itself
+	DPI      int // 203, 300; used by encoder and manager; the pair template also sizes fonts and floors from it (0 = 203 up to 384 px wide, else 300)
 }
 
 // Render produces a label image from the given data using the named schema.

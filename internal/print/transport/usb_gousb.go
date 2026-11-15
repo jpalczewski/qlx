@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,13 @@ const (
 	usbReadTimeout = 2 * time.Second
 )
 
+// usbWriteTimeout bounds one bulk OUT transfer. It is generous so that a
+// legitimately full printer buffer during a long job does not trip it, while a
+// printer that stopped accepting data (for example in a "cannot feed" error)
+// fails within this time instead of blocking forever. A var so tests can
+// override it.
+var usbWriteTimeout = 10 * time.Second
+
 // GoUSBTransport provides bidirectional USB communication via gousb (libusb).
 // Requires the "usb" build tag and libusb installed on the host system.
 type GoUSBTransport struct {
@@ -33,7 +41,7 @@ type GoUSBTransport struct {
 	inEP  *gousb.InEndpoint
 	outEP *gousb.OutEndpoint
 
-	// closeCtx is cancelled by Close() to abort in-flight USB reads
+	// closeCtx is cancelled by Close() to abort in-flight USB reads and writes
 	// before releasing libusb resources. Prevents SIGSEGV on shutdown.
 	closeCtx    context.Context
 	closeCancel context.CancelFunc
@@ -93,7 +101,11 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 	}
 
 	t.dev = matched
-	t.dev.SetAutoDetach(true)
+	if autoDetachDefault(runtime.GOOS) {
+		if err := t.dev.SetAutoDetach(true); err != nil {
+			webutil.LogTrace("gousb: set auto detach: %v", err)
+		}
+	}
 
 	// Use the active configuration rather than setting one (avoids kernel driver conflicts on macOS).
 	cfgNum, err := t.dev.ActiveConfigNum()
@@ -110,9 +122,10 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 	t.iface, err = t.cfg.Interface(0, 0)
 	if err != nil {
 		t.cleanup()
-		// On macOS, the Apple USB printer driver claims the interface.
-		// Running with sudo or unloading the driver is required.
-		return fmt.Errorf("gousb interface: %w (on macOS, try running with sudo or unload the kernel driver)", err)
+		// "bad access" (LIBUSB_ERROR_ACCESS) means another process already holds the interface
+		// exclusively, or, on Linux, that a kernel driver or missing permissions are in the way.
+		return fmt.Errorf("gousb interface: %w (another process may hold the printer, e.g. a CUPS queue "+
+			"or a second QLX instance; on Linux check the usblp driver and udev permissions)", err)
 	}
 
 	// Find bulk IN and OUT endpoints.
@@ -144,30 +157,48 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 	return nil
 }
 
-// Write sends data to the USB bulk OUT endpoint.
+// autoDetachDefault reports whether the kernel driver should be detached automatically when
+// claiming the printer interface for the given GOOS value (runtime.GOOS).
+//
+// Only Linux needs it: the usblp driver binds to every USB printer. On macOS the printer
+// interface has no kernel driver, and libusb's detach path (device capture) needs root or a
+// special Apple entitlement, so enabling it there turns a working unprivileged claim into
+// "Can't detach kernel driver ... bad access". Without it a normal user can print on macOS.
+func autoDetachDefault(goos string) bool {
+	return goos == "linux"
+}
+
+// Write sends data to the USB bulk OUT endpoint. It fails with an error
+// wrapping ErrTimeout if the printer does not accept the data within
+// usbWriteTimeout, and returns early if Close() is called.
 func (t *GoUSBTransport) Write(data []byte) (int, error) {
 	if t.outEP == nil {
 		return 0, errors.New("gousb: not connected")
 	}
-	return t.outEP.Write(data)
+	ctx, cancel := ioContext(t.closeCtx, usbWriteTimeout)
+	defer cancel()
+	n, err := t.outEP.WriteContext(ctx, data)
+	return n, classifyIOError("gousb write", ctx, usbWriteTimeout, err)
 }
 
-// Read reads data from the USB bulk IN endpoint with a timeout.
+// Read reads data from the USB bulk IN endpoint. It fails with an error
+// wrapping ErrTimeout after usbReadTimeout, and returns early on Close().
 func (t *GoUSBTransport) Read(buf []byte) (int, error) {
 	if t.inEP == nil {
 		return 0, errors.New("gousb: no IN endpoint (write-only device)")
 	}
-	ctx, cancel := context.WithTimeout(t.closeCtx, usbReadTimeout)
+	ctx, cancel := ioContext(t.closeCtx, usbReadTimeout)
 	defer cancel()
-	return t.inEP.ReadContext(ctx, buf)
+	n, err := t.inEP.ReadContext(ctx, buf)
+	return n, classifyIOError("gousb read", ctx, usbReadTimeout, err)
 }
 
 // Close cancels in-flight reads and releases all USB resources.
 func (t *GoUSBTransport) Close() error {
 	if t.closeCancel != nil {
-		t.closeCancel() // cancel any in-flight ReadContext
+		t.closeCancel() // cancel any in-flight ReadContext/WriteContext
 	}
-	// Brief yield so the cancelled ReadContext returns before we free libusb resources.
+	// Brief yield so the cancelled transfer returns before we free libusb resources.
 	time.Sleep(50 * time.Millisecond)
 	t.cleanup()
 	return nil
@@ -249,4 +280,13 @@ func parseUSBAddress(addr string) (vid, pid uint16, serial string, err error) {
 	}
 
 	return uint16(v), uint16(p), parts[2], nil //nolint:gosec // G115: validated by ParseUint bounds
+}
+
+func init() {
+	RegisterWithMeta("gousb", func() Transport { return &GoUSBTransport{} }, Meta{
+		Label:              "USB (bidirectional)",
+		AddressPlaceholder: "04F9:2042:SERIAL",
+		Order:              10,
+		Available:          true,
+	})
 }
