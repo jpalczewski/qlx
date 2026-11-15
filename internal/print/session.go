@@ -3,6 +3,7 @@ package print
 import (
 	"context"
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"sync"
@@ -51,6 +52,7 @@ type PrinterSession struct {
 	querier   encoder.StatusQuerier // nil if encoder doesn't support status
 	status    PrinterStatus
 	mu        sync.Mutex
+	condition *encoder.StatusError // active printer status condition (guarded by mu); nil when clean
 	stop      chan struct{}
 	stopped   chan struct{}
 	failed    chan struct{} // closed when the session ends by itself (see fail)
@@ -58,7 +60,9 @@ type PrinterSession struct {
 	stopOnce  sync.Once
 	closeOnce sync.Once
 	closed    atomic.Bool // set once the transport is closed
-	onUpdate  func(printerID string, status PrinterStatus)
+	// lastChanged is set when status changed and subscribers still need a notify (guarded by mu).
+	lastChanged bool
+	onUpdate    func(printerID string, status PrinterStatus)
 }
 
 // NewSession creates a session. onUpdate is called when status changes.
@@ -183,11 +187,28 @@ func (s *PrinterSession) Status() PrinterStatus {
 }
 
 // Print encodes and sends an image to the printer (locks mutex to pause heartbeat).
+//
+// For status-capable encoders it first takes a fresh status under the session
+// lock. If a printer condition (cover open, media mismatch, ...) is reported,
+// it re-initialises the printer when the encoder supports it (sticky error bits
+// such as a media mismatch are only cleared that way) and queries again. Print
+// refuses with the *encoder.StatusError only if the condition persists.
 func (s *PrinterSession) Print(img image.Image, model string, opts encoder.PrintOpts) error {
 	s.mu.Lock()
 	if s.closed.Load() {
 		s.mu.Unlock()
 		return ErrPrinterDisconnected
+	}
+	if s.querier != nil {
+		if err := s.preflightLocked(); err != nil {
+			st, changed := s.status, s.lastChanged
+			s.lastChanged = false
+			s.mu.Unlock()
+			if changed {
+				s.notify(st)
+			}
+			return err
+		}
 	}
 	s.track.failed.Store(false)
 	err := s.enc.Encode(img, model, opts, s.tr)
@@ -197,8 +218,13 @@ func (s *PrinterSession) Print(img image.Image, model string, opts encoder.Print
 	if broke {
 		s.closeTransport()
 	}
+	st, changed := s.status, s.lastChanged
+	s.lastChanged = false
 	s.mu.Unlock()
 
+	if changed {
+		s.notify(st)
+	}
 	if broke {
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
@@ -207,6 +233,58 @@ func (s *PrinterSession) Print(img image.Image, model string, opts encoder.Print
 		s.fail()
 	}
 	return err
+}
+
+// preflightLocked takes a fresh printer status before printing. s.mu must be
+// held. It returns the active status condition (after one re-initialisation
+// attempt), or a transport error from the query itself, or nil when printing
+// may proceed.
+func (s *PrinterSession) preflightLocked() error {
+	result, err := s.querier.Heartbeat(s.tr)
+	var statusErr *encoder.StatusError
+	if errors.As(err, &statusErr) {
+		if r, ok := s.enc.(encoder.Reinitializer); ok {
+			if rerr := r.Reinitialize(s.tr); rerr != nil {
+				return fmt.Errorf("reinitialize printer: %w", rerr)
+			}
+			result, err = s.querier.Heartbeat(s.tr)
+		}
+	}
+	if err != nil && !errors.As(err, &statusErr) {
+		return fmt.Errorf("printer status: %w", err)
+	}
+	s.recordHeartbeatLocked(result, err)
+	if s.condition != nil {
+		return s.condition
+	}
+	return nil
+}
+
+// recordHeartbeatLocked applies a successful heartbeat exchange to the status:
+// err is nil (clean) or an *encoder.StatusError. s.mu must be held. It sets
+// lastChanged when subscribers need to be notified.
+func (s *PrinterSession) recordHeartbeatLocked(result encoder.HeartbeatResult, err error) {
+	var statusErr *encoder.StatusError
+	errors.As(err, &statusErr)
+	lastError := ""
+	if statusErr != nil {
+		lastError = statusErr.Error()
+	}
+
+	prev := s.status
+	s.condition = statusErr
+	s.status.Connected = true
+	s.status.Battery = result.Battery
+	s.status.LidClosed = result.LidClosed
+	s.status.PaperLoaded = result.PaperLoaded
+	s.status.LastError = lastError
+	if s.status != prev {
+		s.status.LastUpdated = time.Now()
+		s.lastChanged = true
+		if lastError != prev.LastError {
+			webutil.LogTrace("session %s: printer status: %q", s.config.Name, lastError)
+		}
+	}
 }
 
 func (s *PrinterSession) heartbeatLoop() {
@@ -225,31 +303,44 @@ func (s *PrinterSession) heartbeatLoop() {
 		case <-s.stop:
 			return
 		case <-ticker.C:
-			s.mu.Lock()
-			result, err := s.querier.Heartbeat(s.tr)
-			s.mu.Unlock()
-
-			if err != nil {
-				webutil.LogTrace("session %s: heartbeat error: %v", s.config.Name, err)
-				s.updateStatus(func(st *PrinterStatus) {
-					st.Connected = false
-					st.LastError = err.Error()
-				})
-				// Release the transport now; the ConnectionManager owns reconnect.
-				s.releaseTransport()
-				s.fail()
+			if !s.heartbeatOnce() {
 				return
 			}
-
-			s.updateStatus(func(st *PrinterStatus) {
-				st.Connected = true
-				st.Battery = result.Battery
-				st.LidClosed = result.LidClosed
-				st.PaperLoaded = result.PaperLoaded
-				st.LastError = ""
-			})
 		}
 	}
+}
+
+// heartbeatOnce runs one heartbeat and reports whether the session continues.
+// A printer condition (*encoder.StatusError) keeps the session alive; only
+// transport/protocol errors end it.
+func (s *PrinterSession) heartbeatOnce() bool {
+	s.mu.Lock()
+	result, err := s.querier.Heartbeat(s.tr)
+	var statusErr *encoder.StatusError
+	if err == nil || errors.As(err, &statusErr) {
+		// Recorded under the same lock as the query, so Print never sees a
+		// condition that lags behind the printer.
+		s.recordHeartbeatLocked(result, err)
+		st, changed := s.status, s.lastChanged
+		s.lastChanged = false
+		s.mu.Unlock()
+		if changed {
+			s.notify(st)
+		}
+		return true
+	}
+	s.mu.Unlock()
+
+	webutil.LogTrace("session %s: heartbeat error: %v", s.config.Name, err)
+	s.updateStatus(func(st *PrinterStatus) {
+		st.Connected = false
+		st.LastError = err.Error()
+		s.condition = nil // a dead link supersedes any printer condition
+	})
+	// Release the transport now; the ConnectionManager owns reconnect.
+	s.releaseTransport()
+	s.fail()
+	return false
 }
 
 func (s *PrinterSession) updateStatus(fn func(*PrinterStatus)) {
@@ -258,7 +349,10 @@ func (s *PrinterSession) updateStatus(fn func(*PrinterStatus)) {
 	s.status.LastUpdated = time.Now()
 	status := s.status
 	s.mu.Unlock()
+	s.notify(status)
+}
 
+func (s *PrinterSession) notify(status PrinterStatus) {
 	if s.onUpdate != nil {
 		s.onUpdate(s.config.ID, status)
 	}
