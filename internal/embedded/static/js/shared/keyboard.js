@@ -5,7 +5,6 @@
   // ── Shortcut definitions ────────────────────────────────────────────────
   var shortcuts = [
     { key: "/",      handler: focusSearch,         label: "keyboard.focus_search",    group: "nav",     global: true },
-    { key: "k",      ctrl: true, handler: focusSearch, label: "keyboard.focus_search", group: "nav",    global: true },
     { key: "g",      handler: openContainerNav,    label: "keyboard.go_to_container", group: "nav",     global: true },
     { key: "m",      handler: handleMove,          label: "keyboard.move_to_container", group: "action" },
     { key: "i",      handler: focusItemEntry,      label: "keyboard.new_item",        group: "action",  context: "container" },
@@ -242,7 +241,9 @@
     {
       group: "keyboard.nav_group",
       items: [
-        { keys: ["/", "Ctrl+K"], label: "keyboard.focus_search" },
+        { keys: ["/"],           label: "keyboard.focus_search" },
+        { keys: ["Ctrl+K"],      label: "keyboard.quick_switcher" },
+        { keys: ["1–9"],    label: "keyboard.jump_to_pin" },
         { keys: ["g"],           label: "keyboard.go_to_container" },
         { keys: ["\u2191 \u2193"], label: "keyboard.navigate" },
         { keys: ["Enter"],       label: "keyboard.open_selected" }

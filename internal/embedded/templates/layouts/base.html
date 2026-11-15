@@ -33,6 +33,7 @@
     <link rel="stylesheet" href="/static/css/dialogs/keyboard-help.css">
     <link rel="stylesheet" href="/static/css/dialogs/tree-picker.css">
     <link rel="stylesheet" href="/static/css/dialogs/export.css">
+    <link rel="stylesheet" href="/static/css/dialogs/switcher.css">
     <link rel="stylesheet" href="/static/css/search/search.css">
     <link rel="stylesheet" href="/static/css/settings/settings.css">
     <link rel="stylesheet" href="/static/css/stats/stats.css">
@@ -65,6 +66,7 @@
     <script src="/static/js/inventory/notes.js" defer></script>
     <script src="/static/js/shared/keyboard.js" defer></script>
     <script src="/static/js/shared/workingset.js" defer></script>
+    <script src="/static/js/shared/switcher.js" defer></script>
 </head>
 <body>
     <nav>
@@ -86,6 +88,11 @@
     </main>
     <aside id="working-rail" aria-label="{{.T "rail.title"}}" hx-get="/partials/rail" hx-trigger="load, workingSetChanged from:body" hx-swap="innerHTML"></aside>
     {{ template "preview-dialog" }}
+    <dialog id="quick-switcher" aria-label="{{.T "switcher.title"}}">
+        <input type="text" id="qs-input" class="qs-input" role="combobox" aria-expanded="false" aria-controls="qs-list" aria-autocomplete="list" aria-activedescendant="" autocomplete="off" spellcheck="false" placeholder="{{.T "switcher.placeholder"}}" aria-label="{{.T "switcher.title"}}">
+        <ul id="qs-list" class="qs-list" role="listbox" aria-label="{{.T "switcher.results"}}"></ul>
+        <p id="qs-status" class="qs-status" role="status" hidden></p>
+    </dialog>
     <div id="toast-container"></div>
 </body>
 </html>
