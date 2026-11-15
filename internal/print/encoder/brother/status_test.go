@@ -1,7 +1,11 @@
 package brother
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/erxyi/qlx/internal/print/encoder"
+	"github.com/erxyi/qlx/internal/print/transport"
 )
 
 //nolint:gocyclo // table-driven test with inline check functions
@@ -33,7 +37,7 @@ func TestParseStatus(t *testing.T) {
 				if st.MediaType != mediaContinuous {
 					t.Errorf("media type = 0x%02X, want 0x%02X", st.MediaType, mediaContinuous)
 				}
-				if st.CoverOpen || st.NoMedia || st.CutterJam || st.Overheating {
+				if st.CoverOpen || st.NoMedia || st.CutterJam || st.TransmissionError {
 					t.Error("expected no error flags")
 				}
 			},
@@ -83,13 +87,13 @@ func TestParseStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "overheating",
+			name: "transmission error",
 			modify: func(d *[statusSize]byte) {
-				d[9] = errOverheating
+				d[9] = errTransmission
 			},
 			check: func(t *testing.T, st brotherStatus) {
-				if !st.Overheating {
-					t.Error("expected Overheating = true")
+				if !st.TransmissionError {
+					t.Error("expected TransmissionError = true")
 				}
 			},
 		},
@@ -210,6 +214,72 @@ func TestStatusError(t *testing.T) {
 				t.Error("expected error, got nil")
 			}
 		})
+	}
+}
+
+func TestHeartbeat_StatusErrorType(t *testing.T) {
+	validStatus := func(info1, info2 byte) []byte {
+		d := make([]byte, statusSize)
+		d[0], d[1] = statusHeader0, statusHeader1
+		d[8], d[9] = info1, info2
+		d[10] = 62
+		d[11] = mediaContinuous
+		return d
+	}
+
+	tests := []struct {
+		name       string
+		data       []byte
+		wantStatus bool // errors.As(*encoder.StatusError) must match
+		wantErr    bool
+	}{
+		{name: "cover open", data: validStatus(0, errCoverOpen), wantStatus: true, wantErr: true},
+		{name: "media mismatch", data: validStatus(0, errReplaceMedia), wantStatus: true, wantErr: true},
+		{name: "clean status", data: validStatus(0, 0)},
+		{name: "communication error bit does not block", data: validStatus(0, errTransmission)},
+		{name: "short read is a transport error", data: validStatus(0, errCoverOpen)[:10], wantErr: true},
+		{name: "bad header is a protocol error", data: make([]byte, statusSize), wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := &transport.MockTransport{}
+			tr.SetReadData(tt.data)
+			_, err := (&BrotherEncoder{}).Heartbeat(tr)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+			var se *encoder.StatusError
+			if got := errors.As(err, &se); got != tt.wantStatus {
+				t.Fatalf("errors.As(*StatusError) = %v, want %v (err=%v)", got, tt.wantStatus, err)
+			}
+		})
+	}
+}
+
+func TestReinitialize(t *testing.T) {
+	tr := &transport.MockTransport{}
+	if err := (&BrotherEncoder{}).Reinitialize(tr); err != nil {
+		t.Fatalf("Reinitialize: %v", err)
+	}
+	w := tr.Written
+	if len(w) != 202 || w[200] != 0x1B || w[201] != 0x40 {
+		t.Fatalf("written %d bytes, tail % x; want 200 nulls then ESC @", len(w), w[len(w)-2:])
+	}
+}
+
+func TestStatusErrorMessage(t *testing.T) {
+	tests := []struct {
+		err  *encoder.StatusError
+		want string
+	}{
+		{&encoder.StatusError{Source: "brother", Conditions: []string{"cover open", "no media"}}, "brother: cover open, no media"},
+		{&encoder.StatusError{Source: "brother"}, "brother: printer status error"},
+		{&encoder.StatusError{Conditions: []string{"cover open"}}, "cover open"},
+	}
+	for _, tt := range tests {
+		if got := tt.err.Error(); got != tt.want {
+			t.Errorf("Error() = %q, want %q", got, tt.want)
+		}
 	}
 }
 
