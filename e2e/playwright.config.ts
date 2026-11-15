@@ -3,6 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
+  workers: process.env.CI ? 4 : undefined,
   retries: process.env.CI ? 2 : 0,
   timeout: 30000,
   reporter: [['html', { open: 'never' }], ['list']],
