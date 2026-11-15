@@ -34,12 +34,7 @@
         <h3>{{.T "tags.containers_section"}}</h3>
         <ul class="container-list">
             {{ range .Data.Containers }}
-            <li>
-                <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" class="container-item">
-                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
-                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
-                </a>
-            </li>
+            {{ template "container-row" dict "Data" . }}
             {{ end }}
         </ul>
     </section>
@@ -50,16 +45,7 @@
         <h3>{{.T "tags.items_section"}}</h3>
         <ul class="item-list">
             {{ range .Data.Items }}
-            <li>
-                <a href="/items/{{ .ID }}" hx-get="/items/{{ .ID }}" hx-target="#content" class="item-item">
-                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
-                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
-                </a>
-                <span class="qty">{{ .Quantity }} {{$.T "tags.quantity_label"}}</span>
-                {{ if .TagIDs }}
-                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
-                {{ end }}
-            </li>
+            {{ template "item-row" dict "Data" . }}
             {{ end }}
         </ul>
     </section>

@@ -62,14 +62,7 @@
         <h3>{{.T "inventory.subcontainers"}}</h3>
         <ul id="container-list" class="inventory-list container-list">
             {{ range .Data.Children }}
-            <li draggable="true" data-id="{{ .ID }}" data-type="container">
-                <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="container">
-                <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" class="container-item" data-drop-id="{{ .ID }}" data-drop-type="container">
-                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</span>
-                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
-                </a>
-                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "container" "Tags" (resolveTags .TagIDs)) }}
-            </li>
+            {{ template "container-row" dict "Data" . "Selectable" true }}
             {{ else }}
             <li class="empty-state">{{$.T "inventory.no_subcontainers"}}</li>
             {{ end }}
@@ -84,14 +77,7 @@
         <h3>{{.T "inventory.items"}}</h3>
         <ul id="item-list" class="inventory-list item-list">
             {{ range .Data.Items }}
-            <li draggable="true" data-id="{{ .ID }}" data-type="item">
-                <input type="checkbox" class="bulk-select" data-id="{{ .ID }}" data-type="item">
-                <a href="/items/{{ .ID }}" hx-get="/items/{{ .ID }}" hx-target="#content" class="item-item">
-                    <span class="name"><span class="color-dot"{{ if .Color }} style="background-color: {{ paletteHex .Color }}"{{ end }}></span><span class="entity-icon">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Name }}</span>
-                    {{ if .Description }}<span class="desc">{{ .Description }}</span>{{ end }}
-                </a>
-                {{ template "tag-chips" dict "Data" (dict "ObjectID" .ID "ObjectType" "item" "Tags" (resolveTags .TagIDs)) }}
-            </li>
+            {{ template "item-row" dict "Data" . "Selectable" true }}
             {{ else }}
             <li class="empty-state">{{$.T "inventory.no_items"}}</li>
             {{ end }}

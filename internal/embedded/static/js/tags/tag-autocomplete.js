@@ -1,7 +1,6 @@
 (function () {
   var qlx = window.qlx = window.qlx || {};
   var cache = null;
-  var debounceTimer = null;
 
   function invalidateCache() { cache = null; tagById = {}; }
 
@@ -135,6 +134,11 @@
     var dropdown = null;
     var activeIndex = -1;
     var input = null;
+    // Per-instance timers and a request counter so that a stale response
+    // (older query) never overwrites the dropdown for the latest one.
+    var debounceTimer = null;
+    var blurTimer = null;
+    var requestSeq = 0;
 
     function open(inputEl) {
       input = inputEl;
@@ -142,9 +146,13 @@
       input.addEventListener("input", onInput);
       input.addEventListener("keydown", onKeydown);
       input.addEventListener("blur", onBlur);
+      input.addEventListener("focus", onFocus);
     }
 
     function close() {
+      clearTimeout(debounceTimer);
+      clearTimeout(blurTimer);
+      requestSeq++;
       if (dropdown && dropdown.parentNode) dropdown.parentNode.removeChild(dropdown);
       dropdown = null;
       activeIndex = -1;
@@ -152,12 +160,18 @@
         input.removeEventListener("input", onInput);
         input.removeEventListener("keydown", onKeydown);
         input.removeEventListener("blur", onBlur);
+        input.removeEventListener("focus", onFocus);
         input = null;
       }
     }
 
     function onBlur() {
-      setTimeout(function () { close(); onCancel(); }, 150);
+      clearTimeout(blurTimer);
+      blurTimer = setTimeout(function () { close(); onCancel(); }, 150);
+    }
+
+    function onFocus() {
+      clearTimeout(blurTimer);
     }
 
     function onInput() {
@@ -202,7 +216,9 @@
 
     function update(query) {
       var currentQuery = query.trim();
+      var seq = ++requestSeq;
       fetchTags().then(function (tags) {
+        if (seq !== requestSeq) return;
         var filtered = filterTags(tags, currentQuery);
         if (dropdown && dropdown.parentNode) dropdown.parentNode.removeChild(dropdown);
         activeIndex = -1;
@@ -223,6 +239,9 @@
         positionDropdown(dropdown, anchor);
         anchor.parentNode.style.position = "relative";
         anchor.parentNode.appendChild(dropdown);
+      }).catch(function (err) {
+        // Fail soft: keep whatever dropdown is shown and let the user retry typing.
+        console.error("tag autocomplete failed:", err);
       });
     }
 

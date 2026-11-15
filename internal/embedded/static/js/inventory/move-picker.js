@@ -21,51 +21,26 @@
           ? { parent_id: targetId }
           : { container_id: targetId };
 
-        fetch(endpoint, {
+        qlx.bulkRequest(endpoint, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        })
-          .then(function (resp) {
-            if (!resp.ok) {
-              return resp.json().then(function (data) {
-                qlx.showToast(data.error || qlx.t("error.status") + " " + resp.status, true);
-              });
-            }
-            var msg = pending.type === "container"
-              ? qlx.t("inventory.container_moved")
-              : qlx.t("inventory.item_moved");
-            qlx.showToast(msg, false);
-            htmx.ajax("GET", "/containers/" + targetId, { target: "#content" });
-          })
-          .catch(function (err) {
-            console.error("move failed:", err);
-            qlx.showToast(qlx.t("error.connection"), true);
-          });
+          json: body,
+          success: pending.type === "container"
+            ? qlx.t("inventory.container_moved")
+            : qlx.t("inventory.item_moved"),
+          reloadUrl: "/containers/" + targetId,
+          logLabel: "move failed"
+        });
         return;
       }
 
       // Bulk move (existing behavior)
       var ids = qlx.selectionEntries();
-      fetch("/bulk/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: ids, target_container_id: targetId })
-      })
-        .then(function (resp) {
-          if (!resp.ok) {
-            return resp.json().then(function (data) {
-              qlx.showToast(data.error || qlx.t("error.status") + " " + resp.status, true);
-            });
-          }
-          qlx.showToast(qlx.t("bulk.moved") + " " + ids.length, false);
-          qlx.clearSelection();
-          htmx.ajax("GET", window.location.pathname, { target: "#content" });
-        })
-        .catch(function (err) {
-          console.error("bulk move failed:", err);
-          qlx.showToast(qlx.t("error.connection"), true);
-        });
+      qlx.bulkRequest("/bulk/move", {
+        json: { ids: ids, target_container_id: targetId },
+        success: qlx.t("bulk.moved") + " " + ids.length,
+        afterSuccess: qlx.clearSelection,
+        logLabel: "bulk move failed"
+      });
     }
   });
 

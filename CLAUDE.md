@@ -135,3 +135,7 @@ Target has ~35MB usable RAM. Respect memory tuning in main.go: `SetMemoryLimit(1
   - Prefer `search_for_pattern` and `get_symbols_overview` over `Read` for code files
 - Use **Context7** for up-to-date library documentation lookup
 - Use **Playwright MCP** (`mcp__playwright__browser_*`) for interactive UI debugging and testing
+
+## Issue workflow
+
+Tasks follow the `labels`, `setup`, `audit`, `idea`, `triage`, `decompose` and `consolidate` skills of `issue-rzucam-w-tlum`; configuration in `.github/issue-workflow.yml`.
