@@ -10,6 +10,12 @@
             data-label-pin="{{ .PinLabel }}" data-label-unpin="{{ .UnpinLabel }}"
             aria-label="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"
             title="{{ if .Entry.Pinned }}{{ .UnpinLabel }}{{ else }}{{ .PinLabel }}{{ end }}"><span aria-hidden="true" class="pin-star">{{ if .Entry.Pinned }}★{{ else }}☆{{ end }}</span></button>
+    <a class="home-card-print" href="/containers/{{ .Entry.Container.ID }}?print=1" hx-get="/containers/{{ .Entry.Container.ID }}?print=1" hx-target="#content"
+       data-intent="print" aria-label="{{ .PrintLabel }}: {{ .Entry.Container.Name }}" title="{{ .PrintLabel }}">{{ .PrintLabel }}</a>
+    <form class="home-card-add" autocomplete="off">
+        <input type="text" class="home-card-add-input" maxlength="200"
+               placeholder="{{ .AddPlaceholder }}" aria-label="{{ .AddLabel }}: {{ .Entry.Container.Name }}">
+    </form>
 </li>
 {{ end }}
 
@@ -23,7 +29,8 @@
                aria-controls="home-search-results">
         <a class="button secondary" id="home-open-tree" href="/containers" hx-get="/containers" hx-target="#content">{{.T "home.all_containers"}}</a>
     </div>
-    <ul id="home-search-results" class="home-results" hidden data-empty="{{.T "home.search_empty"}}"></ul>
+    <ul id="home-search-results" class="home-results" hidden data-empty="{{.T "home.search_empty"}}"
+        data-label-containers="{{.T "home.search_containers"}}" data-label-items="{{.T "home.search_items"}}"></ul>
 
     <div id="home-lists">
     {{ if or .Data.Pins .Data.Recents }}
@@ -31,7 +38,7 @@
         <section class="home-section" data-home="pins">
             <h2>{{.T "home.pinned"}}</h2>
             <ul class="home-grid">
-                {{ range .Data.Pins }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") }}{{ end }}
+                {{ range .Data.Pins }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") }}{{ end }}
             </ul>
         </section>
         {{ end }}
@@ -39,7 +46,7 @@
         <section class="home-section" data-home="recents">
             <h2>{{.T "home.recent"}}</h2>
             <ul class="home-grid">
-                {{ range .Data.Recents }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") }}{{ end }}
+                {{ range .Data.Recents }}{{ template "home-card" dict "Entry" . "CountLabel" ($.T "rail.items_count") "PinLabel" ($.T "rail.pin") "UnpinLabel" ($.T "rail.unpin") "PrintLabel" ($.T "home.card_print") "AddLabel" ($.T "home.card_add_label") "AddPlaceholder" ($.T "home.card_add_placeholder") }}{{ end }}
             </ul>
         </section>
         {{ end }}
@@ -51,97 +58,5 @@
     {{ end }}
     </div>
 </div>
-<script>
-(function () {
-  var input = document.getElementById("home-search");
-  var results = document.getElementById("home-search-results");
-  var lists = document.getElementById("home-lists");
-  if (!input || !results || !lists) return;
-  var timer = null;
-  var seq = 0;
-
-  function clearResults() {
-    while (results.firstChild) results.removeChild(results.firstChild);
-  }
-
-  function showLists(show) {
-    lists.hidden = !show;
-    results.hidden = show;
-  }
-
-  function render(items) {
-    clearResults();
-    if (!items.length) {
-      var empty = document.createElement("li");
-      empty.className = "home-results-empty";
-      empty.textContent = results.getAttribute("data-empty") || "";
-      results.appendChild(empty);
-      return;
-    }
-    items.forEach(function (m) {
-      var li = document.createElement("li");
-      li.className = "home-result";
-      var a = document.createElement("a");
-      a.href = "/containers/" + encodeURIComponent(m.id);
-      a.className = "home-result-link";
-      a.setAttribute("hx-get", a.getAttribute("href"));
-      a.setAttribute("hx-target", "#content");
-      var name = document.createElement("span");
-      name.className = "home-result-name";
-      name.textContent = (m.pinned ? "★ " : "") + m.name;
-      var path = document.createElement("span");
-      path.className = "home-card-path";
-      path.textContent = m.path || "";
-      a.appendChild(name);
-      a.appendChild(path);
-      li.appendChild(a);
-      results.appendChild(li);
-      if (window.htmx) window.htmx.process(a);
-    });
-  }
-
-  function search() {
-    var q = input.value.trim();
-    seq++;
-    if (!q) {
-      clearResults();
-      showLists(true);
-      return;
-    }
-    var mine = seq;
-    fetch("/api/quick-switch?limit=12&q=" + encodeURIComponent(q))
-      .then(function (r) { return r.json(); })
-      .then(function (items) {
-        if (mine !== seq) return;
-        showLists(false);
-        render(items || []);
-      })
-      .catch(function (err) { console.error("home search failed:", err); });
-  }
-
-  input.addEventListener("input", function () {
-    clearTimeout(timer);
-    timer = setTimeout(search, 150);
-  });
-
-  input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      var first = results.querySelector(".home-result-link");
-      if (first) {
-        e.preventDefault();
-        first.click();
-      }
-    } else if (e.key === "ArrowDown") {
-      var link = results.querySelector(".home-result-link") || lists.querySelector(".home-card-link");
-      if (link) {
-        e.preventDefault();
-        link.focus();
-      }
-    } else if (e.key === "Escape" && input.value) {
-      input.value = "";
-      search();
-    }
-  });
-})();
-</script>
+<script src="/static/js/home/home.js"></script>
 {{ end }}

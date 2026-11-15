@@ -2,10 +2,16 @@
   "home.title": "W użyciu",
   "home.pinned": "Przypięte",
   "home.recent": "Ostatnie",
-  "home.search_placeholder": "Szukaj segregatora...",
-  "home.search_label": "Szukaj segregatora",
+  "home.search_placeholder": "Szukaj segregatora lub przedmiotu...",
+  "home.search_label": "Szukaj segregatora lub przedmiotu",
   "home.search_empty": "Nic nie znaleziono",
+  "home.search_containers": "Segregatory",
+  "home.search_items": "Przedmioty",
   "home.all_containers": "Wszystkie segregatory",
   "home.browse_tree": "Przeglądaj drzewo segregatorów",
+  "home.card_print": "Drukuj",
+  "home.card_add_label": "Dodaj przedmiot do",
+  "home.card_add_placeholder": "Dodaj przedmiot, np. kabel x5",
+  "home.card_add_done": "Dodano: {name}",
   "home.empty": "Nic jeszcze tu nie ma. Przypnij segregator gwiazdką na jego stronie, a pojawi się tutaj. Otwarte segregatory trafiają do ostatnich."
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/erxyi/qlx/internal/service"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
 // SearchHandler handles HTTP requests for search operations.
@@ -20,6 +21,7 @@ func NewSearchHandler(search *service.SearchService, resp Responder) *SearchHand
 // RegisterRoutes registers search routes on the given mux.
 func (h *SearchHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /search", h.Search)
+	mux.HandleFunc("GET /api/search/items", h.SearchItems)
 }
 
 // Search handles GET /search?q=query.
@@ -60,4 +62,34 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 			Notes:      notes,
 		}
 	})
+}
+
+const (
+	defaultItemSearchLimit = 12
+	maxItemSearchLimit     = 50
+)
+
+// itemSearchJSON is one hit of GET /api/search/items.
+type itemSearchJSON struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Quantity      int    `json:"quantity"`
+	ContainerID   string `json:"container_id"`
+	ContainerName string `json:"container_name"`
+	Path          string `json:"path"`
+}
+
+// SearchItems handles GET /api/search/items?q=&limit=12: item name matches
+// with their container path, for the start-screen wide search.
+func (h *SearchHandler) SearchItems(w http.ResponseWriter, r *http.Request) {
+	limit := limitParam(r, "limit", defaultItemSearchLimit, maxItemSearchLimit)
+	matches := h.search.SearchItemsWithPath(r.URL.Query().Get("q"), limit)
+	out := make([]itemSearchJSON, 0, len(matches))
+	for _, m := range matches {
+		out = append(out, itemSearchJSON{
+			ID: m.Item.ID, Name: m.Item.Name, Quantity: m.Item.Quantity,
+			ContainerID: m.Item.ContainerID, ContainerName: m.ContainerName, Path: m.Path,
+		})
+	}
+	webutil.JSON(w, http.StatusOK, out)
 }
