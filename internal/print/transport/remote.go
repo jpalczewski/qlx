@@ -47,3 +47,12 @@ func (t *RemoteTransport) Read(buf []byte) (int, error) {
 func (t *RemoteTransport) Close() error {
 	return nil
 }
+
+func init() {
+	RegisterWithMeta("remote", func() Transport { return &RemoteTransport{} }, Meta{
+		Label:              "Remote QLX",
+		AddressPlaceholder: "http://host:8080",
+		Order:              50,
+		Available:          true,
+	})
+}

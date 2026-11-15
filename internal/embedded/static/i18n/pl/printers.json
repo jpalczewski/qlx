@@ -18,5 +18,6 @@
   "printers.copies": "Kopie",
   "printers.density": "Gęstość",
   "printers.cut_every": "Tnij co N etykiet (0=wył.)",
-  "printers.high_res": "Wysoka rozdzielczość"
+  "printers.high_res": "Wysoka rozdzielczość",
+  "printers.transport_unavailable": "(niedostępne w tej wersji)"
 }

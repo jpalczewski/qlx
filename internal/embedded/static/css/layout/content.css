@@ -21,6 +21,19 @@
     color: var(--color-text-muted);
 }
 
+/* Inside inventory lists the placeholder is a single quiet line, not a block */
+.inventory-list > .empty-state {
+    text-align: left;
+    padding: var(--space-xs) 0;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+/* A dot without a colour carries no information, so it is not drawn */
+.inventory-list .color-dot:not([style]) {
+    display: none;
+}
+
 .empty {
     color: var(--color-text-muted);
     font-style: italic;

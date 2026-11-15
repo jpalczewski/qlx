@@ -35,3 +35,12 @@ type USBScanResult struct {
 func ScanUSB() ([]USBScanResult, error) {
 	return nil, errors.New("USB scanning not supported in this build")
 }
+
+func init() {
+	RegisterWithMeta("gousb", func() Transport { return &GoUSBTransport{} }, Meta{
+		Label:              "USB (bidirectional)",
+		AddressPlaceholder: "04F9:2042:SERIAL",
+		Order:              10,
+		Available:          false,
+	})
+}

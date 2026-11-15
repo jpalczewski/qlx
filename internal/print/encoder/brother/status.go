@@ -2,7 +2,6 @@ package brother
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -43,7 +42,7 @@ const (
 	// description says the printer sets it when the loaded media does not match the
 	// media given in the command.
 	errReplaceMedia = 0x01
-	errOverheating  = 0x04 // NOTE: the Command Reference lists bit 2 as "transmission error"
+	errTransmission = 0x04 // "transmission error" in the Command Reference
 	errCoverOpen    = 0x10
 )
 
@@ -59,13 +58,13 @@ type brotherStatus struct {
 	PhaseType   byte // byte 19
 
 	// Derived booleans.
-	CoverOpen    bool
-	NoMedia      bool
-	CutterJam    bool
-	EndOfMedia   bool
-	Overheating  bool
-	ReplaceMedia bool
-	PrintingDone bool
+	CoverOpen         bool
+	NoMedia           bool
+	CutterJam         bool
+	EndOfMedia        bool
+	TransmissionError bool
+	ReplaceMedia      bool
+	PrintingDone      bool
 }
 
 // Connect performs the initial handshake: invalidate → init → read status.
@@ -73,14 +72,9 @@ func (e *BrotherEncoder) Connect(ctx context.Context, tr transport.Transport) er
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	// 1. Send 200 null bytes to invalidate any pending state.
-	if _, err := tr.Write(make([]byte, 200)); err != nil {
-		return fmt.Errorf("brother connect: invalidate: %w", err)
-	}
-
-	// 2. ESC @ — initialize.
-	if _, err := tr.Write([]byte{0x1B, 0x40}); err != nil {
-		return fmt.Errorf("brother connect: init: %w", err)
+	// 1+2. Invalidate pending state and initialize.
+	if err := e.Reinitialize(tr); err != nil {
+		return fmt.Errorf("brother connect: %w", err)
 	}
 
 	// 3. Request and read status.
@@ -95,11 +89,28 @@ func (e *BrotherEncoder) Connect(ctx context.Context, tr transport.Transport) er
 	return nil
 }
 
+// Reinitialize clears the printer's pending data and error state: 200 null
+// bytes to invalidate, then ESC @ (initialize). Sticky error bits such as a
+// media mismatch are only cleared by this sequence.
+func (e *BrotherEncoder) Reinitialize(tr transport.Transport) error {
+	if _, err := tr.Write(make([]byte, 200)); err != nil {
+		return fmt.Errorf("invalidate: %w", err)
+	}
+	if _, err := tr.Write([]byte{0x1B, 0x40}); err != nil {
+		return fmt.Errorf("init: %w", err)
+	}
+	return nil
+}
+
 // Heartbeat sends a status request and returns parsed printer state.
 func (e *BrotherEncoder) Heartbeat(tr transport.Transport) (encoder.HeartbeatResult, error) {
 	st, err := requestStatus(tr)
 	if err != nil {
 		return encoder.HeartbeatResult{}, fmt.Errorf("brother heartbeat: %w", err)
+	}
+
+	if st.TransmissionError {
+		webutil.LogTrace("brother: communication error bit set (not blocking)")
 	}
 
 	result := encoder.HeartbeatResult{
@@ -189,14 +200,18 @@ func parseStatus(data [statusSize]byte) (brotherStatus, error) {
 	st.EndOfMedia = st.ErrorInfo1&errEndOfMedia != 0
 	st.CutterJam = st.ErrorInfo1&errCutterJam != 0
 	st.CoverOpen = st.ErrorInfo2&errCoverOpen != 0
-	st.Overheating = st.ErrorInfo2&errOverheating != 0
+	st.TransmissionError = st.ErrorInfo2&errTransmission != 0
 	st.ReplaceMedia = st.ErrorInfo2&errReplaceMedia != 0
 	st.PrintingDone = st.StatusType == statusTypePrintDone
 
 	return st, nil
 }
 
-// statusError returns a combined error string if any error flags are set, or nil.
+// statusError returns an *encoder.StatusError listing every blocking error
+// flag, or nil. These are printer conditions (cover open, no media, ...), not
+// transport failures, so callers must not treat them as a lost connection.
+// The communication ("transmission") error bit is deliberately not included: it
+// can be a transient glitch and must not turn into a permanent print outage.
 func statusError(st brotherStatus) error {
 	var errs []string
 	if st.CoverOpen {
@@ -211,9 +226,6 @@ func statusError(st brotherStatus) error {
 	if st.CutterJam {
 		errs = append(errs, "cutter jam")
 	}
-	if st.Overheating {
-		errs = append(errs, "overheating")
-	}
 	if st.ReplaceMedia {
 		errs = append(errs, "replace media")
 	}
@@ -222,14 +234,7 @@ func statusError(st brotherStatus) error {
 		return nil
 	}
 
-	msg := "brother: "
-	for i, e := range errs {
-		if i > 0 {
-			msg += ", "
-		}
-		msg += e
-	}
-	return errors.New(msg)
+	return &encoder.StatusError{Source: "brother", Conditions: errs}
 }
 
 // mediaTypeName returns a human-readable media type string.

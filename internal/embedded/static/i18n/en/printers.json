@@ -18,5 +18,6 @@
   "printers.copies": "Copies",
   "printers.density": "Density",
   "printers.cut_every": "Cut every N labels (0=off)",
-  "printers.high_res": "High resolution"
+  "printers.high_res": "High resolution",
+  "printers.transport_unavailable": "(not available in this build)"
 }

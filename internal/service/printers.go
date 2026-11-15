@@ -1,6 +1,17 @@
 package service
 
-import "github.com/erxyi/qlx/internal/store"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/erxyi/qlx/internal/print/transport"
+	"github.com/erxyi/qlx/internal/shared/webutil"
+	"github.com/erxyi/qlx/internal/store"
+)
+
+// ErrUnknownTransport is returned when a printer is added with a transport
+// name that is not in the transport registry.
+var ErrUnknownTransport = errors.New("unknown transport")
 
 // PrinterService handles printer CRUD operations.
 type PrinterService struct {
@@ -23,8 +34,16 @@ func (s *PrinterService) GetPrinter(id string) *store.PrinterConfig {
 }
 
 // AddPrinter adds a new printer configuration.
-func (s *PrinterService) AddPrinter(name, encoder, model, transport, address string) (*store.PrinterConfig, error) {
-	p := s.store.AddPrinter(name, encoder, model, transport, address)
+func (s *PrinterService) AddPrinter(name, encoder, model, transportName, address string) (*store.PrinterConfig, error) {
+	info, ok := transport.Lookup(transportName)
+	if !ok {
+		return nil, fmt.Errorf("%w: %q", ErrUnknownTransport, transportName)
+	}
+	if !info.Available {
+		// Stored anyway so configs survive switching between builds.
+		webutil.LogError("printer %q uses transport %q which is not available in this build", name, transportName)
+	}
+	p := s.store.AddPrinter(name, encoder, model, transportName, address)
 	return p, nil
 }
 

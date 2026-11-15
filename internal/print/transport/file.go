@@ -36,5 +36,17 @@ func (t *FileTransport) Read(buf []byte) (int, error) {
 }
 
 func (t *FileTransport) Close() error {
+	if t.file == nil { // Open failed or was never called
+		return nil
+	}
 	return t.file.Close()
+}
+
+func init() {
+	RegisterWithMeta("usb", func() Transport { return &FileTransport{} }, Meta{
+		Label:              "USB (file)",
+		AddressPlaceholder: "/dev/usb/lp0",
+		Order:              20,
+		Available:          true,
+	})
 }

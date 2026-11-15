@@ -57,9 +57,8 @@ func TestConnectionManager_AddTransitionsToConnecting(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	state := cm.State("p1")
-	// With MockTransport + mockEncoder (no StatusQuerier), the session connects
-	// but immediately closes stopped (no heartbeat), so the loop cycles rapidly.
-	// State should be one of: connecting, connected, disconnected, or reconnecting.
+	// mockEncoder implements StatusQuerier, so the session stays connected on its
+	// heartbeat; the loop may still be mid-transition when we sample the state.
 	switch state {
 	case StateConnecting, StateConnected, StateDisconnected, StateReconnecting:
 		// ok
@@ -219,6 +218,11 @@ func TestConnectionManager_EmptyStartStop(t *testing.T) {
 }
 
 func TestConnectionManager_FailingTransportReconnects(t *testing.T) {
+	// Default backoff (5s + 10s) is right at this test's deadline and made it flaky.
+	orig := backoffSteps
+	backoffSteps = []time.Duration{20 * time.Millisecond, 40 * time.Millisecond}
+	t.Cleanup(func() { backoffSteps = orig })
+
 	ft := &failingMockTransport{failCount: 2}
 	ctx, cancel := context.WithCancel(context.Background())
 	cm := NewConnectionManager(
@@ -239,8 +243,7 @@ func TestConnectionManager_FailingTransportReconnects(t *testing.T) {
 	}
 
 	// Should eventually reach StateConnected after 2 failures.
-	// Backoff is 5s after first failure — use a generous timeout.
-	deadline := time.After(15 * time.Second)
+	deadline := time.After(5 * time.Second)
 	for cm.State("p1") != StateConnected {
 		select {
 		case <-deadline:
