@@ -373,7 +373,7 @@ func renderPreviewWithMedia(w http.ResponseWriter, templates *service.TemplateSe
 	}
 }
 
-// stackPages stacks images vertically on a white canvas, separated by a gap.
+// stackPages stacks images vertically, separated by a gray gap that keeps the pages visually distinct.
 func stackPages(pages []image.Image) image.Image {
 	width, height := 0, 0
 	for _, pg := range pages {
