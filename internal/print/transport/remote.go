@@ -49,5 +49,10 @@ func (t *RemoteTransport) Close() error {
 }
 
 func init() {
-	Register("remote", func() Transport { return &RemoteTransport{} })
+	RegisterWithMeta("remote", func() Transport { return &RemoteTransport{} }, Meta{
+		Label:              "Remote QLX",
+		AddressPlaceholder: "http://host:8080",
+		Order:              50,
+		Available:          true,
+	})
 }

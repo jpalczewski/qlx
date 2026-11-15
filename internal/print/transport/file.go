@@ -40,5 +40,10 @@ func (t *FileTransport) Close() error {
 }
 
 func init() {
-	Register("usb", func() Transport { return &FileTransport{} })
+	RegisterWithMeta("usb", func() Transport { return &FileTransport{} }, Meta{
+		Label:              "USB (file)",
+		AddressPlaceholder: "/dev/usb/lp0",
+		Order:              20,
+		Available:          true,
+	})
 }

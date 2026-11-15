@@ -83,3 +83,34 @@ func TestRegisterCustomAndNamesSorted(t *testing.T) {
 		t.Errorf("Names() = %v", names)
 	}
 }
+
+func TestRegisterWithMetaLookupAndList(t *testing.T) {
+	RegisterWithMeta("zzz-test", func() Transport { return &MockTransport{} }, Meta{Order: -1, AddressPlaceholder: "x"})
+	Register("yyy-test", func() Transport { return &MockTransport{} })
+	t.Cleanup(func() {
+		registryMu.Lock()
+		delete(registry, "zzz-test")
+		delete(registry, "yyy-test")
+		registryMu.Unlock()
+	})
+
+	in, ok := Lookup("zzz-test")
+	if !ok || in.Label != "zzz-test" || in.AddressPlaceholder != "x" || in.Available {
+		t.Errorf("Lookup(zzz-test) = %+v, %v", in, ok)
+	}
+	in, ok = Lookup("yyy-test")
+	if !ok || !in.Available {
+		t.Errorf("plain Register should be Available: %+v", in)
+	}
+	if _, ok := Lookup("missing"); ok {
+		t.Error("Lookup(missing) should fail")
+	}
+
+	list := List()
+	if list[0].Name != "zzz-test" {
+		t.Errorf("List()[0] = %q, want lowest Order first", list[0].Name)
+	}
+	if len(list) != len(Names()) {
+		t.Errorf("List len %d != Names len %d", len(list), len(Names()))
+	}
+}

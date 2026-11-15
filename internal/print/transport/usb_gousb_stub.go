@@ -37,5 +37,10 @@ func ScanUSB() ([]USBScanResult, error) {
 }
 
 func init() {
-	Register("gousb", func() Transport { return &GoUSBTransport{} })
+	RegisterWithMeta("gousb", func() Transport { return &GoUSBTransport{} }, Meta{
+		Label:              "USB (bidirectional)",
+		AddressPlaceholder: "04F9:2042:SERIAL",
+		Order:              10,
+		Available:          false,
+	})
 }

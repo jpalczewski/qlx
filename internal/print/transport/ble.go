@@ -266,5 +266,10 @@ func ScanBLE() ([]BLEScanResult, error) {
 }
 
 func init() {
-	Register("ble", func() Transport { return &BLETransport{} })
+	RegisterWithMeta("ble", func() Transport { return &BLETransport{} }, Meta{
+		Label:              "Bluetooth (BLE)",
+		AddressPlaceholder: "AA:BB:CC:DD:EE:FF",
+		Order:              40,
+		Available:          true,
+	})
 }

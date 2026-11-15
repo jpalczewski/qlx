@@ -42,5 +42,10 @@ func (t *SerialTransport) Close() error {
 }
 
 func init() {
-	Register("serial", func() Transport { return &SerialTransport{} })
+	RegisterWithMeta("serial", func() Transport { return &SerialTransport{} }, Meta{
+		Label:              "Serial/Bluetooth",
+		AddressPlaceholder: "/dev/tty.usbserial-XXX",
+		Order:              30,
+		Available:          true,
+	})
 }

@@ -67,7 +67,7 @@
                     <label for="transport">Transport</label>
                     <select id="transport" name="transport" onchange="updateAddressPlaceholder()">
                         {{ range .Data.Transports }}
-                        <option value="{{ .Value }}">{{ .Label }}</option>
+                        <option value="{{ .Value }}" data-placeholder="{{ .Placeholder }}"{{ if .Disabled }} disabled{{ end }}>{{ .Label }}{{ if .Disabled }} {{$.T "printers.transport_unavailable"}}{{ end }}</option>
                         {{ end }}
                     </select>
                 </div>
@@ -237,14 +237,8 @@ function updateAddressPlaceholder() {
     var transport = document.getElementById('transport');
     var address = document.getElementById('address');
     if (!transport || !address) return;
-    var placeholders = {
-        'gousb': '04F9:2042:SERIAL',
-        'usb': '/dev/usb/lp0',
-        'serial': '/dev/tty.usbserial-XXX',
-        'ble': 'AA:BB:CC:DD:EE:FF',
-        'remote': 'http://host:8080'
-    };
-    address.placeholder = placeholders[transport.value] || '';
+    var selected = transport.options[transport.selectedIndex];
+    address.placeholder = (selected && selected.getAttribute('data-placeholder')) || '';
 }
 </script>
 {{ end }}
