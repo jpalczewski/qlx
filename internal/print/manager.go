@@ -49,24 +49,10 @@ func (labelDocumentRenderer) Render(data label.LabelData, template string, media
 	return label.Render(data, template, media, opts)
 }
 
-// DefaultTransportFactory returns a TransportFactoryFn that creates transports by name.
+// DefaultTransportFactory returns a TransportFactoryFn that creates transports
+// by name from the transport registry.
 func DefaultTransportFactory() TransportFactoryFn {
-	return func(name string) transport.Transport {
-		switch name {
-		case "usb":
-			return &transport.FileTransport{}
-		case "gousb":
-			return &transport.GoUSBTransport{}
-		case "serial":
-			return &transport.SerialTransport{}
-		case "remote":
-			return &transport.RemoteTransport{}
-		case "ble":
-			return &transport.BLETransport{}
-		default:
-			return nil
-		}
-	}
+	return transport.New
 }
 
 // FindModel returns the ModelInfo matching modelID from an encoder, or nil if not found.
