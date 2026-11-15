@@ -18,3 +18,12 @@ func (t *SerialTransport) Write(data []byte) (int, error) {
 }
 func (t *SerialTransport) Read(buf []byte) (int, error) { return 0, errors.New("serial not supported") }
 func (t *SerialTransport) Close() error                 { return nil }
+
+func init() {
+	RegisterWithMeta("serial", func() Transport { return &SerialTransport{} }, Meta{
+		Label:              "Serial/Bluetooth",
+		AddressPlaceholder: "/dev/tty.usbserial-XXX",
+		Order:              30,
+		Available:          false,
+	})
+}
