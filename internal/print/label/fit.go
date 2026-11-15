@@ -80,23 +80,7 @@ func fitElements(elems []resolvedText, a fitArea) []resolvedText {
 		textW -= a.qrReserved + a.pad
 	}
 
-	// Tags and children have the lowest priority (see truncateForDieCut): drop
-	// them from the end while the fit elements could not keep their minimum
-	// height next to them.
-	minNeed := 0
-	for _, e := range elems {
-		if e.fit && canFit(e) {
-			minNeed += reserveHeight(e, textW, a.totalH-a.dateLineH-a.pad*2, false)
-		}
-	}
-	for len(elems) > 1 {
-		last := elems[len(elems)-1]
-		if (last.slot != "tags" && last.slot != "children") || fixedH+minNeed <= a.totalH-a.dateLineH {
-			break
-		}
-		fixedH -= last.height()
-		elems = elems[:len(elems)-1]
-	}
+	elems, fixedH = dropLowPriority(elems, a, textW, fixedH)
 	remaining := a.totalH - a.dateLineH - fixedH
 
 	out := make([]resolvedText, len(elems))
@@ -113,6 +97,27 @@ func fitElements(elems []resolvedText, a fitArea) []resolvedText {
 		left--
 	}
 	return out
+}
+
+// dropLowPriority removes trailing tags and children (the lowest priority, see
+// truncateForDieCut) while the fit elements could not keep their minimum
+// height next to them. It returns the remaining elements and fixed height.
+func dropLowPriority(elems []resolvedText, a fitArea, textW, fixedH int) ([]resolvedText, int) {
+	minNeed := 0
+	for _, e := range elems {
+		if e.fit && canFit(e) {
+			minNeed += reserveHeight(e, textW, a.totalH-a.dateLineH-a.pad*2, false)
+		}
+	}
+	for len(elems) > 1 {
+		last := elems[len(elems)-1]
+		if (last.slot != "tags" && last.slot != "children") || fixedH+minNeed <= a.totalH-a.dateLineH {
+			break
+		}
+		fixedH -= last.height()
+		elems = elems[:len(elems)-1]
+	}
+	return elems, fixedH
 }
 
 // reserveHeight returns the height one line of the element needs at its
