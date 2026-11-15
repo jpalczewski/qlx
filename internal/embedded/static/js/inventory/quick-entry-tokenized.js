@@ -294,6 +294,10 @@
           // Parse server-generated HTML fragment using DOMParser (trusted server response)
           var doc = (new DOMParser()).parseFromString(html, "text/html");
           var children = Array.prototype.slice.call(doc.body.childNodes);
+          // The list may still show the "empty list" placeholder rendered by the template.
+          Array.prototype.slice.call(list.querySelectorAll(":scope > .empty-state")).forEach(function (el) {
+            el.remove();
+          });
           children.forEach(function (child) {
             list.appendChild(document.adoptNode(child));
           });
