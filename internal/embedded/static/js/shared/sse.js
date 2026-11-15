@@ -5,6 +5,18 @@
   /** @type {EventSource|null} */
   var evtSource = null;
 
+  /**
+   * Translate a key and substitute {0}, {1}... placeholders.
+   * @param {string} key
+   * @param {Array<string|number>} [args]
+   * @returns {string}
+   */
+  function tf(key, args) {
+    var s = qlx.t(key);
+    (args || []).forEach(function (a, i) { s = s.replace("{" + i + "}", String(a)); });
+    return s;
+  }
+
   /** Open an SSE connection to receive live printer status updates. */
   function initSSE() {
     if (evtSource) return;
@@ -42,7 +54,7 @@
     if (!status.connected) {
       var offline = document.createElement("span");
       offline.className = "status-error";
-      offline.textContent = "Offline";
+      offline.textContent = qlx.t("printers.status_offline");
       if (status.last_error) {
         offline.textContent += ": " + status.last_error;
       }
@@ -51,16 +63,18 @@
     }
 
     var parts = [];
-    if (status.battery >= 0) parts.push("Battery: " + status.battery + "%");
+    if (status.battery >= 0) parts.push(tf("printers.status_battery", [status.battery]));
     if (status.label_width_mm > 0 && status.label_height_mm > 0) {
-      parts.push("Size: " + status.label_width_mm + "x" + status.label_height_mm + "mm");
+      parts.push(tf("printers.status_size", [status.label_width_mm, status.label_height_mm]));
     } else if (status.print_width_mm > 0) {
-      parts.push(status.print_width_mm + "mm @ " + status.dpi + "dpi");
+      parts.push(tf("printers.status_resolution", [status.print_width_mm, status.dpi]));
     }
-    if (status.label_type) parts.push("Label: " + status.label_type);
-    if (status.total_labels >= 0) parts.push("Labels: " + status.used_labels + "/" + status.total_labels);
-    parts.push(status.lid_closed ? "Lid: closed" : "Lid: OPEN");
-    parts.push(status.paper_loaded ? "Paper: OK" : "Paper: NONE");
+    if (status.label_type) parts.push(tf("printers.status_label_type", [status.label_type]));
+    if (status.total_labels >= 0) {
+      parts.push(tf("printers.status_labels", [status.used_labels, status.total_labels]));
+    }
+    parts.push(qlx.t(status.lid_closed ? "printers.status_lid_closed" : "printers.status_lid_open"));
+    parts.push(qlx.t(status.paper_loaded ? "printers.status_paper_ok" : "printers.status_paper_none"));
 
     parts.forEach(function (text, i) {
       var span = document.createElement("span");
@@ -82,7 +96,7 @@
     el.textContent = "";
 
     if (!status.connected) {
-      el.textContent = "Offline";
+      el.textContent = qlx.t("printers.status_offline");
       el.className = "status-error";
       return;
     }
@@ -90,9 +104,9 @@
     el.className = "status-ok";
     var text = "";
     if (status.battery >= 0) text += status.battery + "% ";
-    if (!status.lid_closed) text += "LID! ";
-    if (!status.paper_loaded) text += "NO PAPER ";
-    if (!text) text = "Ready";
+    if (!status.lid_closed) text += qlx.t("printers.status_nav_lid") + " ";
+    if (!status.paper_loaded) text += qlx.t("printers.status_nav_no_paper") + " ";
+    if (!text) text = qlx.t("printers.status_nav_ready");
     el.textContent = text.trim();
   }
 
@@ -173,7 +187,9 @@
     btn.textContent = qlx.t("printers.reconnect");
     btn.addEventListener("click", function () {
       fetch("/printers/" + printerId + "/reconnect", { method: "POST" })
-        .catch(function () {});
+        .catch(function (err) {
+          console.error("printer reconnect failed:", err);
+        });
     });
     card.appendChild(btn);
   }
