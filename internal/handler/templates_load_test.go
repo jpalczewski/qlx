@@ -2,9 +2,13 @@ package handler
 
 import (
 	"html/template"
+	"io/fs"
+	"path"
 	"strings"
 	"testing"
 	"testing/fstest"
+
+	"github.com/erxyi/qlx/internal/embedded"
 )
 
 func page(define string) *fstest.MapFile {
@@ -51,6 +55,13 @@ func TestDiscoverPages(t *testing.T) {
 			wantErr: []string{"pages/a/one.html", `"one"`},
 		},
 		{
+			name: "wrong define while a shared partial has the key name",
+			fsys: fstest.MapFS{
+				"pages/a/shared.html": page("other"),
+			},
+			wantErr: []string{"pages/a/shared.html", `"shared"`},
+		},
+		{
 			name: "invalid template syntax",
 			fsys: fstest.MapFS{
 				"pages/a/bad.html": {Data: []byte(`{{ define "bad" }}{{ end`)},
@@ -60,7 +71,8 @@ func TestDiscoverPages(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			layout := template.Must(template.New("layout").Parse(`{{ block "content" . }}{{ end }}`))
+			layout := template.Must(template.New("layout").Parse(
+				`{{ block "content" . }}{{ end }}{{ define "shared" }}partial{{ end }}`))
 			got, err := discoverPages(tt.fsys, "pages", layout)
 			if len(tt.wantErr) > 0 {
 				if err == nil {
@@ -98,9 +110,23 @@ func TestLoadTemplates_EmbeddedFS(t *testing.T) {
 	if len(pages) == 0 {
 		t.Fatal("expected embedded pages to load")
 	}
-	for _, k := range []string{"containers", "item", "settings", "template-designer"} {
-		if pages[k] == nil {
-			t.Errorf("missing embedded page %q", k)
+	want := map[string]string{}
+	err := fs.WalkDir(embedded.Templates, "templates/pages", func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil || d.IsDir() || path.Ext(p) != ".html" {
+			return walkErr
 		}
+		want[pageTemplateName(p)] = p
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k, p := range want {
+		if pages[k] == nil {
+			t.Errorf("page file %s missing from loaded templates (key %q)", p, k)
+		}
+	}
+	if len(pages) != len(want) {
+		t.Errorf("loaded %d pages, found %d page files", len(pages), len(want))
 	}
 }

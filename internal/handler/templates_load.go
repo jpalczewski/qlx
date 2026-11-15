@@ -131,10 +131,14 @@ func discoverPages(fsys fs.FS, root string, layoutTmpl *template.Template) (map[
 		if err != nil {
 			return fmt.Errorf("clone layout for %s: %w", fpath, err)
 		}
+		// The layout clone already holds shared partials, so only a template
+		// that this file itself (re)defines counts as satisfying the key.
+		before := tmpl.Lookup(name)
 		if tmpl, err = tmpl.Parse(string(content)); err != nil {
 			return fmt.Errorf("parse %s: %w", fpath, err)
 		}
-		if tmpl.Lookup(name) == nil {
+		after := tmpl.Lookup(name)
+		if after == nil || (before != nil && after.Tree == before.Tree) {
 			return fmt.Errorf("page %s must define template %q (derived from its file name)", fpath, name)
 		}
 		wrapper := `{{ define "content" }}{{ template "` + name + `" . }}{{ end }}`
