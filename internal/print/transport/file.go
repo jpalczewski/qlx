@@ -36,5 +36,8 @@ func (t *FileTransport) Read(buf []byte) (int, error) {
 }
 
 func (t *FileTransport) Close() error {
+	if t.file == nil { // Open failed or was never called
+		return nil
+	}
 	return t.file.Close()
 }

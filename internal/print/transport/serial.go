@@ -38,5 +38,8 @@ func (t *SerialTransport) Read(buf []byte) (int, error) {
 }
 
 func (t *SerialTransport) Close() error {
+	if t.port == nil { // Open failed or was never called
+		return nil
+	}
 	return t.port.Close()
 }
