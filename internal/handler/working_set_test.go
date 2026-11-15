@@ -289,7 +289,7 @@ func TestWorkingSet_RailFragment(t *testing.T) {
 	}
 	body := w.Body.String()
 	for _, want := range []string{
-		"<aside", `role="heading" aria-level="3"`,
+		`class="working-set-rail"`, `role="heading" aria-level="3"`,
 		`href="/containers/` + e.drawer.ID + `"`, "Drawer",
 		`href="/containers/` + e.box.ID + `"`, "Blue Box",
 	} {

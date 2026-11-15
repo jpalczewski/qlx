@@ -1,0 +1,37 @@
+/* App shell: nav on top, content left, persistent working-set rail right. */
+body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 15rem;
+    grid-template-areas:
+        "nav  nav"
+        "main rail";
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+}
+
+body > nav {
+    grid-area: nav;
+}
+
+body > main {
+    grid-area: main;
+    min-width: 0;
+}
+
+body > #working-rail {
+    grid-area: rail;
+}
+
+/* Too narrow for a second column: the rail steps aside, content keeps the width. */
+@media (max-width: 1100px) {
+    body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "nav"
+            "main";
+    }
+
+    body > #working-rail {
+        display: none;
+    }
+}

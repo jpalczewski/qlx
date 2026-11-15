@@ -36,6 +36,8 @@
     <link rel="stylesheet" href="/static/css/search/search.css">
     <link rel="stylesheet" href="/static/css/settings/settings.css">
     <link rel="stylesheet" href="/static/css/stats/stats.css">
+    <link rel="stylesheet" href="/static/css/layout/shell.css">
+    <link rel="stylesheet" href="/static/css/layout/rail.css">
     <link rel="stylesheet" href="/static/css/layout/responsive.css">
     <script src="/static/htmx.min.js"></script>
     <script src="/static/js/shared/namespace.js" defer></script>
@@ -62,6 +64,7 @@
     <script src="/static/js/inventory/quick-entry-tokenized.js" defer></script>
     <script src="/static/js/inventory/notes.js" defer></script>
     <script src="/static/js/shared/keyboard.js" defer></script>
+    <script src="/static/js/shared/workingset.js" defer></script>
 </head>
 <body>
     <nav>
@@ -81,6 +84,7 @@
     <main id="content">
         {{ template "content" . }}
     </main>
+    <aside id="working-rail" aria-label="{{.T "rail.title"}}" hx-get="/partials/rail" hx-trigger="load, workingSetChanged from:body" hx-swap="innerHTML"></aside>
     {{ template "preview-dialog" }}
     <div id="toast-container"></div>
 </body>

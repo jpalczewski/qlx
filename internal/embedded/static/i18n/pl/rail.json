@@ -1,7 +1,10 @@
 {
-  "rail.title": "Zestaw roboczy",
+  "rail.title": "W użyciu",
   "rail.pinned": "Przypięte",
   "rail.recent": "Ostatnie",
   "rail.no_pins": "Nic jeszcze nie przypięto",
-  "rail.no_recents": "Nic nie otwierano ostatnio"
+  "rail.no_recents": "Nic nie otwierano ostatnio",
+  "rail.pin": "Przypnij do zestawu roboczego",
+  "rail.unpin": "Odepnij",
+  "rail.items_count": "Liczba elementów"
 }
