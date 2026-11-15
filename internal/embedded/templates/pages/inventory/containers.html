@@ -14,6 +14,12 @@
                 <h2>{{ .Data.Container.Name }}</h2>
                 {{ if .Data.Container.Description }}<p class="container-desc">{{ .Data.Container.Description }}</p>{{ end }}
             </div>
+            {{ $pinned := IsPinned .Data.Container.ID }}
+            <button type="button" class="button secondary small pin-toggle" data-pin-toggle="{{ .Data.Container.ID }}"
+                    aria-pressed="{{ if $pinned }}true{{ else }}false{{ end }}"
+                    data-label-pin="{{.T "rail.pin"}}" data-label-unpin="{{.T "rail.unpin"}}"
+                    aria-label="{{ if $pinned }}{{.T "rail.unpin"}}{{ else }}{{.T "rail.pin"}}{{ end }}"
+                    title="{{ if $pinned }}{{.T "rail.unpin"}}{{ else }}{{.T "rail.pin"}}{{ end }}"><span aria-hidden="true" class="pin-star">{{ if $pinned }}★{{ else }}☆{{ end }}</span></button>
             <button class="button secondary small" onclick="qlx.openMovePicker({id: '{{ .Data.Container.ID }}', type: 'container'})">{{.T "action.move_to"}}</button>
             <a href="/containers/{{ .Data.Container.ID }}/edit" hx-get="/containers/{{ .Data.Container.ID }}/edit" hx-target="#content" class="button secondary small">{{.T "inventory.edit"}}</a>
             <div class="dropdown">

@@ -1,7 +1,10 @@
 {
-  "rail.title": "Working set",
+  "rail.title": "In use",
   "rail.pinned": "Pinned",
   "rail.recent": "Recent",
   "rail.no_pins": "Nothing pinned yet",
-  "rail.no_recents": "Nothing opened recently"
+  "rail.no_recents": "Nothing opened recently",
+  "rail.pin": "Pin to working set",
+  "rail.unpin": "Unpin",
+  "rail.items_count": "Item count"
 }

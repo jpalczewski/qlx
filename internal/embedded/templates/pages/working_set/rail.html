@@ -1,7 +1,14 @@
 {{ define "rail-list" }}
 <ul class="rail-list">
     {{ range .Entries }}
-    <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">{{ .Container.Name }}</a>{{ with .ParentPath }} <span class="rail-path">{{ . }}</span>{{ end }} <span class="rail-count">{{ .ItemCount }}</span></li>
+    <li class="rail-entry" data-container-id="{{ .Container.ID }}">
+        <a class="rail-link" href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">
+            <span class="rail-name">{{ if .Container.Color }}<span class="color-dot" style="background-color: {{ paletteHex .Container.Color }}"></span>{{ end }}{{ if .Container.Icon }}<span class="entity-icon">{{ icon .Container.Icon }}</span>{{ end }}<span class="rail-name-text">{{ .Container.Name }}</span></span>
+            {{ with .ParentPath }}<span class="rail-path">{{ . }}</span>{{ end }}
+        </a>
+        <span class="rail-count" title="{{ $.CountLabel }}">{{ .ItemCount }}</span>
+        {{ if $.Unpin }}<button type="button" class="rail-unpin" data-rail-unpin="{{ .Container.ID }}" aria-label="{{ $.Unpin }}: {{ .Container.Name }}" title="{{ $.Unpin }}"><span aria-hidden="true">&times;</span></button>{{ end }}
+    </li>
     {{ end }}
 </ul>
 {{ end }}
@@ -14,8 +21,8 @@
 {{ end }}
 
 {{ define "rail" }}
-<aside class="working-set-rail" id="working-set-rail" aria-label="{{ .T "rail.title" }}">
-    {{ template "rail-section" dict "Key" "pins" "Heading" (.T "rail.pinned") "Empty" (.T "rail.no_pins") "Entries" .Data.Pins }}
-    {{ template "rail-section" dict "Key" "recents" "Heading" (.T "rail.recent") "Empty" (.T "rail.no_recents") "Entries" .Data.Recents }}
-</aside>
+<div class="working-set-rail">
+    {{ template "rail-section" dict "Key" "pins" "Heading" (.T "rail.pinned") "Empty" (.T "rail.no_pins") "Entries" .Data.Pins "Unpin" (.T "rail.unpin") "CountLabel" (.T "rail.items_count") }}
+    {{ template "rail-section" dict "Key" "recents" "Heading" (.T "rail.recent") "Empty" (.T "rail.no_recents") "Entries" .Data.Recents "Unpin" "" "CountLabel" (.T "rail.items_count") }}
+</div>
 {{ end }}

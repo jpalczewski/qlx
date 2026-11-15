@@ -80,7 +80,10 @@ func loadLayout(fns TemplateFuncs) *template.Template {
 			}
 			return c.Hex
 		},
-		"IsPinned":       fns.IsPinned,
+		"IsPinned": func(id string) bool {
+			// Optional dependency: nothing is pinned when no working set is wired.
+			return fns.IsPinned != nil && fns.IsPinned(id)
+		},
 		"allColors":      palette.AllColors,
 		"iconCategories": palette.IconCategories,
 	}).Parse(string(content)))
