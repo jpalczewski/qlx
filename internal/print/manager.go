@@ -1,10 +1,12 @@
 package print
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	imagedraw "image/draw"
+	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
 	"github.com/erxyi/qlx/internal/print/label"
@@ -266,9 +268,77 @@ func (m *PrinterManager) AllStatuses() map[string]PrinterStatus {
 
 // Print renders a label and sends it to the printer.
 func (m *PrinterManager) Print(printerID string, data label.LabelData, templateName string, renderOpts label.RenderOpts, printOpts encoder.PrintOpts) error {
+	return m.withLinkRetry(printerID, func() (*PrinterSession, error) {
+		return m.printOnce(printerID, data, templateName, renderOpts, printOpts)
+	})
+}
+
+// reconnectWait bounds how long a print waits for the ConnectionManager to
+// re-establish a session after the link failed. A var so tests can shorten it.
+var reconnectWait = 15 * time.Second
+
+// withLinkRetry runs attempt and, if it failed with a retryable *LinkError
+// (the link broke before any page data reached the device) or with
+// ErrPrinterDisconnected (a session that ended between lookup and use), waits
+// for the reconnected session and runs attempt once more. Other errors, and
+// link errors after page data may have been consumed, are returned as is: a
+// repeat could print a duplicate label.
+func (m *PrinterManager) withLinkRetry(printerID string, attempt func() (*PrinterSession, error)) error {
+	used, err := attempt()
+	var le *LinkError
+	if err == nil {
+		return err
+	}
+	if retryable := errors.As(err, &le) && le.Retryable; !retryable && !errors.Is(err, ErrPrinterDisconnected) {
+		return err
+	}
+	webutil.LogError("printer %s: link failed before any page data was sent, retrying once on a new session: %v", printerID, err)
+	if !m.awaitNewSession(printerID, used) {
+		return err
+	}
+	_, err2 := attempt()
+	if err2 != nil {
+		return err2
+	}
+	return nil
+}
+
+// awaitNewSession waits until the printer has a connected session other than
+// old, up to reconnectWait or until the ConnectionManager is stopping.
+func (m *PrinterManager) awaitNewSession(printerID string, old *PrinterSession) bool {
+	if m.cm == nil {
+		return false
+	}
+	var done <-chan struct{}
+	if m.cm.ctx != nil {
+		done = m.cm.ctx.Done()
+	}
+	deadline := time.NewTimer(reconnectWait)
+	defer deadline.Stop()
+	tick := time.NewTicker(50 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		if m.cm.State(printerID) == StateConnected {
+			if sess := m.cm.Session(printerID); sess != nil && sess != old && !sess.closed.Load() {
+				return true
+			}
+		}
+		select {
+		case <-deadline.C:
+			return false
+		case <-done:
+			return false
+		case <-tick.C:
+		}
+	}
+}
+
+// printOnce resolves the printer, renders and prints once. It returns the
+// session it used (nil if it never got that far).
+func (m *PrinterManager) printOnce(printerID string, data label.LabelData, templateName string, renderOpts label.RenderOpts, printOpts encoder.PrintOpts) (*PrinterSession, error) {
 	ctx, err := m.resolveForPrint(printerID, printOpts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	renderer := m.renderer
@@ -277,7 +347,7 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 	}
 	pages, err := renderer.Render(data, templateName, ctx.media, renderOpts)
 	if err != nil {
-		return &RenderError{Err: err}
+		return ctx.session, &RenderError{Err: err}
 	}
 	for i, pg := range pages {
 		pages[i] = applyCalibrationOffset(pg, ctx.cfg, ctx.media.WidthPx)
@@ -285,18 +355,24 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 
 	webutil.LogInfo("printing on %s (%s/%s): %d page(s) x %d", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model, len(pages), ctx.printOpts.Copies)
 	if err := ctx.session.PrintPages(pages, ctx.cfg.Model, ctx.printOpts); err != nil {
-		return fmt.Errorf("encode: %w", err)
+		return ctx.session, fmt.Errorf("encode: %w", err)
 	}
 
 	webutil.LogInfo("print complete on %s", ctx.cfg.Name)
-	return nil
+	return ctx.session, nil
 }
 
 // PrintImage sends a pre-rendered image directly to the printer, bypassing label rendering.
 func (m *PrinterManager) PrintImage(printerID string, img image.Image, printOpts encoder.PrintOpts) error {
+	return m.withLinkRetry(printerID, func() (*PrinterSession, error) {
+		return m.printImageOnce(printerID, img, printOpts)
+	})
+}
+
+func (m *PrinterManager) printImageOnce(printerID string, img image.Image, printOpts encoder.PrintOpts) (*PrinterSession, error) {
 	ctx, err := m.resolveForPrint(printerID, printOpts)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Pre-rendered images are laid out for the full printhead row (the encoder
@@ -318,11 +394,11 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image, printOpts
 
 	webutil.LogInfo("printing image on %s (%s/%s)", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model)
 	if err := ctx.session.Print(img, ctx.cfg.Model, ctx.printOpts); err != nil {
-		return fmt.Errorf("encode: %w", err)
+		return ctx.session, fmt.Errorf("encode: %w", err)
 	}
 
 	webutil.LogInfo("print image complete on %s", ctx.cfg.Name)
-	return nil
+	return ctx.session, nil
 }
 
 // applyCalibrationOffset shifts the image content to compensate for printhead misalignment.
