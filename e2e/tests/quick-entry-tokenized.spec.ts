@@ -205,4 +205,47 @@ test.describe('Tokenized quick entry', () => {
     await expect(page.locator('#container-list')).toContainText(subContainerName);
   });
 
+  test('Test 8: empty-list placeholder disappears after adding an item or container', async ({ page, app }) => {
+    const baseURL = app.baseURL;
+
+    const contResp = await page.request.post(`${baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'QE Empty State' }
+    });
+    const container = await contResp.json();
+
+    await page.goto(`${baseURL}/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+
+    // Both lists start empty and show the placeholder
+    await expect(page.locator('#item-list .empty-state')).toHaveCount(1);
+    await expect(page.locator('#container-list .empty-state')).toHaveCount(1);
+
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('Placeholder Item');
+    let responsePromise = page.waitForResponse(r =>
+      r.url().endsWith('/items') && r.request().method() === 'POST'
+    );
+    await page.keyboard.press('Enter');
+    await responsePromise;
+
+    await expect(page.locator('#item-list')).toContainText('Placeholder Item');
+    await expect(page.locator('#item-list .empty-state')).toHaveCount(0);
+    // The other list is untouched
+    await expect(page.locator('#container-list .empty-state')).toHaveCount(1);
+
+    // Switch to container mode and add a container
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('End');
+    await page.keyboard.type('Placeholder Box');
+    responsePromise = page.waitForResponse(r =>
+      r.url().endsWith('/containers') && r.request().method() === 'POST'
+    );
+    await page.keyboard.press('Enter');
+    await responsePromise;
+
+    await expect(page.locator('#container-list')).toContainText('Placeholder Box');
+    await expect(page.locator('#container-list .empty-state')).toHaveCount(0);
+  });
 });
