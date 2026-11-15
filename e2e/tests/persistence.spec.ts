@@ -23,7 +23,7 @@ test.describe('Data persistence across page reloads', () => {
   });
 
   test('container visible after full page reload', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.container-list')).toContainText(containerName);
 
     // Full reload — not HTMX, actual browser reload
@@ -32,7 +32,7 @@ test.describe('Data persistence across page reloads', () => {
   });
 
   test('item visible after navigating away and back', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     const containerLink = page.locator(`.container-item:has-text("${containerName}")`);
     await containerLink.click();
 
@@ -42,13 +42,13 @@ test.describe('Data persistence across page reloads', () => {
     await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Drukarki');
 
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`.container-item:has-text("${containerName}")`);
     await expect(page.locator('.item-list')).toContainText(itemName);
   });
 
   test('item description persists correctly', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`.container-item:has-text("${containerName}")`);
     await page.click(`.item-item:has-text("${itemName}")`);
     await expect(page.locator('.item-desc')).toContainText('persist item desc');
@@ -80,7 +80,7 @@ test.describe('UI error states', () => {
       }
     });
 
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
     expect(pageErrors).toHaveLength(0);

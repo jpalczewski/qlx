@@ -1,5 +1,6 @@
 {
   "nav.home": "Inventory",
+  "nav.containers": "Containers",
   "nav.printers": "Printers",
   "nav.templates": "Templates",
   "nav.tags": "Tags",

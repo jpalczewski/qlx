@@ -38,7 +38,7 @@ test.describe('Stats page', () => {
   });
 
   test('stats page accessible via nav link', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
 
     const statsLink = page.locator('nav a[href="/stats"]');
     await expect(statsLink).toBeVisible();

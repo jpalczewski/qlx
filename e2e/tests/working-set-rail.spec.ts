@@ -14,7 +14,7 @@ async function createContainer(page: Page, baseURL: string, name: string, parent
 
 test.describe('Working set rail', () => {
   test('rail renders with headings and empty states', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const rail = page.locator('#working-rail');
     await expect(rail).toBeVisible();
     await expect(rail).toHaveAttribute('aria-label', 'W użyciu');

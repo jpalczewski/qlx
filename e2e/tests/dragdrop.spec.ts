@@ -26,7 +26,7 @@ test.describe('Drag and drop', () => {
     const itemName   = `DnD-I-${Date.now()}`;
 
     // Create parent container via API and navigate into it
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
     const input = page.locator('.qe-input');
     await input.click();
@@ -74,7 +74,7 @@ test.describe('Drag and drop', () => {
     const sourceName = `DnD-S-${Date.now()}`;
     const destName   = `DnD-D-${Date.now()}`;
 
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
     const input = page.locator('.qe-input');
     await input.click();
@@ -128,7 +128,7 @@ test.describe('Drag and drop', () => {
     const newContName = `DnD-N3-${Date.now()}`;
     const itemName    = `DnD-I3-${Date.now()}`;
 
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     const r1 = page.waitForResponse(r => r.url().includes('/containers') && r.request().method() === 'POST');
     const input = page.locator('.qe-input');
     await input.click();

@@ -50,6 +50,7 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 	containerHandler := handler.NewContainerHandler(inventory, templates, printers, pm, notes, tags, resp)
 
 	registrars := []handler.RouteRegistrar{
+		handler.NewHomeHandler(inventory, workingSet, resp),
 		containerHandler,
 		handler.NewItemHandler(inventory, templates, printers, pm, notes, tags, resp),
 		handler.NewTagHandler(tags, inventory, resp),
@@ -88,9 +89,6 @@ func NewServer(s store.Store, pm *qlprint.PrinterManager, cm *qlprint.Connection
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		w.Write(data) //nolint:errcheck,gosec
 	})
-
-	// Root handler — container list
-	mux.HandleFunc("GET /{$}", containerHandler.List)
 
 	// Register all domain routes
 	for _, reg := range registrars {

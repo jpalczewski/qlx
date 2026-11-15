@@ -182,8 +182,8 @@ test.describe('BindRequest edge cases', () => {
 // ─── HTMX partial vs full page ──────────────────────────────────────────────
 test.describe('HTMX partial responses', () => {
 
-  test('GET / with HX-Request returns partial (no doctype)', async ({ request, app }) => {
-    const res = await request.get(`${app.baseURL}/`, {
+  test('GET /containers with HX-Request returns partial (no doctype)', async ({ request, app }) => {
+    const res = await request.get(`${app.baseURL}/containers`, {
       headers: { 'HX-Request': 'true' },
     });
     expect(res.status()).toBe(200);
@@ -683,7 +683,7 @@ test.describe('Special characters in entity names', () => {
 test.describe('Quick entry HTMX flow', () => {
 
   test('quick entry container appends single item, not duplicate list', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
 
     const name = `QE-${Date.now()}`;
     // Switch to container mode (Tab), then type name and submit
