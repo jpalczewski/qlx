@@ -17,6 +17,82 @@
     if (el) el.textContent = text;
   }
 
+  // ---- label style (pair / single) ----
+
+  var PAIR = "pair";
+  var SINGLE = "single";
+  var LAYOUT_KEY = "qlx.print.layout";
+  var DESC_KEY = "qlx.print.description";
+
+  function storeGet(key) {
+    try { return window.localStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function storeSet(key, value) {
+    try { window.localStorage.setItem(key, value); } catch (e) { /* storage unavailable */ }
+  }
+
+  /** Returns "pair" or "single" for a form; forms without the selector are single. */
+  function currentLayout(form) {
+    var sel = qs(form, "[data-print-layout]");
+    if (!sel) return SINGLE;
+    return sel.value === SINGLE ? SINGLE : PAIR;
+  }
+
+  /** Cut-every counts pairs in pair style: swap its label and its untouched default. */
+  function syncCutEvery(form) {
+    var pair = currentLayout(form) === PAIR;
+    var text = qs(form, "[data-cut-every-text]");
+    if (text) {
+      var label = text.getAttribute(pair ? "data-label-pair" : "data-label-single");
+      if (label) text.textContent = label;
+    }
+    var input = qs(form, "[data-cut-every]");
+    // A pair is one cut unit: unless the user chose a value, cut after every pair.
+    if (input && !input._touched) input.value = pair ? "1" : "0";
+  }
+
+  /** Show only the controls that apply to the selected label style. */
+  function applyLayout(form) {
+    var pair = currentLayout(form) === PAIR;
+    var singleOnly = qsa(form, "[data-single-only]");
+    for (var i = 0; i < singleOnly.length; i++) {
+      singleOnly[i].style.display = pair ? "none" : "";
+    }
+    var descWrap = qs(form, "[data-description-wrap]");
+    if (descWrap) descWrap.style.display = pair ? "" : "none";
+    syncCutEvery(form);
+  }
+
+  function initLayout(form) {
+    var sel = qs(form, "[data-print-layout]");
+    if (!sel) return;
+    var saved = storeGet(LAYOUT_KEY);
+    if (saved === SINGLE || saved === PAIR) sel.value = saved;
+    var desc = qs(form, "[data-print-description]");
+    if (desc) desc.checked = storeGet(DESC_KEY) === "true";
+
+    sel.addEventListener("change", function () {
+      storeSet(LAYOUT_KEY, sel.value);
+      applyLayout(form);
+    });
+    if (desc) {
+      desc.addEventListener("change", function () {
+        storeSet(DESC_KEY, desc.checked ? "true" : "false");
+      });
+    }
+    var cut = qs(form, "[data-cut-every]");
+    if (cut) {
+      cut.addEventListener("input", function () { cut._touched = true; });
+    }
+    applyLayout(form);
+  }
+
+  /** Message for a warning code returned by print and preview, or "". */
+  function warningText(code) {
+    return code === "pair_fallback" ? qlx.t("labels.pair_fallback") : "";
+  }
+
   function getFormValues(form) {
     var mode = form.getAttribute("data-print-mode");
     // Look for printer select: local first, then panel-level
@@ -34,7 +110,16 @@
     var template = "";
     var templates = [];
 
-    if (mode === "container-label") {
+    // Label style: "pair" (default, two labels per entity) or "single".
+    // Forms without the selector (quick print) always print single labels.
+    var layout = currentLayout(form);
+    var descEl = qs(form, "[data-print-description]");
+    var printDescription = (layout === PAIR && descEl) ? descEl.checked : false;
+
+    if (layout === PAIR) {
+      template = PAIR;
+      templates = [PAIR];
+    } else if (mode === "container-label") {
       var checked = qsa(form, 'input[name="print-schema"]:checked');
       for (var i = 0; i < checked.length; i++) {
         templates.push(checked[i].value);
@@ -80,6 +165,8 @@
       printerModel: printerModel,
       template: template,
       templates: templates,
+      layout: layout,
+      printDescription: printDescription,
       printDate: printDate,
       showChildren: showChildren,
       text: text,
@@ -98,6 +185,7 @@
         printer_id: vals.printerId,
         templates: vals.templates,
         print_date: vals.printDate,
+        print_description: vals.printDescription,
         show_children: vals.showChildren,
         copies: vals.copies,
         density: vals.density,
@@ -122,6 +210,7 @@
       printer_id: vals.printerId,
       template: vals.template,
       print_date: vals.printDate,
+      print_description: vals.printDescription,
       copies: vals.copies,
       density: vals.density,
       cut_every: vals.cutEvery,
@@ -272,14 +361,19 @@
     if (vals.printerId) {
       previewUrl += "&printer_id=" + encodeURIComponent(vals.printerId);
     }
+    if (vals.layout === PAIR && vals.mode !== "adhoc") {
+      // Both labels of the pair, stacked in one image.
+      previewUrl += "&page=all&print_description=" + vals.printDescription;
+    }
 
     fetch(previewUrl, {
       headers: { "Accept": "application/json, image/png" }
     }).then(function (resp) {
       var ct = resp.headers.get("Content-Type") || "";
       if (ct.indexOf("image/png") >= 0) {
+        var warning = resp.headers.get("X-Qlx-Warning") || "";
         return resp.blob().then(function (blob) {
-          return { type: "image", blob: blob };
+          return { type: "image", blob: blob, warning: warning };
         });
       }
       return resp.json().then(function (data) {
@@ -295,7 +389,17 @@
         img.src = url;
         img.className = "preview-image";
         img.alt = "Label preview";
+        if (vals.layout === PAIR && !result.warning) {
+          img.setAttribute("data-preview-pair", "");
+        }
         contentEl.appendChild(img);
+        if (result.warning) {
+          var warn = document.createElement("p");
+          warn.className = "preview-note";
+          warn.setAttribute("data-preview-warning", result.warning);
+          warn.textContent = warningText(result.warning);
+          contentEl.appendChild(warn);
+        }
 
         dialog._previewState = { type: "image", img: img, originalUrl: url };
       } else if (result.data && result.data.render === "client") {
@@ -418,7 +522,9 @@
         renderDesigner(d, vals.printerId, qs(form, "[data-print-result]"));
         return;
       }
-      setResult(form, qlx.t("inventory.printed"));
+      var text = qlx.t("inventory.printed");
+      if (d.warning) text += " " + warningText(d.warning);
+      setResult(form, text);
     }).catch(function (e) {
       setResult(form, qlx.t("error.status") + ": " + e);
     });
@@ -441,25 +547,31 @@
 
       var printed = 0;
       var errors = [];
+      var warning = "";
+      var bulkBody = buildPrintBody(vals);
 
       function printNext(i) {
         if (i >= items.length) {
+          var text;
           if (errors.length > 0) {
-            setResult(form, qlx.t("labels.printed_with_errors")
+            text = qlx.t("labels.printed_with_errors")
               .replace("{printed}", printed)
               .replace("{total}", items.length)
-              .replace("{errors}", errors.join(", ")));
+              .replace("{errors}", errors.join(", "));
           } else {
-            setResult(form, qlx.t("labels.printed_count").replace("{count}", printed));
+            text = qlx.t("labels.printed_count").replace("{count}", printed);
           }
+          if (warning) text += " " + warningText(warning);
+          setResult(form, text);
           return;
         }
 
         fetch("/items/" + items[i].id + "/print", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Accept": "application/json" },
-          body: JSON.stringify({ printer_id: vals.printerId, template: vals.template })
+          body: bulkBody
         }).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.warning) warning = d.warning;
           if (d.ok && d.render !== "client") {
             printed++;
           } else if (d.ok && d.render === "client") {
@@ -577,6 +689,7 @@
 
     // Cut every: show if cut_supported
     setVisible(cutEveryWrap, !!caps.cut_supported);
+    syncCutEvery(form);
 
     // High res: show if high_res_supported
     setVisible(highResWrap, !!caps.high_res_supported);
@@ -611,6 +724,7 @@
     form._printFormInit = true;
 
     initDensityDisplay(form);
+    initLayout(form);
 
     var printerSel = qs(form, "[data-print-printer]");
     if (printerSel) {

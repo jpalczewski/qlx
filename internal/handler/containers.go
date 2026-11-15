@@ -277,24 +277,31 @@ func buildContainerPath(byID map[string]*store.Container, id string) string {
 
 // containerListVM builds the full view model for the container list page.
 func (h *ContainerHandler) containerListVM(parentID string) ContainerListData {
+	return buildContainerListVM(h.inventory, h.pm, h.templates, h.notes, parentID)
+}
+
+// buildContainerListVM assembles the container list page view model. It is
+// shared by every handler that can respond with the full container page, so
+// that page is identical regardless of which action triggered the render.
+func buildContainerListVM(inv *service.InventoryService, pm connectedPrinterProvider, tmpl *service.TemplateService, notes *service.NoteService, parentID string) ContainerListData {
 	vm := ContainerListData{
-		Children: h.inventory.ContainerChildren(parentID),
+		Children: inv.ContainerChildren(parentID),
 		Schemas:  label.SchemaNames(),
 	}
-	if h.pm != nil {
-		vm.Printers = h.pm.ConnectedPrinters()
+	if pm != nil {
+		vm.Printers = pm.ConnectedPrinters()
 	}
-	if h.templates != nil {
-		vm.Templates = h.templates.AllTemplates()
+	if tmpl != nil {
+		vm.Templates = tmpl.AllTemplates()
 	}
 	if parentID != "" {
-		container := h.inventory.GetContainer(parentID)
+		container := inv.GetContainer(parentID)
 		if container != nil {
 			vm.Container = container
-			vm.Items = h.inventory.ContainerItems(parentID)
-			vm.Path = h.inventory.ContainerPath(parentID)
-			if h.notes != nil {
-				vm.NoteCount = len(h.notes.ContainerNotes(parentID))
+			vm.Items = inv.ContainerItems(parentID)
+			vm.Path = inv.ContainerPath(parentID)
+			if notes != nil {
+				vm.NoteCount = len(notes.ContainerNotes(parentID))
 			}
 		}
 	}

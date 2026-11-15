@@ -54,14 +54,19 @@ func (m *mockEncoder) RfidInfo(_ context.Context, _ transport.Transport) (encode
 type spyRenderer struct {
 	called bool
 	err    error
+	pages  int // images per render; 0 means 1
 }
 
-func (s *spyRenderer) Render(_ label.LabelData, _ string, media label.MediaInfo, _ label.RenderOpts) (image.Image, error) {
+func (s *spyRenderer) Render(_ label.LabelData, _ string, media label.MediaInfo, _ label.RenderOpts) ([]image.Image, error) {
 	s.called = true
 	if s.err != nil {
 		return nil, s.err
 	}
-	return image.NewRGBA(image.Rect(0, 0, media.WidthPx, 10)), nil
+	pages := make([]image.Image, max(s.pages, 1))
+	for i := range pages {
+		pages[i] = image.NewRGBA(image.Rect(0, 0, media.WidthPx, 10+i))
+	}
+	return pages, nil
 }
 
 func newTestPrintStore(t *testing.T) *sqlite.SQLiteStore {

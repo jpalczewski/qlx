@@ -33,6 +33,16 @@ type PrintOpts struct {
 	HighRes  bool `json:"high_res"`  // Brother: 600 DPI vertical; others: ignored
 }
 
+// PagedEncoder is optionally implemented by encoders that can print a
+// sequence of different pages as one job, for example the two labels of a
+// paired label. The sequence is repeated opts.Copies times with the pages of
+// one set adjacent, and opts.CutEvery counts sets, not pages, so a cut never
+// falls between the pages of one set. Encoders without it are driven page by
+// page by the session (see print.PrinterSession.PrintPages).
+type PagedEncoder interface {
+	EncodePages(pages []image.Image, model string, opts PrintOpts, tr transport.Transport) error
+}
+
 // MediaGeometry is optionally implemented by encoders whose printable area
 // depends on the media loaded in the printer (for example Brother QL labels,
 // where the printable area is smaller than the label itself).
