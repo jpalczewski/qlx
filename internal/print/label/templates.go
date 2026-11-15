@@ -11,6 +11,9 @@ type LabelTag struct {
 type LabelChild struct {
 	Name string // child display name
 	Icon string // Phosphor icon name (may be empty)
+	// IsContainer marks a sub-container (as opposed to an item). Only the
+	// paired-label template uses it (counts, bold names); false counts as item.
+	IsContainer bool
 }
 
 // LabelData holds the data slots for label rendering.

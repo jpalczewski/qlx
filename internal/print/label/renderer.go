@@ -14,7 +14,10 @@ import (
 
 // RenderOpts controls optional rendering behaviour.
 type RenderOpts struct {
-	PrintDate bool // append "Wydrukowano: DATE" at bottom
+	PrintDate bool // append "Wydrukowano: DATE" at bottom (pair template: date in the bars)
+	// PrintDescription enables the item description on the paired template
+	// (it is an option, off by default). Schema templates ignore it.
+	PrintDescription bool
 }
 
 // nowFunc is overridable for tests.
