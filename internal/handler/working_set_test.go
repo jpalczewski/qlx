@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/erxyi/qlx/internal/embedded"
 	"github.com/erxyi/qlx/internal/service"
@@ -75,6 +76,9 @@ func TestWorkingSet_PinUnpin(t *testing.T) {
 		{"reorder ok", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":[]}`, 204, true},
 		{"reorder bad json", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{`, 400, false},
 		{"reorder missing ids", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{}`, 400, false},
+		{"reorder null ids", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":null}`, 400, false},
+		{"reorder trailing data", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":[]} {"x":1}`, 400, false},
+		{"reorder oversized", "PUT", func(*wsEnv) string { return "/api/working-set/pins" }, `{"ids":["` + strings.Repeat("a", maxReorderBody) + `"]}`, 413, false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -91,6 +95,15 @@ func TestWorkingSet_PinUnpin(t *testing.T) {
 				t.Errorf("HX-Trigger = %q, want empty", got)
 			}
 		})
+	}
+}
+
+func TestWorkingSet_ReorderErrorIsJSON(t *testing.T) {
+	e := newWSEnv(t, nil)
+	w := e.do("PUT", "/api/working-set/pins", `{`)
+	var body map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil || body["error"] == "" {
+		t.Fatalf("want JSON error body, got %q (%v)", w.Body.String(), err)
 	}
 }
 
@@ -314,5 +327,51 @@ func TestTemplateFuncs_IsPinned(t *testing.T) {
 	}
 	if sb.String() != "true/false" {
 		t.Errorf("got %q", sb.String())
+	}
+}
+
+func TestWorkingSet_SnapshotRecentAboveTen(t *testing.T) {
+	s := newHandlerTestStore(t)
+	inv := service.NewInventoryService(s)
+	mux := http.NewServeMux()
+	NewWorkingSetHandler(service.NewWorkingSetService(s), &JSONResponder{}).RegisterRoutes(mux)
+	for i := 0; i < 30; i++ {
+		c, err := inv.CreateContainer("", "C", "", "", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := s.RecordContainerOpen(c.ID, time.UnixMilli(1_700_000_000_000+int64(i))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for q, want := range map[string]int{"": 8, "?recent=25": 25, "?recent=500": 30} {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "/api/working-set"+q, nil))
+		if got := len(decodeSnapshot(t, w).Recents); got != want {
+			t.Errorf("%q: recents = %d, want %d", q, got, want)
+		}
+	}
+}
+
+func TestWorkingSet_RailJSONFallback(t *testing.T) {
+	e := newRailEnv(t)
+	e.do("POST", "/api/working-set/pins/"+e.drawer.ID, "")
+	r := httptest.NewRequest("GET", "/partials/rail", nil)
+	r.Header.Set("Accept", "application/json")
+	w := httptest.NewRecorder()
+	e.mux.ServeHTTP(w, r)
+	snap := decodeSnapshot(t, w)
+	if len(snap.Pins) != 1 || snap.Pins[0].ID != e.drawer.ID {
+		t.Errorf("pins = %+v", snap.Pins)
+	}
+}
+
+func TestWorkingSet_RailShowsPath(t *testing.T) {
+	e := newRailEnv(t)
+	e.do("POST", "/api/working-set/pins/"+e.box.ID, "")
+	w := httptest.NewRecorder()
+	e.mux.ServeHTTP(w, httptest.NewRequest("GET", "/partials/rail", nil))
+	if !strings.Contains(w.Body.String(), "Shelf / Blue Box") {
+		t.Errorf("rail should show container path:\n%s", w.Body.String())
 	}
 }

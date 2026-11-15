@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -72,6 +73,10 @@ type quickSwitchJSON struct {
 	Score  int    `json:"score"`
 }
 
+func snapshotJSON(snap service.WorkingSetSnapshot) workingSetJSON {
+	return workingSetJSON{Pins: entriesJSON(snap.Pins), Recents: entriesJSON(snap.Recents)}
+}
+
 func entriesJSON(entries []service.WorkingSetEntry) []workingSetEntryJSON {
 	out := make([]workingSetEntryJSON, 0, len(entries))
 	for _, e := range entries {
@@ -101,17 +106,12 @@ func limitParam(r *http.Request, name string, def, maxVal int) int {
 
 // limitedSnapshot returns the working set snapshot with recents capped by ?recent=.
 func (h *WorkingSetHandler) limitedSnapshot(r *http.Request) service.WorkingSetSnapshot {
-	snap := h.ws.Snapshot()
-	if n := limitParam(r, "recent", defaultRecentLimit, maxRecentLimit); len(snap.Recents) > n {
-		snap.Recents = snap.Recents[:n]
-	}
-	return snap
+	return h.ws.Snapshot(limitParam(r, "recent", defaultRecentLimit, maxRecentLimit))
 }
 
 // Snapshot handles GET /api/working-set?recent=8.
 func (h *WorkingSetHandler) Snapshot(w http.ResponseWriter, r *http.Request) {
-	snap := h.limitedSnapshot(r)
-	webutil.JSON(w, http.StatusOK, workingSetJSON{Pins: entriesJSON(snap.Pins), Recents: entriesJSON(snap.Recents)})
+	webutil.JSON(w, http.StatusOK, snapshotJSON(h.limitedSnapshot(r)))
 }
 
 // Pin handles POST /api/working-set/pins/{id}.
@@ -127,13 +127,26 @@ func (h *WorkingSetHandler) Unpin(w http.ResponseWriter, r *http.Request) {
 // ReorderPins handles PUT /api/working-set/pins with {"ids":[...]}.
 func (h *WorkingSetHandler) ReorderPins(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IDs []string `json:"ids"`
+		IDs *[]string `json:"ids"`
 	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxReorderBody)).Decode(&body); err != nil || body.IDs == nil {
-		http.Error(w, `invalid body: expected {"ids": [...]}`, http.StatusBadRequest)
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxReorderBody))
+	err := dec.Decode(&body)
+	if err == nil && dec.More() {
+		err = errors.New("unexpected data after JSON value")
+	}
+	if err == nil && (body.IDs == nil || *body.IDs == nil) {
+		err = errors.New(`"ids" is required`)
+	}
+	if err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			webutil.JSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "request body too large"})
+			return
+		}
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": `invalid body: expected {"ids": [...]}`})
 		return
 	}
-	h.pinsChanged(w, r, h.ws.ReorderPins(body.IDs))
+	h.pinsChanged(w, r, h.ws.ReorderPins(*body.IDs))
 }
 
 // pinsChanged finishes a pin mutation: error response, or 204 with HX-Trigger.
@@ -171,5 +184,8 @@ func (h *WorkingSetHandler) QuickSwitch(w http.ResponseWriter, r *http.Request) 
 
 // Rail handles GET /partials/rail — the working set rail HTML fragment.
 func (h *WorkingSetHandler) Rail(w http.ResponseWriter, r *http.Request) {
-	h.resp.RenderPartial(w, r, "rail", "rail", h.limitedSnapshot(r))
+	snap := h.limitedSnapshot(r)
+	if !h.resp.RenderPartial(w, r, "rail", "rail", snap) && webutil.WantsJSON(r) {
+		webutil.JSON(w, http.StatusOK, snapshotJSON(snap))
+	}
 }

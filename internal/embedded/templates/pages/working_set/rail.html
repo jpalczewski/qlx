@@ -1,28 +1,21 @@
+{{ define "rail-list" }}
+<ul class="rail-list">
+    {{ range .Entries }}
+    <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content" title="{{ .Path }}">{{ .Container.Name }}</a>{{ if ne .Path .Container.Name }} <span class="rail-path">{{ .Path }}</span>{{ end }} <span class="rail-count">{{ .ItemCount }}</span></li>
+    {{ end }}
+</ul>
+{{ end }}
+
+{{ define "rail-section" }}
+<div class="rail-section" data-rail="{{ .Key }}">
+    <div role="heading" aria-level="3" class="rail-heading">{{ .Heading }}</div>
+    {{ if .Entries }}{{ template "rail-list" . }}{{ else }}<p class="rail-empty">{{ .Empty }}</p>{{ end }}
+</div>
+{{ end }}
+
 {{ define "rail" }}
 <aside class="working-set-rail" id="working-set-rail" aria-label="{{ .T "rail.title" }}">
-    <div class="rail-section" data-rail="pins">
-        <div role="heading" aria-level="3" class="rail-heading">{{ .T "rail.pinned" }}</div>
-        {{ if .Data.Pins }}
-        <ul class="rail-list">
-            {{ range .Data.Pins }}
-            <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content">{{ .Container.Name }}</a> <span class="rail-count">{{ .ItemCount }}</span></li>
-            {{ end }}
-        </ul>
-        {{ else }}
-        <p class="rail-empty">{{ .T "rail.no_pins" }}</p>
-        {{ end }}
-    </div>
-    <div class="rail-section" data-rail="recents">
-        <div role="heading" aria-level="3" class="rail-heading">{{ .T "rail.recent" }}</div>
-        {{ if .Data.Recents }}
-        <ul class="rail-list">
-            {{ range .Data.Recents }}
-            <li><a href="/containers/{{ .Container.ID }}" hx-get="/containers/{{ .Container.ID }}" hx-target="#content">{{ .Container.Name }}</a> <span class="rail-count">{{ .ItemCount }}</span></li>
-            {{ end }}
-        </ul>
-        {{ else }}
-        <p class="rail-empty">{{ .T "rail.no_recents" }}</p>
-        {{ end }}
-    </div>
+    {{ template "rail-section" dict "Key" "pins" "Heading" (.T "rail.pinned") "Empty" (.T "rail.no_pins") "Entries" .Data.Pins }}
+    {{ template "rail-section" dict "Key" "recents" "Heading" (.T "rail.recent") "Empty" (.T "rail.no_recents") "Entries" .Data.Recents }}
 </aside>
 {{ end }}

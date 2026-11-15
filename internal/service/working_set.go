@@ -3,7 +3,6 @@ package service
 import (
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/erxyi/qlx/internal/store"
@@ -16,9 +15,6 @@ type WorkingSetService struct {
 		store.WorkingSetStore
 		store.ContainerStore
 	}
-
-	mu     sync.RWMutex
-	pinned map[string]bool // nil means "not loaded"
 }
 
 // NewWorkingSetService creates a WorkingSetService backed by the given store.
@@ -45,25 +41,14 @@ type WorkingSetSnapshot struct {
 	Recents []WorkingSetEntry // excludes pinned containers
 }
 
-// recentsSnapshotLimit is how many unpinned recents a snapshot returns.
-const recentsSnapshotLimit = 10
-
 // Pin pins a container.
 func (s *WorkingSetService) Pin(id string) error {
-	if err := s.store.PinContainer(id); err != nil {
-		return err
-	}
-	s.invalidate()
-	return nil
+	return s.store.PinContainer(id)
 }
 
 // Unpin removes a pin.
 func (s *WorkingSetService) Unpin(id string) error {
-	if err := s.store.UnpinContainer(id); err != nil {
-		return err
-	}
-	s.invalidate()
-	return nil
+	return s.store.UnpinContainer(id)
 }
 
 // ReorderPins sets the display order of pinned containers.
@@ -76,39 +61,21 @@ func (s *WorkingSetService) RecordOpen(id string) error {
 	return s.store.RecordContainerOpen(id, time.Now())
 }
 
-// IsPinned reports whether the container is pinned. The pin set is cached and
-// refreshed after Pin/Unpin.
+// IsPinned reports whether the container is pinned. It reads the store on
+// every call (a small indexed query), so it is always consistent with pin,
+// unpin, reorder and container deletion.
 func (s *WorkingSetService) IsPinned(id string) bool {
-	s.mu.RLock()
-	p := s.pinned
-	s.mu.RUnlock()
-	if p == nil {
-		p = s.loadPinned()
+	for _, p := range s.store.Pins() {
+		if p == id {
+			return true
+		}
 	}
-	return p[id]
+	return false
 }
 
-func (s *WorkingSetService) loadPinned() map[string]bool {
-	ids := s.store.Pins()
-	p := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		p[id] = true
-	}
-	s.mu.Lock()
-	s.pinned = p
-	s.mu.Unlock()
-	return p
-}
-
-func (s *WorkingSetService) invalidate() {
-	s.mu.Lock()
-	s.pinned = nil
-	s.mu.Unlock()
-}
-
-// Snapshot returns pins (in order) and recents (newest first, pinned ones
-// excluded), each with item counts.
-func (s *WorkingSetService) Snapshot() WorkingSetSnapshot {
+// Snapshot returns pins (in order) and up to recentLimit recents (newest
+// first, pinned ones excluded), each with item counts.
+func (s *WorkingSetService) Snapshot(recentLimit int) WorkingSetSnapshot {
 	pinIDs := s.store.Pins()
 	pinSet := make(map[string]bool, len(pinIDs))
 	for _, id := range pinIDs {
@@ -120,7 +87,7 @@ func (s *WorkingSetService) Snapshot() WorkingSetSnapshot {
 	var recents []store.RecentContainer
 	for _, r := range allRecents {
 		meta[r.ContainerID] = r
-		if !pinSet[r.ContainerID] && len(recents) < recentsSnapshotLimit {
+		if !pinSet[r.ContainerID] && len(recents) < recentLimit {
 			recents = append(recents, r)
 		}
 	}
