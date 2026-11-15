@@ -222,4 +222,83 @@ test.describe('Paired labels', () => {
     await expect(reloaded.locator('[data-print-layout]')).toHaveValue('single');
     await expect(reloaded.locator('[data-print-template]')).toBeVisible();
   });
+
+  test('first-label-only option is visible only for the pair style and is remembered', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/items/${itemId}`);
+    const form = page.locator('[data-print-form][data-print-mode="item"]');
+    const opt = form.locator('[data-pair-first-only]');
+
+    await expect(opt).toBeVisible();
+    await expect(opt).not.toBeChecked();
+
+    await form.locator('[data-print-layout]').selectOption('single');
+    await expect(opt).toBeHidden();
+    await form.locator('[data-print-layout]').selectOption('pair');
+    await expect(opt).toBeVisible();
+
+    await opt.check();
+    await page.reload();
+    const reloaded = page.locator('[data-print-form][data-print-mode="item"]');
+    await expect(reloaded.locator('[data-pair-first-only]')).toBeChecked();
+    await reloaded.locator('[data-pair-first-only]').uncheck();
+  });
+
+  test('item print request carries pair_pages', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/items/${itemId}`);
+    const form = page.locator('[data-print-form][data-print-mode="item"]');
+    const printOnce = async () => {
+      const responsePromise = page.waitForResponse(r =>
+        r.url().includes(`/items/${itemId}/print`) && r.request().method() === 'POST'
+      );
+      await form.locator('[data-print-btn]').click();
+      return (await responsePromise).request().postDataJSON();
+    };
+
+    expect((await printOnce()).pair_pages).toBe('both');
+    await form.locator('[data-pair-first-only]').check();
+    const body = await printOnce();
+    expect(body.template).toBe('pair');
+    expect(body.pair_pages).toBe('first');
+    await form.locator('[data-pair-first-only]').uncheck();
+  });
+
+  test('first-only preview shows page 1 only', async ({ page, request, app }) => {
+    await page.goto(`${app.baseURL}/items/${itemId}`);
+    const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-pair-first-only]').check();
+
+    const previewResponse = page.waitForResponse(r =>
+      r.url().includes(`/items/${itemId}/preview`) && r.request().method() === 'GET'
+    );
+    await form.locator('[data-print-preview]').click();
+    const response = await previewResponse;
+    expect(new URL(response.url()).searchParams.get('page')).toBe('1');
+
+    const dialog = page.locator('[data-preview-dialog]');
+    const img = dialog.locator('.preview-image');
+    await expect(img).toBeVisible({ timeout: 10000 });
+    await expect(dialog.locator('img[data-preview-pair]')).toHaveCount(0);
+
+    const shown = await img.evaluate((el: HTMLImageElement) => ({ w: el.naturalWidth, h: el.naturalHeight }));
+    const all = await request.get(response.url().replace('page=1', 'page=all'));
+    expect(shown.h).toBeLessThan(pngSize(await all.body()).h);
+    await dialog.press('Escape');
+    await form.locator('[data-pair-first-only]').uncheck();
+  });
+
+  test('container print request carries pair_pages', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/containers/${containerId}`);
+    const containerTab = page.locator('[data-tab-content="container-label"]');
+    await expect(containerTab.locator('[data-pair-first-only]')).toBeVisible();
+    await containerTab.locator('[data-pair-first-only]').check();
+
+    const responsePromise = page.waitForResponse(r =>
+      r.url().includes(`/containers/${containerId}/print`) && r.request().method() === 'POST'
+    );
+    await containerTab.locator('[data-print-btn]').click();
+    const body = (await responsePromise).request().postDataJSON();
+    expect(body.templates).toEqual(['pair']);
+    expect(body.pair_pages).toBe('first');
+    await containerTab.locator('[data-pair-first-only]').uncheck();
+  });
 });

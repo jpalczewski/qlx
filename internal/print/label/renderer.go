@@ -18,6 +18,9 @@ type RenderOpts struct {
 	// PrintDescription enables the item description on the paired template
 	// (it is an option, off by default). Schema templates ignore it.
 	PrintDescription bool
+	// FirstPageOnly keeps only page 1 (the identity label) of the paired
+	// template in RenderPages. Schema templates already have a single page.
+	FirstPageOnly bool
 }
 
 // nowFunc is overridable for tests.

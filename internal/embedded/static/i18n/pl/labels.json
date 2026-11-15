@@ -36,5 +36,6 @@
   "labels.layout_pair": "Para (2 etykiety)",
   "labels.layout_single": "Pojedyncza etykieta",
   "labels.print_description": "Drukuj opis",
+  "labels.pair_first_only": "Drukuj tylko pierwszą etykietę (tytuł)",
   "labels.pair_fallback": "Para etykiet nie jest dostępna dla tej drukarki lub nośnika; wydrukowano pojedynczą etykietę."
 }
