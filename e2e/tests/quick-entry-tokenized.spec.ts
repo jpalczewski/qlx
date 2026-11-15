@@ -248,4 +248,48 @@ test.describe('Tokenized quick entry', () => {
     await expect(page.locator('#container-list')).toContainText('Placeholder Box');
     await expect(page.locator('#container-list .empty-state')).toHaveCount(0);
   });
+
+  test('Test 9: item at the root without a container shows a hint and sends nothing', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1')).toContainText('Kontenery');
+
+    let itemPosts = 0;
+    page.on('request', r => {
+      if (r.url().endsWith('/items') && r.method() === 'POST') itemPosts++;
+    });
+
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.type('Root Item Without Container');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('.toast-error')).toContainText('@');
+    expect(itemPosts).toBe(0);
+    // The typed text is kept
+    await expect(input).toContainText('Root Item Without Container');
+  });
+
+  test('Test 10: a failed request is reported to the user', async ({ page, app }) => {
+    const contResp = await page.request.post(`${app.baseURL}/containers`, {
+      headers: { 'Accept': 'application/json' },
+      data: { name: 'QE Failing Container' }
+    });
+    const container = await contResp.json();
+    await page.goto(`${app.baseURL}/containers/${container.id}`, { waitUntil: 'domcontentloaded' });
+
+    await page.route('**/items', route => {
+      if (route.request().method() === 'POST') return route.fulfill({ status: 500, body: 'boom' });
+      return route.continue();
+    });
+
+    const input = page.locator('.qe-input');
+    await input.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('Will Fail');
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('.toast-error')).toBeVisible();
+    await expect(input).toContainText('Will Fail');
+    await expect(page.locator('#item-list')).not.toContainText('Will Fail');
+  });
 });

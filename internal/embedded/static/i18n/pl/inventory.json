@@ -7,6 +7,8 @@
   "inventory.items": "Przedmioty",
   "inventory.no_subcontainers": "Brak podkontenerów",
   "inventory.no_items": "Brak przedmiotów",
+  "inventory.quick_entry_item_needs_container": "Przedmiot musi być w kontenerze: wpisz @ i wybierz kontener.",
+  "inventory.quick_entry_failed": "Nie udało się dodać. Spróbuj ponownie.",
   "inventory.new_container_placeholder": "Nowy kontener...",
   "inventory.new_item_placeholder": "Nowy przedmiot...",
   "inventory.print_labels": "Drukuj etykiety",

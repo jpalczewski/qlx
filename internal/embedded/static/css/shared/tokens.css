@@ -10,6 +10,8 @@
     --color-border: #333;
     --color-success: #4ecca3;
     --color-warning: #ffc93c;
+    --color-error: #ef4444;
+    --color-info: #3b82f6;
     --color-canvas-bg: #ffffff;
 
     /* Spacing */

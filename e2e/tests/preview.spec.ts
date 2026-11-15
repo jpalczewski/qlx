@@ -33,6 +33,7 @@ test.describe('Label preview', () => {
     await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
 
     const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-print-layout]').selectOption('single');
     await form.locator('[data-print-template]').selectOption('simple');
 
     const previewResponse = page.waitForResponse(r =>
@@ -53,6 +54,7 @@ test.describe('Label preview', () => {
     await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
 
     const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-print-layout]').selectOption('single');
     await form.locator('[data-print-template]').selectOption('simple');
 
     const previewResponse = page.waitForResponse(r =>
@@ -93,6 +95,7 @@ test.describe('Label preview', () => {
     await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
 
     const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-print-layout]').selectOption('single');
     await form.locator('[data-print-template]').selectOption('simple');
 
     const previewResponse = page.waitForResponse(r =>
@@ -126,6 +129,7 @@ test.describe('Label preview', () => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
     const containerTab = page.locator('[data-tab-content="container-label"]');
+    await containerTab.locator('[data-print-layout]').selectOption('single');
     await containerTab.locator('input[name="print-schema"]').first().check();
 
     const previewResponse = page.waitForResponse(r =>

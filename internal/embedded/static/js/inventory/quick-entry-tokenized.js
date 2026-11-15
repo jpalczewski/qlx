@@ -261,6 +261,12 @@
     // Submit
     // ------------------------------------------------------------------
 
+    // Show a message to the user. Falls back to the key when i18n is unavailable.
+    function notify(key, isError) {
+      var msg = qlx.t ? qlx.t(key) : key;
+      if (qlx.showToast) qlx.showToast(msg, isError);
+    }
+
     function submit() {
       var data = parseInput();
       if (!data.name) return;
@@ -273,7 +279,13 @@
       if (mode === "item") {
         url = "/items";
         target = "item-list";
-        form.append("container_id", data.containerID || defaultContainerID);
+        var itemContainerID = data.containerID || defaultContainerID;
+        if (!itemContainerID) {
+          // At the root there is no default container: an item must be placed with an @container token.
+          notify("inventory.quick_entry_item_needs_container", true);
+          return;
+        }
+        form.append("container_id", itemContainerID);
         form.append("quantity", String(data.qty));
       } else {
         url = "/containers";
@@ -307,6 +319,8 @@
         resetInput();
       }).catch(function (err) {
         console.error("quick-entry submit failed:", err);
+        // Keep the typed text so nothing is lost, and tell the user it did not work.
+        notify("inventory.quick_entry_failed", true);
       });
     }
 

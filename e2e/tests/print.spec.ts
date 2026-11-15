@@ -42,6 +42,8 @@ test.describe('Print flow', () => {
     const form = page.locator('[data-print-form][data-print-mode="item"]');
     await expect(form).toBeVisible();
     await expect(form.locator('[data-print-printer]')).toBeVisible();
+    await expect(form.locator('[data-print-layout]')).toHaveValue('pair');
+    await form.locator('[data-print-layout]').selectOption('single');
     await expect(form.locator('[data-print-template]')).toBeVisible();
     await expect(form.locator('[data-print-btn]')).toBeVisible();
     await expect(form.locator('[data-print-preview]')).toBeVisible();
@@ -51,6 +53,7 @@ test.describe('Print flow', () => {
     await page.goto(`${app.baseURL}/items/${itemId}`, { waitUntil: 'domcontentloaded' });
 
     const form = page.locator('[data-print-form][data-print-mode="item"]');
+    await form.locator('[data-print-layout]').selectOption('single');
     await form.locator('[data-print-template]').selectOption('simple');
 
     const responsePromise = page.waitForResponse(r =>
@@ -74,6 +77,7 @@ test.describe('Print flow', () => {
 
     const bulkTab = panel.locator('[data-tab-content="bulk-items"]');
     await expect(bulkTab).toBeVisible();
+    await bulkTab.locator('[data-print-layout]').selectOption('single');
     await bulkTab.locator('[data-print-template]').selectOption('simple');
 
     await bulkTab.locator('[data-print-btn]').click();
