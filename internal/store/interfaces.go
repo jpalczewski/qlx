@@ -1,5 +1,39 @@
 package store
 
+import "time"
+
+// MaxRecentContainers is the number of recently opened containers retained.
+const MaxRecentContainers = 50
+
+// RecentContainer records when and how often a container was opened.
+type RecentContainer struct {
+	ContainerID  string
+	LastOpenedAt time.Time
+	OpenCount    int
+}
+
+// WorkingSetStore persists the "in use" working set: pinned and recently
+// opened containers.
+type WorkingSetStore interface {
+	// PinContainer pins a container at the end of the pin list. Idempotent.
+	PinContainer(id string) error
+	// UnpinContainer removes a pin. Idempotent.
+	UnpinContainer(id string) error
+	// ReorderPins assigns positions following the order of ids. Unpinned or
+	// unknown ids are ignored; pins not listed keep their relative order after
+	// the listed ones.
+	ReorderPins(ids []string) error
+	// Pins returns pinned container IDs in display order.
+	Pins() []string
+	// RecordContainerOpen upserts a recent entry (incrementing open_count) and
+	// trims the list to MaxRecentContainers.
+	RecordContainerOpen(id string, at time.Time) error
+	// RecentContainers returns up to limit entries, newest first.
+	RecentContainers(limit int) []RecentContainer
+	// ContainerItemCounts returns the number of items directly in each container.
+	ContainerItemCounts(ids []string) map[string]int
+}
+
 // ContainerStore defines container-related store operations.
 type ContainerStore interface {
 	GetContainer(id string) *Container
