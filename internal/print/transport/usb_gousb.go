@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -93,7 +94,11 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 	}
 
 	t.dev = matched
-	t.dev.SetAutoDetach(true)
+	if autoDetachDefault(runtime.GOOS) {
+		if err := t.dev.SetAutoDetach(true); err != nil {
+			webutil.LogTrace("gousb: set auto detach: %v", err)
+		}
+	}
 
 	// Use the active configuration rather than setting one (avoids kernel driver conflicts on macOS).
 	cfgNum, err := t.dev.ActiveConfigNum()
@@ -110,9 +115,10 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 	t.iface, err = t.cfg.Interface(0, 0)
 	if err != nil {
 		t.cleanup()
-		// On macOS, the Apple USB printer driver claims the interface.
-		// Running with sudo or unloading the driver is required.
-		return fmt.Errorf("gousb interface: %w (on macOS, try running with sudo or unload the kernel driver)", err)
+		// "bad access" (LIBUSB_ERROR_ACCESS) means another process already holds the interface
+		// exclusively, or, on Linux, that a kernel driver or missing permissions are in the way.
+		return fmt.Errorf("gousb interface: %w (another process may hold the printer, e.g. a CUPS queue "+
+			"or a second QLX instance; on Linux check the usblp driver and udev permissions)", err)
 	}
 
 	// Find bulk IN and OUT endpoints.
@@ -142,6 +148,17 @@ func (t *GoUSBTransport) Open(ctx context.Context, address string) error {
 
 	webutil.LogInfo("gousb: opened device %s", address)
 	return nil
+}
+
+// autoDetachDefault reports whether the kernel driver should be detached automatically when
+// claiming the printer interface for the given GOOS value (runtime.GOOS).
+//
+// Only Linux needs it: the usblp driver binds to every USB printer. On macOS the printer
+// interface has no kernel driver, and libusb's detach path (device capture) needs root or a
+// special Apple entitlement, so enabling it there turns a working unprivileged claim into
+// "Can't detach kernel driver ... bad access". Without it a normal user can print on macOS.
+func autoDetachDefault(goos string) bool {
+	return goos == "linux"
 }
 
 // Write sends data to the USB bulk OUT endpoint.
