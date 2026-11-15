@@ -27,6 +27,15 @@ test.describe('Move to Container', () => {
     await page.click('#item-list a:has-text("TestItem")');
     await expect(page.locator('h1')).toContainText('TestItem');
 
+    // The item page is a full document load: <h1> is visible as soon as the
+    // HTML is parsed, but the deferred scripts (keyboard.js, move-picker.js)
+    // run only before DOMContentLoaded. Wait until the shortcut is bound,
+    // otherwise the keypress is silently dropped.
+    await page.waitForFunction(() => {
+      const q = (window as any).qlx;
+      return document.readyState !== 'loading' && !!q && typeof q.openMovePicker === 'function';
+    });
+
     // Press m — move picker should open
     await page.keyboard.press('m');
     await expect(page.locator('#move-picker')).toBeVisible();
