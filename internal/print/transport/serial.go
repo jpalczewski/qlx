@@ -40,3 +40,7 @@ func (t *SerialTransport) Read(buf []byte) (int, error) {
 func (t *SerialTransport) Close() error {
 	return t.port.Close()
 }
+
+func init() {
+	Register("serial", func() Transport { return &SerialTransport{} })
+}

@@ -38,3 +38,7 @@ func (t *FileTransport) Read(buf []byte) (int, error) {
 func (t *FileTransport) Close() error {
 	return t.file.Close()
 }
+
+func init() {
+	Register("usb", func() Transport { return &FileTransport{} })
+}

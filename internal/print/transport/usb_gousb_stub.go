@@ -35,3 +35,7 @@ type USBScanResult struct {
 func ScanUSB() ([]USBScanResult, error) {
 	return nil, errors.New("USB scanning not supported in this build")
 }
+
+func init() {
+	Register("gousb", func() Transport { return &GoUSBTransport{} })
+}

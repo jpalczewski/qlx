@@ -66,11 +66,9 @@
                 <div class="form-group">
                     <label for="transport">Transport</label>
                     <select id="transport" name="transport" onchange="updateAddressPlaceholder()">
-                        <option value="gousb">USB (bidirectional)</option>
-                        <option value="usb">USB (file)</option>
-                        <option value="serial">Serial/Bluetooth</option>
-                        <option value="ble">Bluetooth (BLE)</option>
-                        <option value="remote">Remote QLX</option>
+                        {{ range .Data.Transports }}
+                        <option value="{{ .Value }}">{{ .Label }}</option>
+                        {{ end }}
                     </select>
                 </div>
                 <div class="form-group">

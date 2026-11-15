@@ -250,3 +250,7 @@ func parseUSBAddress(addr string) (vid, pid uint16, serial string, err error) {
 
 	return uint16(v), uint16(p), parts[2], nil //nolint:gosec // G115: validated by ParseUint bounds
 }
+
+func init() {
+	Register("gousb", func() Transport { return &GoUSBTransport{} })
+}

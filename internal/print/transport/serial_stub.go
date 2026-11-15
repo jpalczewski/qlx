@@ -18,3 +18,7 @@ func (t *SerialTransport) Write(data []byte) (int, error) {
 }
 func (t *SerialTransport) Read(buf []byte) (int, error) { return 0, errors.New("serial not supported") }
 func (t *SerialTransport) Close() error                 { return nil }
+
+func init() {
+	Register("serial", func() Transport { return &SerialTransport{} })
+}

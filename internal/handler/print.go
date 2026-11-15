@@ -675,7 +675,42 @@ func (h *PrintHandler) printersVM() PrintersData {
 		}
 	}
 	return PrintersData{
-		Printers: printers,
-		Encoders: encoders,
+		Printers:   printers,
+		Encoders:   encoders,
+		Transports: transportOptions(transport.Names()),
 	}
+}
+
+// transportOrder fixes the display order and labels of well-known transports.
+// Transports registered but not listed here are appended alphabetically with
+// their registry name as label.
+var transportOrder = []TransportOption{
+	{"gousb", "USB (bidirectional)"},
+	{"usb", "USB (file)"},
+	{"serial", "Serial/Bluetooth"},
+	{"ble", "Bluetooth (BLE)"},
+	{"remote", "Remote QLX"},
+}
+
+// transportOptions builds the printer form's transport options from the
+// registered transport names (expected sorted, as transport.Names returns).
+func transportOptions(names []string) []TransportOption {
+	have := make(map[string]bool, len(names))
+	for _, n := range names {
+		have[n] = true
+	}
+	opts := make([]TransportOption, 0, len(names))
+	known := make(map[string]bool, len(transportOrder))
+	for _, o := range transportOrder {
+		known[o.Value] = true
+		if have[o.Value] {
+			opts = append(opts, o)
+		}
+	}
+	for _, n := range names {
+		if !known[n] {
+			opts = append(opts, TransportOption{Value: n, Label: n})
+		}
+	}
+	return opts
 }

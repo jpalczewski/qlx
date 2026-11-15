@@ -47,3 +47,7 @@ func (t *RemoteTransport) Read(buf []byte) (int, error) {
 func (t *RemoteTransport) Close() error {
 	return nil
 }
+
+func init() {
+	Register("remote", func() Transport { return &RemoteTransport{} })
+}

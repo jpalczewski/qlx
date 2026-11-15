@@ -84,3 +84,27 @@ test.describe('Printer management', () => {
     await expect(page.locator(`.printer-card:has-text("${printerName}")`)).not.toBeVisible();
   });
 });
+
+test.describe('Printer form transport options', () => {
+  test('transport select is built from the registry', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
+    await page.click('summary:has-text("Dodaj drukarkę")');
+    const options = page.locator('#transport option');
+    await expect(options).toHaveText(['USB (bidirectional)', 'USB (file)', 'Serial/Bluetooth', 'Bluetooth (BLE)', 'Remote QLX']);
+    await expect(page.locator('#transport')).toHaveValue('gousb');
+  });
+
+  test('printer can be added with a selected transport', async ({ page, app }) => {
+    const name = `Transport Printer ${Date.now()}`;
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
+    await page.click('summary:has-text("Dodaj drukarkę")');
+    await page.fill('#name', name);
+    await page.selectOption('#encoder', 'niimbot');
+    await page.selectOption('#transport', 'remote');
+    await page.fill('#address', 'http://127.0.0.1:9');
+    const responsePromise = page.waitForResponse(r => r.url().includes('/printers') && r.request().method() === 'POST');
+    await page.click('button:has-text("Dodaj")');
+    await responsePromise;
+    await expect(page.locator(`.printer-card:has-text("${name}")`)).toBeVisible();
+  });
+});

@@ -264,3 +264,7 @@ func ScanBLE() ([]BLEScanResult, error) {
 	}
 	return results, nil
 }
+
+func init() {
+	Register("ble", func() Transport { return &BLETransport{} })
+}

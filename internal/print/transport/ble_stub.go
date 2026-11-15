@@ -28,3 +28,7 @@ type BLEScanResult struct {
 func ScanBLE() ([]BLEScanResult, error) {
 	return nil, errors.New("BLE scanning not supported in this build")
 }
+
+func init() {
+	Register("ble", func() Transport { return &BLETransport{} })
+}
