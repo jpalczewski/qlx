@@ -109,25 +109,12 @@
       if (hasTarget) return;
       var ids = dragData.ids;
       dragData = null;
-      fetch("/bulk/move", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: ids, target_container_id: targetId })
-      })
-        .then(function (resp) {
-          if (!resp.ok) {
-            return resp.json().then(function (data) {
-              qlx.showToast(data.error || qlx.t("error.status") + " " + resp.status, true);
-            });
-          }
-          qlx.showToast(qlx.t("bulk.moved") + " " + ids.length, false);
-          qlx.clearSelection();
-          htmx.ajax("GET", window.location.pathname, { target: "#content" });
-        })
-        .catch(function (err) {
-          console.error("bulk drop move failed:", err);
-          qlx.showToast(qlx.t("error.connection"), true);
-        });
+      qlx.bulkRequest("/bulk/move", {
+        json: { ids: ids, target_container_id: targetId },
+        success: qlx.t("bulk.moved") + " " + ids.length,
+        afterSuccess: qlx.clearSelection,
+        logLabel: "bulk drop move failed"
+      });
       return;
     }
 
@@ -146,24 +133,12 @@
 
     dragData = null;
 
-    fetch(url, {
+    qlx.bulkRequest(url, {
       method: "PATCH",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body
-    })
-      .then(function (resp) {
-        if (!resp.ok) {
-          return resp.json().then(function (data) {
-            qlx.showToast(data.error || qlx.t("error.status") + " " + resp.status, true);
-          });
-        }
-        qlx.showToast(movedType === "container" ? qlx.t("inventory.container_moved") : qlx.t("inventory.item_moved"), false);
-        htmx.ajax("GET", window.location.pathname, { target: "#content" });
-      })
-      .catch(function (err) {
-        console.error("move failed:", err);
-        qlx.showToast(qlx.t("error.connection"), true);
-      });
+      form: body,
+      success: movedType === "container" ? qlx.t("inventory.container_moved") : qlx.t("inventory.item_moved"),
+      logLabel: "move failed"
+    });
   }
 
   // Expose initDragDrop so other modules (e.g. tokenized quick-entry) can

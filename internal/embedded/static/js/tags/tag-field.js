@@ -25,7 +25,7 @@
           }).then(function (resp) {
             if (resp.ok) {
               var returnUrl = "/" + objectType + "s/" + objectId;
-              htmx.ajax("GET", returnUrl, { target: "#content" });
+              qlx.reloadContent(returnUrl);
             }
           });
         },
