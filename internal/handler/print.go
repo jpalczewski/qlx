@@ -675,7 +675,24 @@ func (h *PrintHandler) printersVM() PrintersData {
 		}
 	}
 	return PrintersData{
-		Printers: printers,
-		Encoders: encoders,
+		Printers:   printers,
+		Encoders:   encoders,
+		Transports: transportOptions(),
 	}
+}
+
+// transportOptions builds the printer form's transport options from the
+// transport registry, ordered by registry metadata.
+func transportOptions() []TransportOption {
+	infos := transport.List()
+	opts := make([]TransportOption, 0, len(infos))
+	for _, in := range infos {
+		opts = append(opts, TransportOption{
+			Value:       in.Name,
+			Label:       in.Label,
+			Placeholder: in.AddressPlaceholder,
+			Disabled:    !in.Available,
+		})
+	}
+	return opts
 }

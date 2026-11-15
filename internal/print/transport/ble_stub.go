@@ -28,3 +28,12 @@ type BLEScanResult struct {
 func ScanBLE() ([]BLEScanResult, error) {
 	return nil, errors.New("BLE scanning not supported in this build")
 }
+
+func init() {
+	RegisterWithMeta("ble", func() Transport { return &BLETransport{} }, Meta{
+		Label:              "Bluetooth (BLE)",
+		AddressPlaceholder: "AA:BB:CC:DD:EE:FF",
+		Order:              40,
+		Available:          false,
+	})
+}

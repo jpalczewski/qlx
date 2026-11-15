@@ -49,8 +49,17 @@ type PrinterWithState struct {
 
 // PrintersData is the view model for the printers page.
 type PrintersData struct {
-	Printers []PrinterWithState
-	Encoders []EncoderData
+	Printers   []PrinterWithState
+	Encoders   []EncoderData
+	Transports []TransportOption
+}
+
+// TransportOption is one entry of the transport select in the printer form.
+type TransportOption struct {
+	Value       string // registry name submitted by the form
+	Label       string // human-readable display label
+	Placeholder string // example address for the address input
+	Disabled    bool   // true when the transport is not available in this build
 }
 
 // EncoderData represents an encoder and its supported models.
