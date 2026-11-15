@@ -1,6 +1,6 @@
 module github.com/erxyi/qlx
 
-go 1.26.1
+go 1.26.11
 
 require (
 	github.com/boombuler/barcode v1.1.0
@@ -12,7 +12,7 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 	go.bug.st/serial v1.6.4
-	golang.org/x/image v0.38.0
+	golang.org/x/image v0.48.0
 	tinygo.org/x/bluetooth v0.14.0
 )
 
@@ -32,8 +32,8 @@ require (
 	github.com/tinygo-org/pio v0.2.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 )

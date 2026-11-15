@@ -29,6 +29,9 @@ jobs:
           cache: true
       - name: Build binary
         env:
+          # Static binary: built on ubuntu-latest (26.04) but run on ubuntu-24.04
+          # (older glibc) by the e2e job. Default and CI tags need no cgo.
+          CGO_ENABLED: "0"
           BINARY_NAME: ${{ inputs.binary-name }}
           BUILD_TAGS: ${{ inputs.build-tags }}
         run: |
