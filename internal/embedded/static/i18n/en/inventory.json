@@ -7,6 +7,8 @@
   "inventory.items": "Items",
   "inventory.no_subcontainers": "No subcontainers",
   "inventory.no_items": "No items",
+  "inventory.quick_entry_item_needs_container": "An item must be in a container: type @ and pick a container.",
+  "inventory.quick_entry_failed": "Could not add it. Please try again.",
   "inventory.new_container_placeholder": "New container...",
   "inventory.new_item_placeholder": "New item...",
   "inventory.print_labels": "Print labels",
