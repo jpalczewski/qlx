@@ -125,7 +125,7 @@
 
     {{ if and (not .Data.Children) (not .Data.Items) }}
     <section class="container-actions">
-        <button hx-delete="/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="danger">{{.T "inventory.delete_container"}}</button>
+        <button hx-delete="/containers/{{ .Data.Container.ID }}" hx-target="#content" hx-confirm="{{.T "inventory.confirm_delete_container"}}" class="btn-action btn-action-danger">{{.T "inventory.delete_container"}}</button>
     </section>
     {{ end }}
 
