@@ -1,0 +1,109 @@
+#quick-switcher {
+    width: min(560px, 92vw);
+    max-width: none;
+    max-height: none;
+    margin-top: 12vh;
+    margin-bottom: auto;
+    overflow: hidden;
+    background: var(--color-bg-alt);
+}
+
+.qs-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-md);
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 1rem;
+}
+
+.qs-input:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+}
+
+.qs-list {
+    list-style: none;
+    margin: 0;
+    padding: var(--space-xs);
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.qs-list:empty {
+    display: none;
+}
+
+.qs-option {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "main count" "path count";
+    column-gap: var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
+    border-left: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.qs-option[aria-selected="true"] {
+    background: var(--color-bg);
+    border-left-color: var(--color-accent);
+}
+
+.qs-main {
+    grid-area: main;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.qs-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qs-pin {
+    color: var(--color-warning);
+    font-size: 0.8rem;
+}
+
+.qs-path {
+    grid-area: path;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.qs-count {
+    grid-area: count;
+    align-self: center;
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+.qs-status {
+    margin: 0;
+    padding: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+/* Digit hint (1-9) for pinned rail entries; press the key to jump. */
+.rail-entry[data-digit]::before {
+    content: attr(data-digit);
+    flex: none;
+    min-width: 1.1rem;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+}

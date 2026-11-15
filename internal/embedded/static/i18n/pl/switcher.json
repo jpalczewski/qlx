@@ -1,0 +1,8 @@
+{
+  "switcher.title": "Szybkie przełączanie",
+  "switcher.placeholder": "Przejdź do kontenera…",
+  "switcher.results": "Kontenery",
+  "switcher.empty": "Brak przypiętych ani ostatnich kontenerów. Zacznij pisać, aby szukać.",
+  "switcher.no_results": "Nic nie znaleziono",
+  "switcher.pinned": "Przypięty"
+}

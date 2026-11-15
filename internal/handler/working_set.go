@@ -65,13 +65,14 @@ type workingSetJSON struct {
 }
 
 type quickSwitchJSON struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Path   string `json:"path"`
-	Color  string `json:"color"`
-	Icon   string `json:"icon"`
-	Pinned bool   `json:"pinned"`
-	Score  int    `json:"score"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Color     string `json:"color"`
+	Icon      string `json:"icon"`
+	Pinned    bool   `json:"pinned"`
+	Score     int    `json:"score"`
+	ItemCount int    `json:"item_count"`
 }
 
 func snapshotJSON(snap service.WorkingSetSnapshot) workingSetJSON {
@@ -180,7 +181,7 @@ func (h *WorkingSetHandler) QuickSwitch(w http.ResponseWriter, r *http.Request) 
 	for _, m := range results {
 		out = append(out, quickSwitchJSON{
 			ID: m.Container.ID, Name: m.Container.Name, Path: m.Path,
-			Color: m.Container.Color, Icon: m.Container.Icon, Pinned: m.Pinned, Score: m.Score,
+			Color: m.Container.Color, Icon: m.Container.Icon, Pinned: m.Pinned, Score: m.Score, ItemCount: m.ItemCount,
 		})
 	}
 	webutil.JSON(w, http.StatusOK, out)

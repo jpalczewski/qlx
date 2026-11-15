@@ -13,5 +13,7 @@
   "keyboard.focus_search": "Szukaj",
   "keyboard.nav_group": "Nawigacja",
   "keyboard.action_group": "Akcje",
-  "keyboard.general_group": "Ogólne"
+  "keyboard.general_group": "Ogólne",
+  "keyboard.quick_switcher": "Szybkie przełączanie",
+  "keyboard.jump_to_pin": "Przejdź do przypiętego kontenera"
 }

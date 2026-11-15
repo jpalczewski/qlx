@@ -152,6 +152,7 @@ type QuickSwitchResult struct {
 	Path      string
 	Pinned    bool
 	Score     int
+	ItemCount int // items directly in the container
 }
 
 // Ranking weights for QuickSwitch.
@@ -224,6 +225,14 @@ func (s *WorkingSetService) QuickSwitch(q string, limit int) []QuickSwitchResult
 	sortQuickSwitch(results)
 	if len(results) > limit {
 		results = results[:limit]
+	}
+	ids := make([]string, len(results))
+	for i, r := range results {
+		ids[i] = r.Container.ID
+	}
+	counts := s.store.ContainerItemCounts(ids)
+	for i := range results {
+		results[i].ItemCount = counts[results[i].Container.ID]
 	}
 	return results
 }

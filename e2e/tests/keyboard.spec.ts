@@ -10,10 +10,12 @@ test.describe('Keyboard Shortcuts — Global', () => {
     await expect(page.locator('#global-search')).toBeFocused();
   });
 
-  test('Ctrl+K focuses global search', async ({ page, app }) => {
+  test('Ctrl+K opens the quick switcher instead of focusing search', async ({ page, app }) => {
     await page.goto(`${app.baseURL}/containers`);
     await page.keyboard.press('Control+k');
-    await expect(page.locator('#global-search')).toBeFocused();
+    await expect(page.locator('#quick-switcher')).toBeVisible();
+    await expect(page.locator('#qs-input')).toBeFocused();
+    await expect(page.locator('#global-search')).not.toBeFocused();
   });
 
   test('? opens help overlay', async ({ page, app }) => {
