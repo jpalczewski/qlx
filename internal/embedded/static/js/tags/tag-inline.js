@@ -1,7 +1,19 @@
 (function () {
   var qlx = window.qlx = window.qlx || {};
 
+  // The "+" button is rendered by a partial without access to translations,
+  // so its tooltip and accessible name are set lazily on first hover/focus.
+  function labelTagAddButton(e) {
+    var btn = e.target.closest && e.target.closest(".tag-add");
+    if (!btn || btn.title || !qlx.t) return;
+    var label = qlx.t("tags.add_tag");
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+  }
+
   function initInlineTagAdd() {
+    document.addEventListener("mouseover", labelTagAddButton);
+    document.addEventListener("focusin", labelTagAddButton);
     document.addEventListener("click", function (e) {
       var btn = e.target.closest(".tag-add");
       if (!btn) return;
