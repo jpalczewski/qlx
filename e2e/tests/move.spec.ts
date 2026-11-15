@@ -4,7 +4,7 @@ test.describe('Move to Container', () => {
 
   test('m opens move picker on item detail page', async ({ page, app }) => {
     // Create container + item
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const input = page.locator('.qe-input');
     await input.click();
     await page.keyboard.press('Tab'); // switch to container mode
@@ -42,7 +42,7 @@ test.describe('Move to Container', () => {
   });
 
   test('m opens move picker for kb-active item in list', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const input = page.locator('.qe-input');
     await input.click();
     await page.keyboard.press('Tab'); // switch to container mode
@@ -71,7 +71,7 @@ test.describe('Move to Container', () => {
 
   test('Move to button on item detail moves item', async ({ page, app }) => {
     // Create source + target containers
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const input = page.locator('.qe-input');
     await input.click();
     await page.keyboard.press('Tab'); // switch to container mode
@@ -118,7 +118,7 @@ test.describe('Move to Container', () => {
   });
 
   test('Move to button on container detail moves container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
 
     // Create two containers
     const input = page.locator('.qe-input');
@@ -157,7 +157,7 @@ test.describe('Move to Container', () => {
   });
 
   test('m on container detail with no selection moves the container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const input = page.locator('.qe-input');
     await input.click();
     await page.keyboard.press('Tab'); // switch to container mode

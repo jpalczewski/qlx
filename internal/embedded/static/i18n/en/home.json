@@ -1,0 +1,11 @@
+{
+  "home.title": "In use",
+  "home.pinned": "Pinned",
+  "home.recent": "Recent",
+  "home.search_placeholder": "Find a container...",
+  "home.search_label": "Find a container",
+  "home.search_empty": "Nothing found",
+  "home.all_containers": "All containers",
+  "home.browse_tree": "Browse the container tree",
+  "home.empty": "Nothing here yet. Pin a container with the star on its page and it will show up here. Containers you open are listed under recent."
+}

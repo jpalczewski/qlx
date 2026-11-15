@@ -36,7 +36,7 @@ test.describe('Quick switcher', () => {
   test.afterEach(clearPins);
 
   test('Ctrl+K opens the dialog with combobox semantics and Esc restores focus', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const search = page.locator('#global-search');
     await search.focus();
     await page.keyboard.press('Control+k');
@@ -65,7 +65,7 @@ test.describe('Quick switcher', () => {
     await pin(page, app.baseURL, pinned.id);
     await page.request.post(`${app.baseURL}/api/working-set/recents/${recent.id}`);
 
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.keyboard.press('Control+k');
     const options = page.locator('#qs-list [role="option"]');
     // Pins come first; recents (possibly more from earlier tests) follow.
@@ -82,7 +82,7 @@ test.describe('Quick switcher', () => {
     const parent = await createContainer(page, app.baseURL, uniq('Regał'));
     const target = await createContainer(page, app.baseURL, 'Żółty segregator', parent.id);
 
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.keyboard.press('Control+k');
     await page.locator('#qs-input').fill('zolty');
     const options = page.locator('#qs-list [role="option"]');
@@ -101,7 +101,7 @@ test.describe('Quick switcher', () => {
     const a = await createContainer(page, app.baseURL, `${base} A`);
     await createContainer(page, app.baseURL, `${base} B`);
 
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.keyboard.press('Control+k');
     await page.locator('#qs-input').fill(base);
     const options = page.locator('#qs-list [role="option"]');
@@ -121,7 +121,7 @@ test.describe('Quick switcher', () => {
     await pin(page, app.baseURL, first.id);
     await pin(page, app.baseURL, second.id);
 
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     const entries = page.locator('#working-rail [data-rail="pins"] .rail-entry');
     await expect(entries).toHaveCount(2);
     await expect(entries.nth(1)).toHaveAttribute('data-digit', '2');
@@ -138,7 +138,7 @@ test.describe('Quick switcher', () => {
     const first = await createContainer(page, app.baseURL, uniq('Pin typing'));
     await pin(page, app.baseURL, first.id);
 
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await expect(page.locator('#working-rail [data-rail="pins"] .rail-entry')).toHaveCount(1);
     const search = page.locator('#global-search');
     await search.focus();

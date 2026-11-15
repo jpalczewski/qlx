@@ -249,8 +249,8 @@ test.describe('Tokenized quick entry', () => {
     await expect(page.locator('#container-list .empty-state')).toHaveCount(0);
   });
 
-  test('Test 9: item at the root without a container shows a hint and sends nothing', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+  test('Test 9: at the root the entry only creates containers, never items', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
     let itemPosts = 0;
@@ -258,15 +258,18 @@ test.describe('Tokenized quick entry', () => {
       if (r.url().endsWith('/items') && r.method() === 'POST') itemPosts++;
     });
 
+    const name = `Root Entry ${Date.now()}`;
     const input = page.locator('.qe-input');
     await input.click();
-    await page.keyboard.type('Root Item Without Container');
+    await page.keyboard.type(name);
+    const responsePromise = page.waitForResponse(r =>
+      r.url().endsWith('/containers') && r.request().method() === 'POST'
+    );
     await page.keyboard.press('Enter');
+    await responsePromise;
 
-    await expect(page.locator('.toast-error')).toContainText('@');
+    await expect(page.locator('#container-list')).toContainText(name);
     expect(itemPosts).toBe(0);
-    // The typed text is kept
-    await expect(input).toContainText('Root Item Without Container');
   });
 
   test('Test 10: a failed request is reported to the user', async ({ page, app }) => {

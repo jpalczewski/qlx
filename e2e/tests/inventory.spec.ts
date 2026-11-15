@@ -9,7 +9,7 @@ test.describe('Inventory management', () => {
 
   test('create root container via quick entry', async ({ page, app }) => {
     containerName = `Test Container ${Date.now()}`;
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Kontenery');
 
     // Switch to container mode (Tab), then type name and submit
@@ -30,14 +30,14 @@ test.describe('Inventory management', () => {
   });
 
   test('navigate into container from root', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#container-list')).toContainText(containerName);
     await page.click(`a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
   });
 
   test('create sub-container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -59,7 +59,7 @@ test.describe('Inventory management', () => {
   });
 
   test('create item in container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
 
@@ -80,14 +80,14 @@ test.describe('Inventory management', () => {
   });
 
   test('navigate to item detail', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await page.click(`a:has-text("${itemName}")`);
     await expect(page.locator('h1')).toContainText(itemName);
   });
 
   test('navigate via breadcrumbs', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await page.click(`a:has-text("${itemName}")`);
 
@@ -96,14 +96,14 @@ test.describe('Inventory management', () => {
   });
 
   test('attempt delete non-empty container shows no delete button', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     // Container has sub-container and item, delete button should not be visible
     await expect(page.locator('button:has-text("Usuń kontener")')).not.toBeVisible();
   });
 
   test('delete item', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await page.click(`a:has-text("${itemName}")`);
 
@@ -116,7 +116,7 @@ test.describe('Inventory management', () => {
   });
 
   test('delete empty sub-container', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await page.click(`a:has-text("${containerName}")`);
     await page.click(`a:has-text("${subContainerName}")`);
 

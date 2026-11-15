@@ -21,8 +21,11 @@
     var prefillContainerIcon = el.dataset.prefillContainerIcon || "";
     var defaultContainerID   = el.dataset.defaultContainerId   || "";
 
+    // At the root only containers can be created: items cannot exist there.
+    var containerOnly = el.dataset.containerOnly === "true";
+
     // mode: 'item' or 'container'
-    var mode = "item";
+    var mode = containerOnly ? "container" : "item";
 
     // Active autocomplete instances
     var containerAC = null;
@@ -343,6 +346,7 @@
     // ------------------------------------------------------------------
 
     function toggleMode() {
+      if (containerOnly) return;
       if (mode === "item") {
         mode = "container";
         if (toggleBtn) toggleBtn.textContent = "\uD83D\uDCE6"; // 📦

@@ -1,6 +1,6 @@
 {{ define "breadcrumb" }}
 <nav class="breadcrumb">
-    <a href="/" hx-get="/" hx-target="#content" data-drop-id="" data-drop-type="container">{{ or .Home "Home" }}</a>
+    <a href="/containers" hx-get="/containers" hx-target="#content" data-drop-id="" data-drop-type="container">{{ or .Home "Home" }}</a>
     {{ range .Path }}
     <span class="sep">→</span>
     <a href="/containers/{{ .ID }}" hx-get="/containers/{{ .ID }}" hx-target="#content" data-drop-id="{{ .ID }}" data-drop-type="container"><span class="entity-icon" style="width:16px;height:16px">{{ if .Icon }}{{ icon .Icon }}{{ else }}{{ icon "package" }}{{ end }}</span>{{ .Name }}</a>

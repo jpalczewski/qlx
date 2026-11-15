@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/app';
 test.describe('Keyboard Shortcuts — Global', () => {
 
   test('/ focuses global search', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Click heading to ensure the contenteditable quick-entry input is not focused
     await page.locator('h1').click();
     await page.keyboard.press('/');
@@ -11,7 +11,7 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('Ctrl+K opens the quick switcher instead of focusing search', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.keyboard.press('Control+k');
     await expect(page.locator('#quick-switcher')).toBeVisible();
     await expect(page.locator('#qs-input')).toBeFocused();
@@ -19,7 +19,7 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('? opens help overlay', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Click heading to ensure the contenteditable quick-entry input is not focused
     await page.locator('h1').click();
     await page.keyboard.type('?');
@@ -27,7 +27,7 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('Escape closes help overlay', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Click heading to ensure the contenteditable quick-entry input is not focused
     await page.locator('h1').click();
     await page.keyboard.type('?');
@@ -37,7 +37,7 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('Escape blurs focused input', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.locator('#global-search').focus();
     await expect(page.locator('#global-search')).toBeFocused();
     await page.keyboard.press('Escape');
@@ -45,14 +45,14 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('shortcuts ignored when input is focused', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.locator('#global-search').focus();
     await page.keyboard.press('s');
     await expect(page.locator('#content')).not.toHaveClass(/selection-mode/);
   });
 
   test('shortcuts ignored when dialog is open', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Click heading to ensure the contenteditable quick-entry input is not focused
     await page.locator('h1').click();
     await page.keyboard.type('?');
@@ -64,7 +64,7 @@ test.describe('Keyboard Shortcuts — Global', () => {
   });
 
   test('g opens container navigator', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Click heading to ensure the contenteditable quick-entry input is not focused
     await page.locator('h1').click();
     await page.keyboard.press('g');
@@ -79,7 +79,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
 
   test('setup: create container with items', async ({ page, app }) => {
     containerName = `KB Test ${Date.now()}`;
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     // Switch to container mode (Tab), then type name and submit
     const input = page.locator('.qe-input');
     await input.click();
@@ -108,7 +108,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('i focuses item quick-entry', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     // Ensure the qe-input is not already focused before pressing shortcut
@@ -118,7 +118,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('c focuses container quick-entry', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     // Ensure the qe-input is not already focused before pressing shortcut
@@ -128,7 +128,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('s toggles selection mode', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();
@@ -137,7 +137,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('a selects all in selection mode', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();
@@ -152,7 +152,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('Escape exits selection mode', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();
@@ -163,7 +163,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('arrow keys navigate list items', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();
@@ -177,7 +177,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('Enter opens highlighted item', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();
@@ -189,7 +189,7 @@ test.describe('Keyboard Shortcuts — Container View', () => {
   });
 
   test('Escape clears list highlight', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`);
+    await page.goto(`${app.baseURL}/containers`);
     await page.click(`#container-list a:has-text("${containerName}")`);
     await expect(page.locator('h2')).toContainText(containerName);
     await page.locator('h2').click();

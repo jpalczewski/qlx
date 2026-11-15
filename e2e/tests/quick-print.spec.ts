@@ -16,7 +16,7 @@ test.describe('Quick Print', () => {
   });
 
   test('page accessible from nav', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
 
     // Click Quick Print nav link
     await page.click('a[href="/quick-print"]');

@@ -15,7 +15,7 @@ test.describe('Settings page', () => {
   });
 
   test('settings accessible via HTMX navigation', async ({ page, app }) => {
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     const settingsLink = page.locator('nav a[title]').last();
     await settingsLink.click();
     await expect(page.locator('h1')).toContainText('Ustawienia');
@@ -46,7 +46,7 @@ test.describe('Language switching', () => {
       url: app.baseURL,
     }]);
 
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toContainText('Containers');
 
     // Navigate to printers via HTMX
@@ -60,7 +60,7 @@ test.describe('Language switching', () => {
 
   test('navbar translates with language cookie', async ({ page, app }) => {
     // Default Polish (from fixture)
-    await page.goto(`${app.baseURL}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${app.baseURL}/containers`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('link', { name: 'Drukarki' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Szablony' })).toBeVisible();
 

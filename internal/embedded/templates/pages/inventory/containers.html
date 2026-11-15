@@ -57,10 +57,17 @@
       data-prefill-container-id="{{ .Data.Container.ID }}"
       data-prefill-container-name="{{ .Data.Container.Name }}"
       data-prefill-container-icon="{{ .Data.Container.Icon }}"
+      {{- else }}
+      data-container-only="true"
       {{- end }}>
+      {{- if .Data.Container }}
       <button type="button" class="qe-type-toggle" title="Tab: item/kontener">🏷</button>
       <div class="qe-input" contenteditable="true" role="textbox" spellcheck="false"
            data-placeholder="Nowy item... (x5 #tag ↵)"></div>
+      {{- else }}
+      <div class="qe-input" contenteditable="true" role="textbox" spellcheck="false"
+           data-placeholder="Nowy kontener... (↵)"></div>
+      {{- end }}
       <button type="button" class="qe-submit" title="Enter">↵</button>
     </div>
 
@@ -75,6 +82,7 @@
         </ul>
     </section>
 
+    {{- if .Data.Container }}
     {{- if and .Data.Children .Data.Items }}
     <hr class="inventory-separator">
     {{- end }}
@@ -89,6 +97,7 @@
             {{ end }}
         </ul>
     </section>
+    {{- end }}
 
     {{ if .Data.Container }}
     {{ if .Data.Printers }}
