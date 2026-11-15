@@ -37,10 +37,14 @@ const (
 	errEndOfMedia = 0x02
 	errCutterJam  = 0x04
 
-	// Error info 2 bit masks (byte 9).
-	errCoverOpen    = 0x01
-	errOverheating  = 0x04
-	errReplaceMedia = 0x10
+	// Error info 2 bit masks (byte 9), per the Brother QL Series Command Reference
+	// (section 4.2.1): bit 4 is "cover opened while printing". Bit 0 is documented
+	// as "not used" in that table, but the print information command (ESC i z)
+	// description says the printer sets it when the loaded media does not match the
+	// media given in the command.
+	errReplaceMedia = 0x01
+	errOverheating  = 0x04 // NOTE: the Command Reference lists bit 2 as "transmission error"
+	errCoverOpen    = 0x10
 )
 
 // brotherStatus holds parsed fields from a 32-byte QL status response.

@@ -30,8 +30,9 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 	width := bounds.Max.X - bounds.Min.X
 	height := bounds.Max.Y - bounds.Min.Y
 
-	if width != ql700.BytesPerRow*8 {
-		return fmt.Errorf("image width must be %d pixels, got %d", ql700.BytesPerRow*8, width)
+	headPx := ql700.BytesPerRow * 8
+	if width <= 0 || width > headPx {
+		return fmt.Errorf("image width must be at most %d pixels, got %d", headPx, width)
 	}
 
 	copies := max(opts.Copies, 1)
@@ -60,6 +61,18 @@ func (e *BrotherEncoder) Encode(img image.Image, model string, opts encoder.Prin
 		mediaType = st.MediaType
 		mediaWidth = byte(st.MediaWidth)   //nolint:gosec
 		mediaLength = byte(st.MediaLength) //nolint:gosec
+	}
+
+	// An image narrower than the printhead must be exactly the printable width of
+	// the loaded media. Place it on a full head row with the unprintable margin
+	// pins left white (Command Reference, section 3.2.3).
+	if width != headPx {
+		def, ok := lookupLabel(mediaType, int(mediaWidth), int(mediaLength))
+		if !ok || def.DotsPrintW != width {
+			return fmt.Errorf("image width must be %d pixels (printhead) or the printable width of the loaded media, got %d", headPx, width)
+		}
+		img = padToHead(img, headPx, def)
+		bounds = img.Bounds()
 	}
 
 	// 4. Autocut mode

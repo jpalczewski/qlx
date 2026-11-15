@@ -288,11 +288,7 @@ func (h *PrintHandler) previewMediaInfo(r *http.Request) label.MediaInfo {
 			enc := h.pm.Encoder(cfg.Encoder)
 			if enc != nil {
 				if mi := print.FindModel(enc, cfg.Model); mi != nil {
-					return label.MediaInfo{
-						WidthPx:  mi.PrintWidthPx,
-						HeightPx: print.PxFromMm(status.LabelHeightMm, mi.DPI),
-						DPI:      mi.DPI,
-					}
+					return print.MediaForStatus(enc, mi, status)
 				}
 			}
 		}
@@ -626,8 +622,10 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 // ScanUSB handles GET /printers/scan/usb — enumerates connected Brother USB devices.
 func (h *PrintHandler) ScanUSB(w http.ResponseWriter, r *http.Request) {
 	webutil.LogInfo("starting USB scan...")
-	results, err := transport.ScanUSB()
-	if err != nil {
+	// The stub in builds without the usb tag always returns an error, which makes
+	// staticcheck flag the check below; real USB builds return nil on success.
+	results, err := transport.ScanUSB() //nolint:staticcheck // see above
+	if err != nil {                     //nolint:staticcheck // see above
 		webutil.LogError("USB scan error: %v", err)
 		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return

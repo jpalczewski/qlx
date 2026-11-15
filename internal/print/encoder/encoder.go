@@ -32,6 +32,17 @@ type PrintOpts struct {
 	HighRes  bool `json:"high_res"`  // Brother: 600 DPI vertical; others: ignored
 }
 
+// MediaGeometry is optionally implemented by encoders whose printable area
+// depends on the media loaded in the printer (for example Brother QL labels,
+// where the printable area is smaller than the label itself).
+type MediaGeometry interface {
+	// PrintableArea returns the printable area in pixels for the loaded media.
+	// mediaType is the status label type (e.g. "die-cut", "continuous").
+	// heightPx is 0 for continuous media. ok is false when the media is unknown,
+	// in which case callers fall back to the printhead width and the media length.
+	PrintableArea(mediaType string, widthMm, lengthMm int) (widthPx, heightPx int, ok bool)
+}
+
 // StatusQuerier is optionally implemented by encoders that support status queries.
 type StatusQuerier interface {
 	// Connect sends initial handshake.

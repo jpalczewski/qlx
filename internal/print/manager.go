@@ -88,6 +88,24 @@ func PxFromMm(mm, dpi int) int {
 	return int(float64(mm) * float64(dpi) / 25.4)
 }
 
+// MediaForStatus returns the render geometry for the media currently loaded in
+// the printer. Encoders implementing encoder.MediaGeometry report the printable
+// area of the loaded media; for all others the image is as wide as the printhead
+// and as tall as the media length.
+func MediaForStatus(enc encoder.Encoder, model *encoder.ModelInfo, st PrinterStatus) label.MediaInfo {
+	media := label.MediaInfo{
+		WidthPx:  model.PrintWidthPx,
+		HeightPx: PxFromMm(st.LabelHeightMm, model.DPI),
+		DPI:      model.DPI,
+	}
+	if g, ok := enc.(encoder.MediaGeometry); ok {
+		if w, h, found := g.PrintableArea(st.LabelType, st.LabelWidthMm, st.LabelHeightMm); found {
+			media.WidthPx, media.HeightPx = w, h
+		}
+	}
+	return media
+}
+
 // validatePrintOpts clamps values to valid ranges and applies defaults.
 func validatePrintOpts(opts encoder.PrintOpts, mi *encoder.ModelInfo) encoder.PrintOpts {
 	if opts.Density == 0 {
@@ -156,12 +174,7 @@ func (m *PrinterManager) resolveForPrint(printerID string, opts encoder.PrintOpt
 
 	validated := validatePrintOpts(opts, modelInfo)
 
-	status := session.Status()
-	media := label.MediaInfo{
-		WidthPx:  modelInfo.PrintWidthPx,
-		HeightPx: PxFromMm(status.LabelHeightMm, modelInfo.DPI),
-		DPI:      modelInfo.DPI,
-	}
+	media := MediaForStatus(enc, modelInfo, session.Status())
 
 	return &printContext{
 		cfg:       cfg,
@@ -286,19 +299,22 @@ func (m *PrinterManager) PrintImage(printerID string, img image.Image, printOpts
 		return err
 	}
 
-	// Scale image to match printer printhead width if needed
+	// Pre-rendered images are laid out for the full printhead row (the encoder
+	// places them on the media), so scale to the printhead width, not to the
+	// printable width of the loaded media.
+	headPx := ctx.model.PrintWidthPx
 	imgWidth := img.Bounds().Dx()
-	if imgWidth != ctx.media.WidthPx && ctx.media.WidthPx > 0 {
-		scale := float64(ctx.media.WidthPx) / float64(imgWidth)
+	if imgWidth != headPx && headPx > 0 {
+		scale := float64(headPx) / float64(imgWidth)
 		newH := int(float64(img.Bounds().Dy()) * scale)
-		dst := image.NewRGBA(image.Rect(0, 0, ctx.media.WidthPx, newH))
+		dst := image.NewRGBA(image.Rect(0, 0, headPx, newH))
 		imagedraw.Draw(dst, dst.Bounds(), image.NewUniform(color.White), image.Point{}, imagedraw.Src)
 		draw.BiLinear.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 		img = dst
-		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, ctx.media.WidthPx, ctx.cfg.Model)
+		webutil.LogInfo("scaled image %d→%dpx width for %s", imgWidth, headPx, ctx.cfg.Model)
 	}
 
-	img = applyCalibrationOffset(img, ctx.cfg, ctx.media.WidthPx)
+	img = applyCalibrationOffset(img, ctx.cfg, headPx)
 
 	webutil.LogInfo("printing image on %s (%s/%s)", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model)
 	if err := ctx.session.Print(img, ctx.cfg.Model, ctx.printOpts); err != nil {
