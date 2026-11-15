@@ -2,8 +2,10 @@ package print
 
 import (
 	"context"
+	"errors"
 	"image"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/erxyi/qlx/internal/print/encoder"
@@ -11,6 +13,10 @@ import (
 	"github.com/erxyi/qlx/internal/shared/webutil"
 	"github.com/erxyi/qlx/internal/store"
 )
+
+// ErrPrinterDisconnected is returned by Print when the session has ended and
+// its transport is already closed.
+var ErrPrinterDisconnected = errors.New("printer disconnected")
 
 // PrinterSession manages a persistent connection to a printer with heartbeat.
 type PrinterSession struct {
@@ -24,6 +30,7 @@ type PrinterSession struct {
 	stopped   chan struct{}
 	stopOnce  sync.Once
 	closeOnce sync.Once
+	closed    atomic.Bool // set once the transport is closed
 	onUpdate  func(printerID string, status PrinterStatus)
 }
 
@@ -118,6 +125,7 @@ func (s *PrinterSession) Stop() {
 // paths is what frees the claimed USB interface for the next session.
 func (s *PrinterSession) closeTransport() {
 	s.closeOnce.Do(func() {
+		s.closed.Store(true)
 		_ = s.tr.Close()
 	})
 }
@@ -133,6 +141,9 @@ func (s *PrinterSession) Status() PrinterStatus {
 func (s *PrinterSession) Print(img image.Image, model string, opts encoder.PrintOpts) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.closed.Load() {
+		return ErrPrinterDisconnected
+	}
 	return s.enc.Encode(img, model, opts, s.tr)
 }
 

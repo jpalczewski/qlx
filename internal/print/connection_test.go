@@ -57,9 +57,8 @@ func TestConnectionManager_AddTransitionsToConnecting(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	state := cm.State("p1")
-	// With MockTransport + mockEncoder (no StatusQuerier), the session connects
-	// but immediately closes stopped (no heartbeat), so the loop cycles rapidly.
-	// State should be one of: connecting, connected, disconnected, or reconnecting.
+	// mockEncoder implements StatusQuerier, so the session stays connected on its
+	// heartbeat; the loop may still be mid-transition when we sample the state.
 	switch state {
 	case StateConnecting, StateConnected, StateDisconnected, StateReconnecting:
 		// ok
