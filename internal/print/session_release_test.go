@@ -165,6 +165,7 @@ func (c *claimTransport) Close() error {
 	return nil
 }
 
+//nolint:gocyclo // linear scenario test with several assertions
 func TestConnectionManager_ReleasesTransportBeforeReconnect(t *testing.T) {
 	orig := backoffSteps
 	backoffSteps = []time.Duration{10 * time.Millisecond}
