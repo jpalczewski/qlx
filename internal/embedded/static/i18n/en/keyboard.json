@@ -13,5 +13,7 @@
   "keyboard.focus_search": "Focus search",
   "keyboard.nav_group": "Navigation",
   "keyboard.action_group": "Actions",
-  "keyboard.general_group": "General"
+  "keyboard.general_group": "General",
+  "keyboard.quick_switcher": "Quick switcher",
+  "keyboard.jump_to_pin": "Jump to pinned container"
 }

@@ -1,0 +1,8 @@
+{
+  "switcher.title": "Quick switcher",
+  "switcher.placeholder": "Go to container…",
+  "switcher.results": "Containers",
+  "switcher.empty": "No pinned or recent containers. Start typing to search.",
+  "switcher.no_results": "Nothing found",
+  "switcher.pinned": "Pinned"
+}
