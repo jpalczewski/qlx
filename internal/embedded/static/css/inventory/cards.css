@@ -107,6 +107,13 @@
     color: white;
 }
 
+/* Container page actions (delete) below the print panel */
+.container-actions {
+    margin-top: var(--space-lg);
+    display: flex;
+    justify-content: flex-end;
+}
+
 /* Back link */
 .item-detail .item-back {
     font-size: var(--font-size-sm);

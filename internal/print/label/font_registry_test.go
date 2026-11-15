@@ -89,10 +89,10 @@ func TestLoadFaceCached(t *testing.T) {
 
 func TestFontNames(t *testing.T) {
 	names := FontNames()
-	if len(names) != 5 {
-		t.Fatalf("FontNames() = %v, want 5 entries", names)
+	if len(names) != 6 {
+		t.Fatalf("FontNames() = %v, want 6 entries", names)
 	}
-	want := []string{"basic", "go-mono", "noto-sans", "spleen", "terminus"}
+	want := []string{"basic", "go-mono", "noto-sans", "noto-sans-bold", "spleen", "terminus"}
 	sorted := make([]string, len(names))
 	copy(sorted, names)
 	sort.Strings(sorted)

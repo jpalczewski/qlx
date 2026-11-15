@@ -16,8 +16,8 @@ test.describe('Printer management', () => {
     await page.click('summary:has-text("Dodaj drukarkę")');
     await page.fill('#name', printerName);
     await page.selectOption('#encoder', 'niimbot');
-    await page.selectOption('#transport', 'ble');
-    await page.fill('#address', 'AA:BB:CC:DD:EE:FF');
+    await page.selectOption('#transport', 'remote');
+    await page.fill('#address', 'http://127.0.0.1:9');
 
     const responsePromise = page.waitForResponse(r =>
       r.url().includes('/printers') && r.request().method() === 'POST'
@@ -82,5 +82,61 @@ test.describe('Printer management', () => {
 
     // Printer should be gone (other printers from other tests may still exist)
     await expect(page.locator(`.printer-card:has-text("${printerName}")`)).not.toBeVisible();
+  });
+});
+
+test.describe('Printer form transport options', () => {
+  test('transport select is built from the registry', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
+    await page.click('summary:has-text("Dodaj drukarkę")');
+
+    const select = page.locator('#transport');
+    // Core transports are always offered; others may be added to the registry.
+    for (const name of ['gousb', 'usb', 'serial', 'ble', 'remote']) {
+      await expect(select.locator(`option[value="${name}"]`)).toHaveCount(1);
+    }
+    // remote is pure Go, so it is available in every build.
+    await expect(select.locator('option[value="remote"]')).toBeEnabled();
+
+    // Transports not compiled into this build are disabled and say so.
+    const options = await select.locator('option').evaluateAll(els =>
+      els.map(e => ({
+        value: (e as HTMLOptionElement).value,
+        disabled: (e as HTMLOptionElement).disabled,
+        text: e.textContent || '',
+        placeholder: e.getAttribute('data-placeholder') || '',
+      })));
+    for (const o of options) {
+      expect(o.placeholder, JSON.stringify(o)).not.toBe('');
+      if (o.disabled) expect(o.text).toContain('niedostępne');
+    }
+    // The default selection is the first available option.
+    const firstEnabled = options.find(o => !o.disabled)!;
+    await expect(select).toHaveValue(firstEnabled.value);
+  });
+
+  test('address placeholder follows the selected transport', async ({ page, app }) => {
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
+    await page.click('summary:has-text("Dodaj drukarkę")');
+    await page.selectOption('#transport', 'remote');
+    await expect(page.locator('#address')).toHaveAttribute('placeholder', 'http://host:8080');
+  });
+
+  test('printer can be added with a selected transport', async ({ page, app }) => {
+    const name = `Transport Printer ${Date.now()}`;
+    await page.goto(`${app.baseURL}/printers`, { waitUntil: 'domcontentloaded' });
+    await page.click('summary:has-text("Dodaj drukarkę")');
+    await page.fill('#name', name);
+    await page.selectOption('#encoder', 'niimbot');
+    await page.selectOption('#transport', 'remote');
+    await page.fill('#address', 'http://127.0.0.1:9');
+
+    const responsePromise = page.waitForResponse(r =>
+      r.url().includes('/printers') && r.request().method() === 'POST'
+    );
+    await page.click('button:has-text("Dodaj")');
+    await responsePromise;
+
+    await expect(page.locator(`.printer-card:has-text("${name}")`)).toBeVisible();
   });
 });
