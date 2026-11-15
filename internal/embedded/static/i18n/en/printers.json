@@ -32,5 +32,6 @@
   "printers.density": "Density",
   "printers.cut_every": "Cut every N labels (0=off)",
   "printers.high_res": "High resolution",
-  "printers.transport_unavailable": "(not available in this build)"
+  "printers.transport_unavailable": "(not available in this build)",
+  "printers.cut_every_pair": "Cut every N pairs (0=off)"
 }

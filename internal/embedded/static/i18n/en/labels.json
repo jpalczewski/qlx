@@ -31,5 +31,10 @@
   "labels.printing_count": "Printing {count} labels...",
   "labels.printed_count": "Printed {count} labels!",
   "labels.printed_with_errors": "Printed {printed}/{total}. Errors: {errors}",
-  "labels.preview_bulk_note": "Bulk print will print all items without individual preview."
+  "labels.preview_bulk_note": "Bulk print will print all items without individual preview.",
+  "labels.layout": "Label style",
+  "labels.layout_pair": "Pair (2 labels)",
+  "labels.layout_single": "Single label",
+  "labels.print_description": "Print description",
+  "labels.pair_fallback": "A paired label is not available for this printer or media; a single label was used."
 }

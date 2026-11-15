@@ -38,16 +38,29 @@ func NewPrinterManager(s PrinterConfigStore, cm *ConnectionManager) *PrinterMana
 	}
 }
 
-// DocumentRenderer renders a label document for execution.
+// DocumentRenderer renders a label document for execution. It returns one
+// image per label of the document (two for the paired template).
 type DocumentRenderer interface {
-	Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) (image.Image, error)
+	Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) ([]image.Image, error)
 }
 
 type labelDocumentRenderer struct{}
 
-func (labelDocumentRenderer) Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) (image.Image, error) {
-	return label.Render(data, template, media, opts)
+func (labelDocumentRenderer) Render(data label.LabelData, template string, media label.MediaInfo, opts label.RenderOpts) ([]image.Image, error) {
+	return label.RenderPages(data, template, media, opts)
 }
+
+// RenderError reports that a label could not be rendered for the printer's
+// media (for example the paired template on unsupported media). Nothing was
+// sent to the printer, so callers may retry with another template. Detect it
+// with errors.As.
+type RenderError struct{ Err error }
+
+// Error implements error.
+func (e *RenderError) Error() string { return "render: " + e.Err.Error() }
+
+// Unwrap returns the underlying render error.
+func (e *RenderError) Unwrap() error { return e.Err }
 
 // DefaultTransportFactory returns a TransportFactoryFn that creates transports
 // by name from the transport registry.
@@ -262,15 +275,16 @@ func (m *PrinterManager) Print(printerID string, data label.LabelData, templateN
 	if renderer == nil {
 		renderer = labelDocumentRenderer{}
 	}
-	img, err := renderer.Render(data, templateName, ctx.media, renderOpts)
+	pages, err := renderer.Render(data, templateName, ctx.media, renderOpts)
 	if err != nil {
-		return fmt.Errorf("render: %w", err)
+		return &RenderError{Err: err}
+	}
+	for i, pg := range pages {
+		pages[i] = applyCalibrationOffset(pg, ctx.cfg, ctx.media.WidthPx)
 	}
 
-	img = applyCalibrationOffset(img, ctx.cfg, ctx.media.WidthPx)
-
-	webutil.LogInfo("printing on %s (%s/%s)", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model)
-	if err := ctx.session.Print(img, ctx.cfg.Model, ctx.printOpts); err != nil {
+	webutil.LogInfo("printing on %s (%s/%s): %d page(s) x %d", ctx.cfg.Name, ctx.cfg.Encoder, ctx.cfg.Model, len(pages), ctx.printOpts.Copies)
+	if err := ctx.session.PrintPages(pages, ctx.cfg.Model, ctx.printOpts); err != nil {
 		return fmt.Errorf("encode: %w", err)
 	}
 

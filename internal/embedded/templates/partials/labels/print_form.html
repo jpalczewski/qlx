@@ -1,3 +1,18 @@
+{{ define "print-layout-controls" }}
+<div class="print-options-controls print-layout-controls">
+    <div class="form-group form-group-inline">
+        <label>{{ .LayoutLabel }}
+            <select data-print-layout>
+                <option value="pair" selected>{{ .LayoutPairLabel }}</option>
+                <option value="single">{{ .LayoutSingleLabel }}</option>
+            </select>
+        </label>
+    </div>
+    <div class="form-group form-group-inline" data-description-wrap>
+        <label class="checkbox-label"><input type="checkbox" data-print-description> {{ .DescriptionLabel }}</label>
+    </div>
+</div>
+{{ end }}
 {{ define "print-form" }}
 <div class="print-section" data-print-form
      data-endpoint="{{ .Endpoint }}"
@@ -20,7 +35,8 @@
             {{ end }}
         </select>
     </div>
-    <div class="form-group">
+    {{ if .ShowLayout }}{{ template "print-layout-controls" . }}{{ end }}
+    <div class="form-group" data-single-only>
         <label>{{ .TemplateLabel }}</label>
         <div class="schema-grid" data-print-checkboxes>
             {{ range .Schemas }}
@@ -38,7 +54,7 @@
                 {{ end }}
             </select>
         </div>
-        <div class="form-group">
+        <div class="form-group" data-single-only>
             <label>{{ .TemplateLabel }}</label>
             <select data-print-template>
                 {{ range .Templates }}
@@ -52,6 +68,7 @@
             </select>
         </div>
     </div>
+    {{ if .ShowLayout }}{{ template "print-layout-controls" . }}{{ end }}
     <div data-print-options class="print-options-controls">
         <div data-copies-wrap class="form-group form-group-inline">
             <label>{{ .CopiesLabel }} <input type="number" data-copies min="1" max="100" value="1"></label>
@@ -60,7 +77,7 @@
             <label>{{ .DensityLabel }} <input type="range" data-density min="0" max="0" value="0"> <span data-density-value>0</span></label>
         </div>
         <div data-cut-every-wrap class="form-group form-group-inline" style="display:none">
-            <label>{{ .CutEveryLabel }} <input type="number" data-cut-every min="0" max="100" value="0"></label>
+            <label><span data-cut-every-text data-label-single="{{ .CutEveryLabel }}" data-label-pair="{{ .CutEveryPairLabel }}">{{ .CutEveryLabel }}</span> <input type="number" data-cut-every min="0" max="100" value="0"></label>
         </div>
         <div data-high-res-wrap class="form-group form-group-inline" style="display:none">
             <label><input type="checkbox" data-high-res> {{ .HighResLabel }}</label>

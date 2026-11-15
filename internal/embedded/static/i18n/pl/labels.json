@@ -31,5 +31,10 @@
   "labels.printing_count": "Drukowanie {count} etykiet...",
   "labels.printed_count": "Wydrukowano {count} etykiet!",
   "labels.printed_with_errors": "Wydrukowano {printed}/{total}. Błędy: {errors}",
-  "labels.preview_bulk_note": "Druk zbiorczy wydrukuje wszystkie przedmioty bez podglądu."
+  "labels.preview_bulk_note": "Druk zbiorczy wydrukuje wszystkie przedmioty bez podglądu.",
+  "labels.layout": "Styl etykiety",
+  "labels.layout_pair": "Para (2 etykiety)",
+  "labels.layout_single": "Pojedyncza etykieta",
+  "labels.print_description": "Drukuj opis",
+  "labels.pair_fallback": "Para etykiet nie jest dostępna dla tej drukarki lub nośnika; wydrukowano pojedynczą etykietę."
 }

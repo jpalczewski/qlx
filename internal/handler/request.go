@@ -129,10 +129,14 @@ type PrintRequest struct {
 	PrinterID string `json:"printer_id"`
 	Template  string `json:"template"`
 	PrintDate bool   `json:"print_date"`
-	Density   int    `json:"density"`
-	Copies    int    `json:"copies"`
-	CutEvery  int    `json:"cut_every"`
-	HighRes   bool   `json:"high_res"`
+	// PrintDescription adds the description to a paired label (template "pair").
+	PrintDescription bool `json:"print_description"`
+	Density          int  `json:"density"`
+	// Copies is the number of labels, or of label pairs for template "pair".
+	Copies int `json:"copies"`
+	// CutEvery cuts after every N labels, or N label pairs for template "pair".
+	CutEvery int  `json:"cut_every"`
+	HighRes  bool `json:"high_res"`
 }
 
 // ContainerPrintRequest is the input for container label printing.
@@ -141,10 +145,14 @@ type ContainerPrintRequest struct {
 	Templates    []string `json:"templates"`
 	PrintDate    bool     `json:"print_date"`
 	ShowChildren bool     `json:"show_children"`
-	Density      int      `json:"density"`
-	Copies       int      `json:"copies"`
-	CutEvery     int      `json:"cut_every"`
-	HighRes      bool     `json:"high_res"`
+	// PrintDescription adds the description to a paired label (template "pair").
+	PrintDescription bool `json:"print_description"`
+	Density          int  `json:"density"`
+	// Copies is the number of labels, or of label pairs for template "pair".
+	Copies int `json:"copies"`
+	// CutEvery cuts after every N labels, or N label pairs for template "pair".
+	CutEvery int  `json:"cut_every"`
+	HighRes  bool `json:"high_res"`
 }
 
 // PrintImageRequest is the input for printing a pre-rendered image.
