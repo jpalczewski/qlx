@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.5.0](https://github.com/jpalczewski/qlx/compare/v0.4.0...v0.5.0) (2026-11-15)
+
+
+### Features
+
+* **api:** working set endpoints and rail fragment stub (A2) ([#154](https://github.com/jpalczewski/qlx/issues/154)) ([522b054](https://github.com/jpalczewski/qlx/commit/522b054be88863448ae091befc8cdee60bf636b7))
+* **frontend:** keyboard-first quick switcher on Ctrl+K ([#162](https://github.com/jpalczewski/qlx/issues/162)) ([9bea45e](https://github.com/jpalczewski/qlx/commit/9bea45e2243f91ca5018ddb33dab601a7ecc2a11))
+* **frontend:** persistent working-set rail and pin control ([#161](https://github.com/jpalczewski/qlx/issues/161)) ([9845fb7](https://github.com/jpalczewski/qlx/commit/9845fb737ecef51b7e6de26aebbbc79bdf833830))
+* **frontend:** quick-add, print shortcut and wide search on start-screen cards ([#164](https://github.com/jpalczewski/qlx/issues/164)) ([0354d80](https://github.com/jpalczewski/qlx/commit/0354d80d7d56f9a66bcc4144878d54904387b9d9))
+* **frontend:** working-set start screen at / and item-free tree root ([#163](https://github.com/jpalczewski/qlx/issues/163)) ([d2f838c](https://github.com/jpalczewski/qlx/commit/d2f838cfa4fb85dc6cb24f6e8c842c52e19d83f9))
+* **inventory:** tokenized quick entry with [@container](https://github.com/container) and #tag tokens ([#105](https://github.com/jpalczewski/qlx/issues/105)) ([99b99f2](https://github.com/jpalczewski/qlx/commit/99b99f2e9fd8d386b88772dca38c94101929c64b))
+* **label:** fit text to the printable area ([#114](https://github.com/jpalczewski/qlx/issues/114)) ([7aa818e](https://github.com/jpalczewski/qlx/commit/7aa818ed8ff2489ba0c273a4916b4377bdbafeb9))
+* **label:** paired-label template engine (identity + context pages) ([#136](https://github.com/jpalczewski/qlx/issues/136)) ([f85120b](https://github.com/jpalczewski/qlx/commit/f85120b76cfe3644ec52ee9e2d306a7f6122d599))
+* **print:** option to print only the first label of a pair ([#150](https://github.com/jpalczewski/qlx/issues/150)) ([5e24069](https://github.com/jpalczewski/qlx/commit/5e24069422f5a54d0808dbdbdd887983103120d6))
+* **print:** print paired labels from the UI ([#144](https://github.com/jpalczewski/qlx/issues/144)) ([b46d26c](https://github.com/jpalczewski/qlx/commit/b46d26c6902d1569cec93c0c9368f990acdea5a4))
+* **stats:** add statistics page ([#104](https://github.com/jpalczewski/qlx/issues/104)) ([0493bc5](https://github.com/jpalczewski/qlx/commit/0493bc5dd4fab5796ac9716850edcc6b3818cf27))
+* **store:** add working set store and service ([#151](https://github.com/jpalczewski/qlx/issues/151)) ([e54bf82](https://github.com/jpalczewski/qlx/commit/e54bf82725ad0a83e3c89fe31a1ab997c501e8f0))
+
+
+### Bug Fixes
+
+* **ci:** fix govulncheck failures and pin e2e to ubuntu-24.04 ([#122](https://github.com/jpalczewski/qlx/issues/122)) ([736feb5](https://github.com/jpalczewski/qlx/commit/736feb52cec25855ab056a3faf96003fc74df0f9))
+* correct Brother capabilities endpoint URL ([#97](https://github.com/jpalczewski/qlx/issues/97)) ([2c42633](https://github.com/jpalczewski/qlx/commit/2c42633265610cd29dc997cacf3c705eae5f58f7))
+* **print:** bound USB I/O and keep status readers off the I/O lock ([#137](https://github.com/jpalczewski/qlx/issues/137)) ([b0069e4](https://github.com/jpalczewski/qlx/commit/b0069e4438f985b039193529c7e341040ce9dc5a))
+* **print:** correct capabilities endpoint URL ([#95](https://github.com/jpalczewski/qlx/issues/95)) ([7e9edf1](https://github.com/jpalczewski/qlx/commit/7e9edf18d80a5764323232ef82f08048659f6a5d))
+* **print:** do not auto-detach the kernel driver on macOS ([#135](https://github.com/jpalczewski/qlx/issues/135)) ([1d84e91](https://github.com/jpalczewski/qlx/commit/1d84e91582f2768f8b10ac6f549fd49871259226))
+* **print:** lay out Brother die-cut labels in the printable area ([#109](https://github.com/jpalczewski/qlx/issues/109)) ([1e16426](https://github.com/jpalczewski/qlx/commit/1e164264982b0dbb1e9c334fcc5adfa93b94cd94))
+* **print:** release transport when session ends ([#116](https://github.com/jpalczewski/qlx/issues/116)) ([47567a8](https://github.com/jpalczewski/qlx/commit/47567a843ded4dcd041e8c6677c9e2088de26c62))
+* **print:** tear down stale link on write failure and retry once ([#160](https://github.com/jpalczewski/qlx/issues/160)) ([cde3b31](https://github.com/jpalczewski/qlx/commit/cde3b31fbe746f580b7acf19e7610f6177a0e4c8))
+* **print:** treat printer status conditions as non-fatal ([#118](https://github.com/jpalczewski/qlx/issues/118)) ([c3d706b](https://github.com/jpalczewski/qlx/commit/c3d706b3b23c4d1262e6fb43a0e7434e12ed284e))
+* **tags:** show + button on items/containers with no tags ([#103](https://github.com/jpalczewski/qlx/issues/103)) ([78520a4](https://github.com/jpalczewski/qlx/commit/78520a457d766ffcadc5cfcaa5de8104e2b89ae3))
+* **ui:** add spacing below the container print panel for the delete button ([#121](https://github.com/jpalczewski/qlx/issues/121)) ([809b735](https://github.com/jpalczewski/qlx/commit/809b73568e3e4f7e8a983028db8ac5f0587bceb8))
+* **ui:** compact empty placeholder, hide colourless dot, label tag add button ([#139](https://github.com/jpalczewski/qlx/issues/139)) ([5b0e747](https://github.com/jpalczewski/qlx/commit/5b0e747e506aea3bdddf5ca911ed599ba94f8b84))
+* **ui:** define nav colour tokens ([#140](https://github.com/jpalczewski/qlx/issues/140)) ([466ad0a](https://github.com/jpalczewski/qlx/commit/466ad0a11927ccf3838756a719d0577bb63835fa))
+* **ui:** harden tag autocomplete and translate SSE status ([#145](https://github.com/jpalczewski/qlx/issues/145)) ([398070d](https://github.com/jpalczewski/qlx/commit/398070d4b0fe20fcdd7bd99f070a080bcc8cdbbb))
+* **ui:** remove empty-list placeholder after quick entry adds a row ([#138](https://github.com/jpalczewski/qlx/issues/138)) ([f5e57e0](https://github.com/jpalczewski/qlx/commit/f5e57e071547c59a4a33c0ad7466e6831dd4b516))
+* **ui:** tell the user when quick entry cannot add an item ([#147](https://github.com/jpalczewski/qlx/issues/147)) ([6d3af5c](https://github.com/jpalczewski/qlx/commit/6d3af5ca974a6680171d9832ccc7b447abe944b2))
+
+
+### Miscellaneous
+
+* **handler:** fail fast on duplicate page template names ([#117](https://github.com/jpalczewski/qlx/issues/117)) ([a4a3850](https://github.com/jpalczewski/qlx/commit/a4a3850085f23c637697957b62494991afecb9c8))
+* **print:** register transports in a registry ([#120](https://github.com/jpalczewski/qlx/issues/120)) ([9fe4b7e](https://github.com/jpalczewski/qlx/commit/9fe4b7e19d771f9d7c68a28b0327b70e9dd29527))
+* **print:** split event broker and handler ports ([#101](https://github.com/jpalczewski/qlx/issues/101)) ([cb75738](https://github.com/jpalczewski/qlx/commit/cb7573884e36da692a282a6892c894b807d15844))
+* **ui:** share one list-row partial per entity ([#142](https://github.com/jpalczewski/qlx/issues/142)) ([2ecb3d1](https://github.com/jpalczewski/qlx/commit/2ecb3d19975dd63fe397c8ac3b3c33fc8bab26db))
+* **ui:** share the bulk-action request helper ([#141](https://github.com/jpalczewski/qlx/issues/141)) ([13a90dc](https://github.com/jpalczewski/qlx/commit/13a90dc708a070a69636ff07e37d68a3626ba5c1))
+
 ## [0.4.0](https://github.com/jpalczewski/qlx/compare/v0.3.0...v0.4.0) (2026-03-28)
 
 
