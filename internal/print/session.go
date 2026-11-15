@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"image"
+	"io"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,16 +19,42 @@ import (
 // its transport is already closed.
 var ErrPrinterDisconnected = errors.New("printer disconnected")
 
+// failTrackingTransport remembers whether a Write or Read failed, so Print can
+// tell a transport failure from an encoding error.
+type failTrackingTransport struct {
+	transport.Transport
+	failed atomic.Bool
+}
+
+func (f *failTrackingTransport) Write(p []byte) (int, error) {
+	n, err := f.Transport.Write(p)
+	if err != nil {
+		f.failed.Store(true)
+	}
+	return n, err
+}
+
+func (f *failTrackingTransport) Read(p []byte) (int, error) {
+	n, err := f.Transport.Read(p)
+	if err != nil && !errors.Is(err, io.EOF) {
+		f.failed.Store(true)
+	}
+	return n, err
+}
+
 // PrinterSession manages a persistent connection to a printer with heartbeat.
 type PrinterSession struct {
 	config    store.PrinterConfig
 	tr        transport.Transport
+	track     *failTrackingTransport // wraps the transport given to NewSession
 	enc       encoder.Encoder
 	querier   encoder.StatusQuerier // nil if encoder doesn't support status
 	status    PrinterStatus
 	mu        sync.Mutex
 	stop      chan struct{}
 	stopped   chan struct{}
+	failed    chan struct{} // closed when the session ends by itself (see fail)
+	failOnce  sync.Once
 	stopOnce  sync.Once
 	closeOnce sync.Once
 	closed    atomic.Bool // set once the transport is closed
@@ -46,9 +73,12 @@ func NewSession(cfg store.PrinterConfig, tr transport.Transport, enc encoder.Enc
 		st.DPI = modelInfo.DPI
 		st.PrintWidthMm = modelInfo.PrintWidthPx * 254 / (modelInfo.DPI * 10) // px * 25.4 / DPI
 	}
+	track := &failTrackingTransport{Transport: tr}
 	return &PrinterSession{
 		config:   cfg,
-		tr:       tr,
+		tr:       track,
+		track:    track,
+		failed:   make(chan struct{}),
 		enc:      enc,
 		querier:  querier,
 		status:   st,
@@ -65,6 +95,8 @@ func (s *PrinterSession) Start(ctx context.Context) error {
 			st.Connected = false
 			st.LastError = err.Error()
 		})
+		// Open may have acquired resources before failing; release them.
+		s.closeTransport()
 		close(s.stopped) // ensure Stop() never blocks on <-s.stopped
 		return err
 	}
@@ -130,6 +162,19 @@ func (s *PrinterSession) closeTransport() {
 	})
 }
 
+// releaseTransport closes the transport under s.mu, so it cannot run
+// concurrently with an in-flight Print/Encode on the same transport.
+func (s *PrinterSession) releaseTransport() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closeTransport()
+}
+
+// fail signals the owner (ConnectionManager) that the session ended by itself.
+func (s *PrinterSession) fail() {
+	s.failOnce.Do(func() { close(s.failed) })
+}
+
 // Status returns current printer status.
 func (s *PrinterSession) Status() PrinterStatus {
 	s.mu.Lock()
@@ -140,11 +185,28 @@ func (s *PrinterSession) Status() PrinterStatus {
 // Print encodes and sends an image to the printer (locks mutex to pause heartbeat).
 func (s *PrinterSession) Print(img image.Image, model string, opts encoder.PrintOpts) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.closed.Load() {
+		s.mu.Unlock()
 		return ErrPrinterDisconnected
 	}
-	return s.enc.Encode(img, model, opts, s.tr)
+	s.track.failed.Store(false)
+	err := s.enc.Encode(img, model, opts, s.tr)
+	// Without a heartbeat nothing else notices a dead link, so a transport
+	// failure while printing ends the session and the manager reconnects.
+	broke := err != nil && s.querier == nil && s.track.failed.Load()
+	if broke {
+		s.closeTransport()
+	}
+	s.mu.Unlock()
+
+	if broke {
+		s.updateStatus(func(st *PrinterStatus) {
+			st.Connected = false
+			st.LastError = err.Error()
+		})
+		s.fail()
+	}
+	return err
 }
 
 func (s *PrinterSession) heartbeatLoop() {
@@ -174,7 +236,8 @@ func (s *PrinterSession) heartbeatLoop() {
 					st.LastError = err.Error()
 				})
 				// Release the transport now; the ConnectionManager owns reconnect.
-				s.closeTransport()
+				s.releaseTransport()
+				s.fail()
 				return
 			}
 
