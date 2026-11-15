@@ -219,6 +219,11 @@ func TestConnectionManager_EmptyStartStop(t *testing.T) {
 }
 
 func TestConnectionManager_FailingTransportReconnects(t *testing.T) {
+	// Default backoff (5s + 10s) is right at this test's deadline and made it flaky.
+	orig := backoffSteps
+	backoffSteps = []time.Duration{20 * time.Millisecond, 40 * time.Millisecond}
+	t.Cleanup(func() { backoffSteps = orig })
+
 	ft := &failingMockTransport{failCount: 2}
 	ctx, cancel := context.WithCancel(context.Background())
 	cm := NewConnectionManager(
@@ -239,8 +244,7 @@ func TestConnectionManager_FailingTransportReconnects(t *testing.T) {
 	}
 
 	// Should eventually reach StateConnected after 2 failures.
-	// Backoff is 5s after first failure — use a generous timeout.
-	deadline := time.After(15 * time.Second)
+	deadline := time.After(5 * time.Second)
 	for cm.State("p1") != StateConnected {
 		select {
 		case <-deadline:

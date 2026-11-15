@@ -14,16 +14,17 @@ import (
 
 // PrinterSession manages a persistent connection to a printer with heartbeat.
 type PrinterSession struct {
-	config   store.PrinterConfig
-	tr       transport.Transport
-	enc      encoder.Encoder
-	querier  encoder.StatusQuerier // nil if encoder doesn't support status
-	status   PrinterStatus
-	mu       sync.Mutex
-	stop     chan struct{}
-	stopped  chan struct{}
-	stopOnce sync.Once
-	onUpdate func(printerID string, status PrinterStatus)
+	config    store.PrinterConfig
+	tr        transport.Transport
+	enc       encoder.Encoder
+	querier   encoder.StatusQuerier // nil if encoder doesn't support status
+	status    PrinterStatus
+	mu        sync.Mutex
+	stop      chan struct{}
+	stopped   chan struct{}
+	stopOnce  sync.Once
+	closeOnce sync.Once
+	onUpdate  func(printerID string, status PrinterStatus)
 }
 
 // NewSession creates a session. onUpdate is called when status changes.
@@ -104,11 +105,20 @@ func (s *PrinterSession) Stop() {
 		// Close transport first to unblock any in-flight BLE I/O,
 		// otherwise the heartbeat goroutine may hang on Read/Write
 		// and <-s.stopped would block forever.
-		_ = s.tr.Close()
+		s.closeTransport()
 		<-s.stopped
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
 		})
+	})
+}
+
+// closeTransport closes the underlying transport exactly once, whether the
+// session ends via Stop() or via a fatal heartbeat error. Releasing it on both
+// paths is what frees the claimed USB interface for the next session.
+func (s *PrinterSession) closeTransport() {
+	s.closeOnce.Do(func() {
+		_ = s.tr.Close()
 	})
 }
 
@@ -152,7 +162,8 @@ func (s *PrinterSession) heartbeatLoop() {
 					st.Connected = false
 					st.LastError = err.Error()
 				})
-				// Could add reconnect logic here in the future
+				// Release the transport now; the ConnectionManager owns reconnect.
+				s.closeTransport()
 				return
 			}
 

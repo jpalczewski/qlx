@@ -20,7 +20,34 @@ const (
 	maxRetries = 0
 )
 
+// stableConnectionThreshold is how long a session must stay up before the
+// reconnect backoff is reset. A var so tests can override it.
+var stableConnectionThreshold = 30 * time.Second
+
 var backoffSteps = []time.Duration{5 * time.Second, 10 * time.Second, 30 * time.Second, 60 * time.Second}
+
+// backoff walks through backoffSteps, staying on the last step once reached.
+type backoff struct{ idx int }
+
+func (b *backoff) next() time.Duration {
+	d := backoffSteps[b.idx]
+	if b.idx < len(backoffSteps)-1 {
+		b.idx++
+	}
+	return d
+}
+
+func (b *backoff) reset() { b.idx = 0 }
+
+// sleepCtx waits for d and reports false if ctx was cancelled first.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
 
 type printerConn struct {
 	cfg     store.PrinterConfig
@@ -225,9 +252,25 @@ func (cm *ConnectionManager) setState(printerID string, state ConnState, msg str
 	}
 }
 
+// retriesExhausted records a failed connect attempt and reports whether
+// maxRetries consecutive failures were reached (never when maxRetries is 0).
+func (cm *ConnectionManager) retriesExhausted(printerID string) bool {
+	if maxRetries <= 0 {
+		return false
+	}
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	pc := cm.printers[printerID]
+	if pc == nil {
+		return false
+	}
+	pc.retries++
+	return pc.retries >= maxRetries
+}
+
 func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID string) {
 	defer cm.wg.Done()
-	backoffIdx := 0
+	var bo backoff
 
 	for {
 		if ctx.Err() != nil {
@@ -241,31 +284,16 @@ func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID strin
 			if ctx.Err() != nil {
 				return
 			}
-			if maxRetries > 0 {
-				cm.mu.Lock()
-				pc := cm.printers[printerID]
-				if pc != nil {
-					pc.retries++
-					if pc.retries >= maxRetries {
-						cm.mu.Unlock()
-						cm.setState(printerID, StateError, err.Error())
-						return
-					}
-				}
-				cm.mu.Unlock()
+			if cm.retriesExhausted(printerID) {
+				cm.setState(printerID, StateError, err.Error())
+				return
 			}
 
 			cm.setState(printerID, StateReconnecting, err.Error())
-			delay := backoffSteps[backoffIdx]
-			if backoffIdx < len(backoffSteps)-1 {
-				backoffIdx++
-			}
-			select {
-			case <-ctx.Done():
+			if !sleepCtx(ctx, bo.next()) {
 				return
-			case <-time.After(delay):
-				continue
 			}
+			continue
 		}
 
 		// Check if we were cancelled during connect
@@ -274,8 +302,9 @@ func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID strin
 			return
 		}
 
-		// Connected — store session
-		backoffIdx = 0
+		// Connected — store session. The backoff is not reset here: it is reset
+		// only once the session has stayed up for stableConnectionThreshold.
+		connectedAt := time.Now()
 		cm.mu.Lock()
 		if pc := cm.printers[printerID]; pc != nil {
 			pc.session = session
@@ -284,18 +313,31 @@ func (cm *ConnectionManager) runPrinterLoop(ctx context.Context, printerID strin
 		cm.mu.Unlock()
 		cm.setState(printerID, StateConnected, "")
 
-		cm.waitForDisconnect(ctx, printerID, session)
+		cm.waitForDisconnect(ctx, session)
 
 		if ctx.Err() != nil {
 			return
 		}
+
+		reason := session.Status().LastError
+		if reason == "" {
+			reason = "connection lost"
+		}
+		stable := time.Since(connectedAt) >= stableConnectionThreshold
 
 		cm.mu.Lock()
 		if pc := cm.printers[printerID]; pc != nil {
 			pc.session = nil
 		}
 		cm.mu.Unlock()
-		cm.setState(printerID, StateDisconnected, "connection lost")
+		cm.setState(printerID, StateDisconnected, reason)
+
+		if stable {
+			bo.reset()
+		}
+		if !sleepCtx(ctx, bo.next()) {
+			return
+		}
 	}
 }
 
@@ -342,11 +384,13 @@ func (cm *ConnectionManager) tryConnect(ctx context.Context, printerID string) (
 	return session, nil
 }
 
-func (cm *ConnectionManager) waitForDisconnect(ctx context.Context, _ string, session *PrinterSession) {
+// waitForDisconnect blocks until the session ends or ctx is cancelled, then
+// always stops the session so its transport is released before any reconnect.
+func (cm *ConnectionManager) waitForDisconnect(ctx context.Context, session *PrinterSession) {
 	select {
 	case <-ctx.Done():
-		session.Stop()
 	case <-session.stopped:
-		// heartbeat exited naturally
+		// heartbeat exited on a fatal error
 	}
+	session.Stop()
 }
