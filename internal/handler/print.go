@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"image/png"
 	"net/http"
 	"strconv"
@@ -17,7 +20,42 @@ import (
 	"github.com/erxyi/qlx/internal/print/transport"
 	"github.com/erxyi/qlx/internal/service"
 	"github.com/erxyi/qlx/internal/shared/webutil"
+	"github.com/erxyi/qlx/internal/store"
 )
+
+const (
+	// pairFallbackTemplate is the single-label template used when the paired
+	// template cannot be rendered for the loaded media.
+	pairFallbackTemplate = "simple"
+	// warnPairFallback is the response warning code (JSON "warning" field and
+	// the X-Qlx-Warning preview header) set when a pair fell back to a single label.
+	warnPairFallback = "pair_fallback"
+	// pairFallbackMessage is the English text accompanying warnPairFallback.
+	pairFallbackMessage = "paired label not available for this printer or media; a single label was used"
+)
+
+// isBuiltinTemplate reports whether name is rendered on the server: a schema
+// template or the paired template. Everything else is a designer template
+// rendered on the client.
+func isBuiltinTemplate(name string) bool {
+	if name == label.PairTemplate {
+		return true
+	}
+	_, ok := label.GetSchema(name)
+	return ok
+}
+
+// containerPathNames returns the names of a container path, root first.
+func containerPathNames(path []store.Container) []string {
+	if len(path) == 0 {
+		return nil
+	}
+	names := make([]string, len(path))
+	for i, c := range path {
+		names[i] = c.Name
+	}
+	return names
+}
 
 // PrintHandler handles HTTP requests for printer management and print operations.
 type PrintHandler struct {
@@ -153,13 +191,14 @@ func (h *PrintHandler) buildItemLabelData(itemID string) (label.LabelData, bool)
 	}
 	path := h.inventory.ContainerPath(item.ContainerID)
 	return label.LabelData{
-		Name:        item.Name,
-		Description: item.Description,
-		Location:    webutil.FormatContainerPath(path, " → "),
-		QRContent:   "/items/" + item.ID,
-		BarcodeID:   item.ID,
-		Icon:        item.Icon,
-		Tags:        h.resolveTags(item.TagIDs),
+		Name:         item.Name,
+		Description:  item.Description,
+		Location:     webutil.FormatContainerPath(path, label.LocationSeparator),
+		LocationPath: containerPathNames(path),
+		QRContent:    "/items/" + item.ID,
+		BarcodeID:    item.ID,
+		Icon:         item.Icon,
+		Tags:         h.resolveTags(item.TagIDs),
 	}, true
 }
 
@@ -171,17 +210,18 @@ func (h *PrintHandler) buildContainerLabelData(containerID string, showChildren 
 	}
 	path := h.inventory.ContainerPath(container.ParentID)
 	data := label.LabelData{
-		Name:        container.Name,
-		Description: container.Description,
-		Location:    webutil.FormatContainerPath(path, " → "),
-		QRContent:   "/containers/" + container.ID,
-		BarcodeID:   container.ID,
-		Icon:        container.Icon,
-		Tags:        h.resolveTags(container.TagIDs),
+		Name:         container.Name,
+		Description:  container.Description,
+		Location:     webutil.FormatContainerPath(path, label.LocationSeparator),
+		LocationPath: containerPathNames(path),
+		QRContent:    "/containers/" + container.ID,
+		BarcodeID:    container.ID,
+		Icon:         container.Icon,
+		Tags:         h.resolveTags(container.TagIDs),
 	}
 	if showChildren {
 		for _, child := range h.inventory.ContainerChildren(container.ID) {
-			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon})
+			data.Children = append(data.Children, label.LabelChild{Name: child.Name, Icon: child.Icon, IsContainer: true})
 		}
 		for _, item := range h.inventory.ContainerItems(container.ID) {
 			data.Children = append(data.Children, label.LabelChild{Name: item.Name, Icon: item.Icon})
@@ -215,17 +255,46 @@ func printOptsFromRequest(density, copies, cutEvery int, highRes bool) encoder.P
 	}
 }
 
-// printOrClientRender prints a built-in schema or returns JSON for client-side designer rendering.
+// printBuiltin prints a server-rendered template. A paired label that cannot be
+// rendered for the loaded media (a *print.RenderError, nothing was sent) falls
+// back to a single label; warning is then warnPairFallback.
+func (h *PrintHandler) printBuiltin(printerID string, data label.LabelData, templateName string,
+	opts label.RenderOpts, printOpts encoder.PrintOpts) (warning string, err error) {
+
+	err = h.pm.Print(printerID, data, templateName, opts, printOpts)
+	var renderErr *print.RenderError
+	if err == nil || templateName != label.PairTemplate || !errors.As(err, &renderErr) {
+		return "", err
+	}
+	webutil.LogError("pair label unavailable for %q, falling back to %q: %v", data.Name, pairFallbackTemplate, err)
+	if err = h.pm.Print(printerID, data, pairFallbackTemplate, opts, printOpts); err != nil {
+		return "", err
+	}
+	return warnPairFallback, nil
+}
+
+// printOKResponse is the JSON body of a successful print.
+func printOKResponse(warning string) map[string]any {
+	resp := map[string]any{"ok": true}
+	if warning != "" {
+		resp["warning"] = warning
+		resp["message"] = pairFallbackMessage
+	}
+	return resp
+}
+
+// printOrClientRender prints a built-in template or returns JSON for client-side designer rendering.
 func (h *PrintHandler) printOrClientRender(w http.ResponseWriter, data label.LabelData,
 	printerID, templateName string, opts label.RenderOpts, printOpts encoder.PrintOpts) {
 
-	if _, ok := label.GetSchema(templateName); ok {
-		if err := h.pm.Print(printerID, data, templateName, opts, printOpts); err != nil {
+	if isBuiltinTemplate(templateName) {
+		warning, err := h.printBuiltin(printerID, data, templateName, opts, printOpts)
+		if err != nil {
 			webutil.LogError("print failed: %v", err)
 			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+		webutil.JSON(w, http.StatusOK, printOKResponse(warning))
 		return
 	}
 
@@ -247,7 +316,8 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
-	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate}, pOpts)
+	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, opts, pOpts)
 }
 
 // previewWidth extracts the width query parameter, defaulting to 384 (Niimbot B1).
@@ -258,23 +328,77 @@ func previewWidth(r *http.Request) int {
 	return 384
 }
 
-// renderPreviewWithMedia renders a label preview with full media info and writes the response.
-// For built-in schemas it returns a PNG image; for designer templates it returns JSON.
-func renderPreviewWithMedia(w http.ResponseWriter, templates *service.TemplateService,
-	data label.LabelData, templateName string, media label.MediaInfo, opts label.RenderOpts) {
+// pairPreviewGap is the gap in pixels between the two pages of an "all" pair preview.
+const pairPreviewGap = 12
 
-	if _, ok := label.GetSchema(templateName); ok {
-		img, err := label.Render(data, templateName, media, opts)
-		if err != nil {
-			webutil.LogError("preview render failed: %v", err)
-			webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-		writePNG(w, img)
+// renderPreviewWithMedia renders a label preview with full media info and writes the response.
+// For built-in templates it returns a PNG image; for designer templates it returns JSON.
+// page selects the page of the paired template: "1", "2" or "all" (both stacked,
+// the default); other templates have a single page and ignore it. A pair that
+// cannot be rendered falls back to a single label and sets X-Qlx-Warning.
+func renderPreviewWithMedia(w http.ResponseWriter, templates *service.TemplateService,
+	data label.LabelData, templateName string, media label.MediaInfo, opts label.RenderOpts, page string) {
+
+	if !isBuiltinTemplate(templateName) {
+		respondClientRender(w, templates, templateName, data)
 		return
 	}
 
-	respondClientRender(w, templates, templateName, data)
+	if page != "" && page != "1" && page != "2" && page != "all" {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": "page must be 1, 2 or all"})
+		return
+	}
+
+	pages, err := label.RenderPages(data, templateName, media, opts)
+	if err != nil && templateName == label.PairTemplate {
+		webutil.LogError("pair preview unavailable, falling back to %q: %v", pairFallbackTemplate, err)
+		w.Header().Set("X-Qlx-Warning", warnPairFallback)
+		templateName = pairFallbackTemplate
+		pages, err = label.RenderPages(data, templateName, media, opts)
+	}
+	if err != nil {
+		webutil.LogError("preview render failed: %v", err)
+		webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	w.Header().Set("X-Qlx-Pages", strconv.Itoa(len(pages)))
+
+	switch {
+	case len(pages) == 1 || page == "1":
+		writePNG(w, pages[0])
+	case page == "2":
+		writePNG(w, pages[1])
+	default:
+		writePNG(w, stackPages(pages))
+	}
+}
+
+// stackPages stacks images vertically, separated by a gray gap that keeps the pages visually distinct.
+func stackPages(pages []image.Image) image.Image {
+	width, height := 0, 0
+	for _, pg := range pages {
+		width = max(width, pg.Bounds().Dx())
+		height += pg.Bounds().Dy()
+	}
+	height += pairPreviewGap * (len(pages) - 1)
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(dst, dst.Bounds(), image.NewUniform(color.Gray{Y: 200}), image.Point{}, draw.Src)
+	y := 0
+	for _, pg := range pages {
+		r := image.Rect(0, y, pg.Bounds().Dx(), y+pg.Bounds().Dy())
+		draw.Draw(dst, r, pg, pg.Bounds().Min, draw.Src)
+		y = r.Max.Y + pairPreviewGap
+	}
+	return dst
+}
+
+// previewRenderOpts reads print_date and print_description from the query.
+func previewRenderOpts(r *http.Request) label.RenderOpts {
+	q := r.URL.Query()
+	return label.RenderOpts{
+		PrintDate:        q.Get("print_date") == "true",
+		PrintDescription: q.Get("print_description") == "true",
+	}
 }
 
 // previewMediaInfo builds MediaInfo from query params or printer session.
@@ -341,8 +465,7 @@ func (h *PrintHandler) PreviewItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), previewRenderOpts(r), r.URL.Query().Get("page"))
 }
 
 // PreviewContainer handles GET /containers/{id}/preview — returns a label preview image.
@@ -360,8 +483,7 @@ func (h *PrintHandler) PreviewContainer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), previewRenderOpts(r), r.URL.Query().Get("page"))
 }
 
 // PrintNote handles POST /notes/{id}/print.
@@ -379,7 +501,8 @@ func (h *PrintHandler) PrintNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
-	h.printOrClientRender(w, data, req.PrinterID, req.Template, label.RenderOpts{PrintDate: req.PrintDate}, pOpts)
+	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
+	h.printOrClientRender(w, data, req.PrinterID, req.Template, opts, pOpts)
 }
 
 // PreviewNote handles GET /notes/{id}/preview — returns a label preview image.
@@ -396,8 +519,7 @@ func (h *PrintHandler) PreviewNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, h.previewMediaInfo(r), previewRenderOpts(r), r.URL.Query().Get("page"))
 }
 
 // PrintImage handles POST /print-image.
@@ -584,7 +706,7 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := label.RenderOpts{PrintDate: req.PrintDate}
+	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
 
 	if len(req.Templates) == 0 {
@@ -592,12 +714,17 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	warning := ""
 	for _, tmplName := range req.Templates {
-		if _, ok := label.GetSchema(tmplName); ok {
-			if err := h.pm.Print(req.PrinterID, data, tmplName, opts, pOpts); err != nil {
-				webutil.LogError("container print failed (schema %s): %v", tmplName, err)
+		if isBuiltinTemplate(tmplName) {
+			warn, err := h.printBuiltin(req.PrinterID, data, tmplName, opts, pOpts)
+			if err != nil {
+				webutil.LogError("container print failed (template %s): %v", tmplName, err)
 				webutil.JSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				return
+			}
+			if warn != "" {
+				warning = warn
 			}
 		} else {
 			tmpl := h.templates.GetTemplate(tmplName)
@@ -616,7 +743,7 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	webutil.JSON(w, http.StatusOK, map[string]bool{"ok": true})
+	webutil.JSON(w, http.StatusOK, printOKResponse(warning))
 }
 
 // ScanUSB handles GET /printers/scan/usb — enumerates connected Brother USB devices.

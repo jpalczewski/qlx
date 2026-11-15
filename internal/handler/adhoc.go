@@ -88,5 +88,5 @@ func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
 
 	data := label.LabelData{Name: text}
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreviewWithMedia(w, h.templates, data, templateName, label.MediaInfo{WidthPx: previewWidth(r), DPI: 203}, opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, label.MediaInfo{WidthPx: previewWidth(r), DPI: 203}, opts, "")
 }

@@ -107,10 +107,7 @@ func (h *ItemHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.resp.Respond(w, r, http.StatusCreated, item, "containers", func() any {
-		return ContainerListData{
-			Children: h.inventory.ContainerChildren(req.ContainerID),
-			Items:    h.inventory.ContainerItems(req.ContainerID),
-		}
+		return buildContainerListVM(h.inventory, h.pm, h.templates, h.notes, req.ContainerID)
 	})
 }
 
@@ -148,10 +145,7 @@ func (h *ItemHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.resp.Respond(w, r, http.StatusNoContent, nil, "containers", func() any {
-		return ContainerListData{
-			Children: h.inventory.ContainerChildren(containerID),
-			Items:    h.inventory.ContainerItems(containerID),
-		}
+		return buildContainerListVM(h.inventory, h.pm, h.templates, h.notes, containerID)
 	})
 }
 

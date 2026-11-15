@@ -1,0 +1,52 @@
+standard: 1
+backend: github
+language: en
+type_mode: label
+contracts: false
+label_style: emoji
+
+next_limit: 10
+
+areas:
+  - emoji: 🖨️
+    name: print
+    description: PrinterManager, sessions, Brother and Niimbot encoders, transports
+    paths: [internal/print/]
+  - emoji: 🏷️
+    name: label
+    description: Label rendering, templates, schemas and designer
+    paths: [internal/print/label/]
+  - emoji: 📦
+    name: inventory
+    description: Containers, items, tags, search, quick entry and bulk operations
+    paths: [internal/service/, internal/handler/]
+  - emoji: 🗄️
+    name: store
+    description: SQLite persistence, FTS5 and migrations
+    paths: [internal/store/]
+  - emoji: 🎨
+    name: frontend
+    description: HTMX UI, templates, JS and CSS, i18n, mobile and PWA
+    paths: [internal/embedded/]
+  - emoji: 🛰️
+    name: remote
+    description: Remote agents, auth, MCP, CLI and cross-host print queue
+    paths: [internal/app/, cmd/qlx/]
+  - emoji: 📚
+    name: docs
+    description: Documentation, plans and specs
+    paths: [docs/]
+  - emoji: ⚙️
+    name: ci
+    description: GitHub Actions, release-please, lefthook and E2E infrastructure
+    paths: [.github/workflows/, e2e/]
+
+extended_labels: false
+
+milestones:
+  - name: Remote Printing
+    description: Remote agents, auth, MCP and a CLI for printing through a central QLX server.
+  - name: Mobile Experience
+    description: Mobile navigation, touch-friendly drag and drop, and PWA offline support.
+  - name: Codebase Health
+    description: Architecture refactors, faster and stabler E2E tests, and JS coverage.

@@ -11,7 +11,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
@@ -28,7 +28,7 @@ jobs:
         with:
           version: v2.11.3
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
       - name: Run govulncheck
         run: govulncheck ./...
 
@@ -42,10 +42,30 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Locate Go build cache
+        id: gocache
+        run: echo "path=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+      # Separate cache for -race build artifacts (setup-go only caches the non-race build).
+      # Restored on every run; saved only on main so PRs read it but never write it.
+      - name: Restore race build cache
+        id: race-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.gocache.outputs.path }}
+          key: go-race-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.run_id }}
+          restore-keys: |
+            go-race-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
+            go-race-${{ runner.os }}-
       - name: Run tests
         env:
           CGO_ENABLED: "1"
         run: go test ./... -race -coverprofile=coverage.txt -v
+      - name: Save race build cache
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.gocache.outputs.path }}
+          key: go-race-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.run_id }}
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -59,7 +79,7 @@ jobs:
 
   e2e:
     name: E2E Tests
-    needs: [build, test]
+    needs: [build]
     # Pinned: ubuntu-latest is now 26.04, which Playwright 1.58 does not support.
     runs-on: ubuntu-24.04
     timeout-minutes: 15

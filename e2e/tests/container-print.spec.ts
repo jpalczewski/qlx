@@ -65,6 +65,7 @@ test.describe('Container print', () => {
     // Container label tab is active by default
     const containerTab = panel.locator('[data-tab-content="container-label"]');
     await expect(containerTab).toBeVisible();
+    await containerTab.locator('[data-print-layout]').selectOption('single');
     await expect(containerTab.locator('[data-print-checkboxes]')).toBeVisible();
     await expect(containerTab.locator('[data-print-date]')).toBeVisible();
     await expect(containerTab.locator('[data-print-children]')).toBeVisible();
@@ -82,6 +83,7 @@ test.describe('Container print', () => {
     await expect(panel.locator('[data-tab-content="container-label"]')).not.toBeVisible();
     const bulkTab = panel.locator('[data-tab-content="bulk-items"]');
     await expect(bulkTab).toBeVisible();
+    await bulkTab.locator('[data-print-layout]').selectOption('single');
     await expect(bulkTab.locator('[data-print-template]')).toBeVisible();
     await expect(bulkTab.locator('[data-print-btn]')).toBeVisible();
   });
@@ -97,6 +99,7 @@ test.describe('Container print', () => {
     await containerTab.locator('[data-print-children]').uncheck();
 
     // Select the first schema checkbox
+    await containerTab.locator('[data-print-layout]').selectOption('single');
     const firstCheckbox = containerTab.locator('input[name="print-schema"]').first();
     await firstCheckbox.check();
     const schemaValue = await firstCheckbox.getAttribute('value');
@@ -118,6 +121,7 @@ test.describe('Container print', () => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
     const containerTab = page.locator('[data-tab-content="container-label"]');
+    await containerTab.locator('[data-print-layout]').selectOption('single');
     await containerTab.locator('input[name="print-schema"]').first().check();
 
     const responsePromise = page.waitForResponse(r =>
@@ -134,6 +138,7 @@ test.describe('Container print', () => {
     await page.goto(`${app.baseURL}/containers/${containerId}`, { waitUntil: 'domcontentloaded' });
 
     const containerTab = page.locator('[data-tab-content="container-label"]');
+    await containerTab.locator('[data-print-layout]').selectOption('single');
     await containerTab.locator('input[name="print-schema"]').first().check();
 
     const responsePromise = page.waitForResponse(r =>
@@ -153,6 +158,7 @@ test.describe('Container print', () => {
     await panel.locator('.print-tab[data-tab="bulk-items"]').click();
 
     const bulkTab = panel.locator('[data-tab-content="bulk-items"]');
+    await bulkTab.locator('[data-print-layout]').selectOption('single');
     await expect(bulkTab.locator('[data-print-template]')).toBeVisible();
     await expect(bulkTab.locator('[data-print-btn]')).toBeVisible();
     await expect(bulkTab.locator('[data-print-preview]')).toBeVisible();

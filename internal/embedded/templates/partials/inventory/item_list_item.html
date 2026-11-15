@@ -1,10 +1,20 @@
-{{ define "item-list-item" }}
-<li draggable="true" data-id="{{ .Data.ID }}" data-type="item" class="flash">
-    <input type="checkbox" class="bulk-select" data-id="{{ .Data.ID }}" data-type="item">
+{{/*
+  item-row renders one item list row. Parameters (dict):
+    Data       the store.Item
+    Flash      true only for rows appended after the initial render
+    Selectable true for lists with bulk-select/drag-and-drop (inventory pages)
+*/}}
+{{ define "item-row" }}
+<li{{ if .Selectable }} draggable="true" data-id="{{ .Data.ID }}" data-type="item"{{ end }}{{ if .Flash }} class="flash"{{ end }}>
+    {{ if .Selectable }}<input type="checkbox" class="bulk-select" data-id="{{ .Data.ID }}" data-type="item">{{ end }}
     <a href="/items/{{ .Data.ID }}" hx-get="/items/{{ .Data.ID }}" hx-target="#content" class="item-item">
         <span class="name"><span class="color-dot"{{ if .Data.Color }} style="background-color: {{ paletteHex .Data.Color }}"{{ end }}></span><span class="entity-icon">{{ if .Data.Icon }}{{ icon .Data.Icon }}{{ else }}{{ icon "clipboard-text" }}{{ end }}</span>{{ .Data.Name }}</span>
+        {{ if .Data.Description }}<span class="desc">{{ .Data.Description }}</span>{{ end }}
     </a>
     {{ if gt .Data.Quantity 1 }}<span class="badge">x{{ .Data.Quantity }}</span>{{ end }}
     {{ template "tag-chips" dict "Data" (dict "ObjectID" .Data.ID "ObjectType" "item" "Tags" (resolveTags .Data.TagIDs)) }}
 </li>
 {{ end }}
+
+{{/* item-list-item is the freshly added row returned to quick entry. */}}
+{{ define "item-list-item" }}{{ template "item-row" dict "Data" .Data "Flash" true "Selectable" true }}{{ end }}
