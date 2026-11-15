@@ -20,25 +20,89 @@ import (
 // its transport is already closed.
 var ErrPrinterDisconnected = errors.New("printer disconnected")
 
+// ErrLinkLost is matched (errors.Is) by the *LinkError a print returns when the
+// transport broke under it and the session was torn down for reconnect.
+var ErrLinkLost = errors.New("printer connection lost")
+
+// LinkError is returned by PrintPages when the link to the printer failed
+// during preflight or while writing a job. The session has been closed and the
+// ConnectionManager reconnects. It is distinct from printer conditions
+// (*encoder.StatusError), which leave the link up.
+type LinkError struct {
+	Err error
+	// Retryable is true only when the failure provably happened before any
+	// page data was handed to the device, so repeating the job on a fresh
+	// session cannot produce a duplicate label.
+	Retryable bool
+}
+
+func (e *LinkError) Error() string {
+	return fmt.Sprintf("%v, reconnecting - please try again: %v", ErrLinkLost, e.Err)
+}
+func (e *LinkError) Unwrap() error        { return e.Err }
+func (e *LinkError) Is(target error) bool { return target == ErrLinkLost }
+
 // failTrackingTransport remembers whether a Write or Read failed, so Print can
-// tell a transport failure from an encoding error.
+// tell a transport failure from an encoding error. During a print job
+// (beginJob..endJob) it also latches the first failure: every later Write or
+// Read fails at once with that error without touching the device, so an
+// encoder that issues hundreds of small writes cannot stall once per write.
 type failTrackingTransport struct {
 	transport.Transport
-	failed atomic.Bool
+	failed      atomic.Bool
+	writeFailed atomic.Bool  // a Write failed during the current job
+	writes      atomic.Int32 // Write calls that reached the device during the current job
+	jobActive   atomic.Bool
+	abort       atomic.Pointer[error] // first failure of the current job
+}
+
+// beginJob resets the per-job state. The caller holds the session I/O lock.
+func (f *failTrackingTransport) beginJob() {
+	f.failed.Store(false)
+	f.writeFailed.Store(false)
+	f.writes.Store(0)
+	f.abort.Store(nil)
+	f.jobActive.Store(true)
+}
+
+func (f *failTrackingTransport) endJob() { f.jobActive.Store(false) }
+
+func (f *failTrackingTransport) latched() error {
+	if !f.jobActive.Load() {
+		return nil
+	}
+	if e := f.abort.Load(); e != nil {
+		return fmt.Errorf("job aborted after first failure: %w", *e)
+	}
+	return nil
 }
 
 func (f *failTrackingTransport) Write(p []byte) (int, error) {
+	if err := f.latched(); err != nil {
+		return 0, err
+	}
+	f.writes.Add(1)
 	n, err := f.Transport.Write(p)
 	if err != nil {
 		f.failed.Store(true)
+		f.writeFailed.Store(true)
+		if f.jobActive.Load() {
+			f.abort.CompareAndSwap(nil, &err)
+		}
 	}
 	return n, err
 }
 
 func (f *failTrackingTransport) Read(p []byte) (int, error) {
+	if err := f.latched(); err != nil {
+		return 0, err
+	}
 	n, err := f.Transport.Read(p)
 	if err != nil && !errors.Is(err, io.EOF) {
 		f.failed.Store(true)
+		if f.jobActive.Load() {
+			f.abort.CompareAndSwap(nil, &err)
+		}
 	}
 	return n, err
 }
@@ -76,6 +140,11 @@ type PrinterSession struct {
 // treated as lost so the ConnectionManager reconnects. A var so tests can
 // shorten it. A single timeout never ends a session.
 var unresponsiveLimit = 30 * time.Second
+
+// stopWait bounds how long Stop waits for the heartbeat goroutine (which may be
+// queued behind an in-flight print) after closing the transport. A var so tests
+// can shorten it.
+var stopWait = 5 * time.Second
 
 // ErrPrinterNotResponding is reported (as LastError, and by Print) while the
 // printer does not answer status requests in time. The link is still open.
@@ -165,7 +234,12 @@ func (s *PrinterSession) Stop() {
 		// otherwise the heartbeat goroutine may hang on Read/Write
 		// and <-s.stopped would block forever.
 		s.closeTransport()
-		<-s.stopped
+		// A USB transfer that ignores cancellation must not wedge shutdown.
+		select {
+		case <-s.stopped:
+		case <-time.After(stopWait):
+			webutil.LogError("session %s: I/O did not stop within %v; abandoning it", s.config.Name, stopWait)
+		}
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
 		})
@@ -233,25 +307,31 @@ func (s *PrinterSession) PrintPages(pages []image.Image, model string, opts enco
 		s.mu.Unlock()
 		return ErrPrinterDisconnected
 	}
+	var err error
+	var pending PrinterStatus
+	notifyPending := false
 	if s.querier != nil {
-		if st, changed, err := s.preflightLocked(); err != nil {
-			s.mu.Unlock()
-			if changed {
-				s.notify(st)
-			}
-			return err
-		}
+		pending, notifyPending, err = s.preflightLocked()
 	}
-	s.track.failed.Store(false)
-	err := s.encodePagesLocked(pages, model, opts)
-	// Without a heartbeat nothing else notices a dead link, so a transport
-	// failure while printing ends the session and the manager reconnects.
-	broke := err != nil && s.querier == nil && s.track.failed.Load()
+	if err == nil {
+		s.track.beginJob()
+		err = s.encodePagesLocked(pages, model, opts)
+		err = s.classifyJobErrLocked(err)
+		s.track.endJob()
+	}
+	// A transport failure ends the session: the link is stale (typically after
+	// a long idle), so release the transport and let the manager reconnect.
+	// Printer conditions (*encoder.StatusError) never reach here.
+	var linkErr *LinkError
+	broke := errors.As(err, &linkErr)
 	if broke {
 		s.closeTransport()
 	}
 	s.mu.Unlock()
 
+	if notifyPending {
+		s.notify(pending)
+	}
 	if broke {
 		s.updateStatus(func(st *PrinterStatus) {
 			st.Connected = false
@@ -260,6 +340,26 @@ func (s *PrinterSession) PrintPages(pages []image.Image, model string, opts enco
 		s.fail()
 	}
 	return err
+}
+
+// classifyJobErrLocked wraps a failed encode in a *LinkError when the transport
+// broke (a failed Write, or any failed I/O for encoders without a heartbeat).
+// Printer conditions pass through unchanged. s.mu must be held.
+//
+// The job is marked Retryable only if the very first Write failed. Beyond that
+// point the printer may already hold part of a job (or have printed it), and a
+// repeat could emit a duplicate label, so the error goes back to the caller.
+// The first Write, and the status exchange of preflight, carry no page data.
+func (s *PrinterSession) classifyJobErrLocked(err error) error {
+	var statusErr *encoder.StatusError
+	if err == nil || errors.As(err, &statusErr) {
+		return err
+	}
+	writeFailed := s.track.writeFailed.Load()
+	if !writeFailed && (s.querier != nil || !s.track.failed.Load()) {
+		return err
+	}
+	return &LinkError{Err: err, Retryable: writeFailed && s.track.writes.Load() == 1}
 }
 
 // encodePagesLocked sends pages to the encoder. s.mu must be held.
@@ -304,7 +404,7 @@ func (s *PrinterSession) preflightLocked() (PrinterStatus, bool, error) {
 	if errors.As(err, &statusErr) {
 		if r, ok := s.enc.(encoder.Reinitializer); ok {
 			if rerr := r.Reinitialize(s.tr); rerr != nil {
-				return s.Status(), false, fmt.Errorf("reinitialize printer: %w", rerr)
+				return s.Status(), false, preflightLinkErr(fmt.Errorf("reinitialize printer: %w", rerr))
 			}
 			result, err = s.querier.Heartbeat(s.tr)
 		}
@@ -315,13 +415,23 @@ func (s *PrinterSession) preflightLocked() (PrinterStatus, bool, error) {
 			st, changed, _ := s.recordTimeout()
 			return st, changed, fmt.Errorf("%w (%v)", ErrPrinterNotResponding, err)
 		}
-		return s.Status(), false, fmt.Errorf("printer status: %w", err)
+		return s.Status(), false, preflightLinkErr(fmt.Errorf("printer status: %w", err))
 	}
 	st, changed := s.recordHeartbeat(result, err)
 	if cond := s.activeCondition(); cond != nil {
 		return st, changed, cond
 	}
 	return st, changed, nil
+}
+
+// preflightLinkErr marks a failed status exchange as a dead link. Nothing was
+// sent but status requests, so a retry on a fresh session is safe. Timeouts are
+// handled before this (the heartbeat owns that decision).
+func preflightLinkErr(err error) error {
+	if errors.Is(err, transport.ErrTimeout) {
+		return err
+	}
+	return &LinkError{Err: err, Retryable: true}
 }
 
 func (s *PrinterSession) activeCondition() *encoder.StatusError {
