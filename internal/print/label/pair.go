@@ -5,10 +5,9 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"sort"
+	"slices"
 
-	"golang.org/x/image/font"
-	"golang.org/x/image/math/fixed"
+	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
 // PairTemplate is the code-defined template that renders one item as a pair of
@@ -42,7 +41,13 @@ func RenderPages(data LabelData, template string, media MediaInfo, opts RenderOp
 		if err != nil {
 			return nil, err
 		}
+		if len(res.Warnings) > 0 {
+			webutil.LogInfo("label: pair template used last resorts for %q: %v", data.Name, res.Warnings)
+		}
 		return res.Pages, nil
+	}
+	if _, ok := GetSchema(template); !ok {
+		return nil, fmt.Errorf("unknown template %q: valid templates are %v", template, TemplateNames())
 	}
 	img, err := Render(data, template, media, opts)
 	if err != nil {
@@ -55,7 +60,7 @@ func RenderPages(data LabelData, template string, media MediaInfo, opts RenderOp
 // built-in schemas (see SchemaNames) plus PairTemplate, sorted.
 func TemplateNames() []string {
 	names := append(SchemaNames(), PairTemplate)
-	sort.Strings(names)
+	slices.Sort(names)
 	return names
 }
 
@@ -85,11 +90,12 @@ func planPair(data LabelData, media MediaInfo, opts RenderOpts) (pages [2]pairPa
 		return pages, g, nil, err
 	}
 	for _, name := range []string{pairFontRegular, pairFontBold} {
-		if _, err = LoadFace(name, 12); err != nil {
+		if _, err = LoadFace(name, float64(g.absFloor)); err != nil {
 			return pages, g, nil, fmt.Errorf("pair template: %w", err)
 		}
 	}
-	p := &pairPlanner{g: g, m: newPairMeasurer()}
+	g.m = newPairMeasurer()
+	p := &pairPlanner{g: g, m: g.m}
 
 	name := pairNormalize(data.Name)
 	desc := ""
@@ -104,7 +110,7 @@ func planPair(data LabelData, media MediaInfo, opts RenderOpts) (pages [2]pairPa
 	pages[0] = pairPage{blocks: blocks1}
 	pages[1] = p.planContext(data, ctxDesc)
 
-	levels := locationLevels(data.Location)
+	levels := locationLevels(data)
 	hint1 := ""
 	if len(levels) > 0 {
 		hint1 = levels[len(levels)-1]
@@ -136,13 +142,15 @@ func fillRoundRect(img *image.RGBA, r image.Rectangle, radius int, c color.Color
 }
 
 func drawPairText(img *image.RGBA, bold bool, px, x, baseline int, s string, c color.Color) {
-	d := font.Drawer{Dst: img, Src: image.NewUniform(c), Face: pairFace(bold, px), Dot: fixed.P(x, baseline)}
-	d.DrawString(s)
+	drawTextFace(img, x, baseline, s, c, pairFace(bold, px))
 }
 
 func drawPairPage(g pairGeom, pg pairPage) *image.RGBA {
 	img := newCanvas(g.w, g.h)
-	m := newPairMeasurer()
+	m := g.m
+	if m == nil {
+		m = newPairMeasurer()
+	}
 	drawPairBar(img, g, m, pg.bar)
 	for _, b := range pg.blocks {
 		sp := m.space(b.px)

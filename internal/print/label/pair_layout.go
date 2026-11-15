@@ -3,6 +3,8 @@ package label
 import (
 	"fmt"
 	"image"
+	"reflect"
+	"slices"
 	"strings"
 
 	"golang.org/x/image/font"
@@ -33,7 +35,6 @@ const (
 	pairNameLines    = 3  // with description
 	pairNameLinesAlo = 4  // alone
 	pairDescLines1   = 4
-	pairDescLines2   = 5
 	pairTagRowsMax   = 3
 )
 
@@ -77,6 +78,7 @@ type pairGeom struct {
 	gapText, gapTags    int
 	tagGap, tagPad      int
 	tagOutline          int
+	m                   *pairMeasurer // measurer shared by planning and drawing
 }
 
 func newPairGeom(media MediaInfo) (pairGeom, error) {
@@ -111,6 +113,9 @@ func newPairGeom(media MediaInfo) (pairGeom, error) {
 	g.tagGap = g.fpx(7)
 	g.tagPad = g.fpx(12)
 	g.tagOutline = max(2, g.fpx(3))
+	if g.absFloor < 1 || g.fpx(pairBarFont) < 1 {
+		return pairGeom{}, fmt.Errorf("pair template: dpi %d is too low", dpi)
+	}
 	if g.bodyW < 100 || g.bodyH < 40 {
 		return pairGeom{}, fmt.Errorf("canvas %dx%d too small for the pair template", w, h)
 	}
@@ -205,36 +210,38 @@ type pairPlanner struct {
 
 // dropWarn removes a warning again (used when a layout attempt is abandoned).
 func (p *pairPlanner) dropWarn(w PairWarning) {
-	out := p.warns[:0]
-	for _, x := range p.warns {
-		if x != w {
-			out = append(out, x)
-		}
-	}
-	p.warns = out
+	p.warns = slices.DeleteFunc(p.warns, func(x PairWarning) bool { return x == w })
 }
 
 func (p *pairPlanner) warn(w PairWarning) {
-	for _, x := range p.warns {
-		if x == w {
-			return
-		}
+	if !slices.Contains(p.warns, w) {
+		p.warns = append(p.warns, w)
 	}
-	p.warns = append(p.warns, w)
 }
 
 // pairBold reports whether regular text at px must be drawn bold to stay legible.
 func (p *pairPlanner) pairBold(px int) bool { return px < p.g.boldBelow }
 
-// locationLevels splits the container path ("Room → Shelf") into levels.
-func locationLevels(loc string) []string {
+// locationLevels returns the breadcrumb levels: LocationPath when set,
+// otherwise Location split on LocationSeparator (a name containing a bare
+// arrow without spaces stays one level).
+func locationLevels(d LabelData) []string {
+	src := d.LocationPath
+	if len(src) == 0 {
+		src = strings.Split(d.Location, LocationSeparator)
+	}
 	var out []string
-	for _, l := range strings.Split(loc, "→") {
+	for _, l := range src {
 		if l = pairNormalize(l); l != "" {
 			out = append(out, l)
 		}
 	}
 	return out
+}
+
+// pairChildren drops children with an empty name.
+func pairChildren(children []LabelChild) []LabelChild {
+	return slices.DeleteFunc(slices.Clone(children), func(c LabelChild) bool { return pairNormalize(c.Name) == "" })
 }
 
 // planIdentity lays out label 1/2: the name, and the description when
@@ -359,7 +366,7 @@ func pairCapHeight(px int, bold bool) int {
 // contextCounts builds "Zawiera: N pojemników · M przedmiotów".
 func contextCounts(children []LabelChild) string {
 	var nc, ni int
-	for _, c := range children {
+	for _, c := range pairChildren(children) {
 		if c.IsContainer {
 			nc++
 		} else {
@@ -407,10 +414,13 @@ type ctx2 struct {
 // When the content does not fit, the escalation is: smaller tag pills (down to
 // the floor), then the last resorts of lastResort (description, location),
 // and only then tag rows are dropped, one at a time.
+//
+//nolint:gocyclo // escalation ladder, kept in one place
 func (p *pairPlanner) planContext(d LabelData, desc string) pairPage {
 	g := p.g
+	d.Children = pairChildren(d.Children)
 	newCtx := func(pills []pairPill) ctx2 {
-		c := ctx2{levels: locationLevels(d.Location), desc: desc, counts: contextCounts(d.Children), children: d.Children, avail: g.bodyH}
+		c := ctx2{levels: locationLevels(d), desc: desc, counts: contextCounts(d.Children), children: d.Children, avail: g.bodyH}
 		if len(pills) > 0 {
 			c.avail = pills[0].rect.Min.Y - g.gapTags - g.bodyTop
 		}
@@ -425,6 +435,9 @@ func (p *pairPlanner) planContext(d LabelData, desc string) pairPage {
 	}
 	for i, px := range sizes {
 		pills := p.layoutPills(d.Tags, pairTagRowsMax, px)
+		if len(pills) == 0 && i > 0 {
+			continue // no tags: every size gives the same (failed) search
+		}
 		if len(pills) < wantTags && i < len(sizes)-1 {
 			p.dropWarn(PairWarnTagsDropped) // more rows than allowed: try smaller pills
 			continue
@@ -436,9 +449,19 @@ func (p *pairPlanner) planContext(d LabelData, desc string) pairPage {
 	}
 	px := sizes[len(sizes)-1]
 	var pg pairPage
+	var prev []pairPill
 	for rows := pairTagRowsMax; rows >= 1; rows-- {
 		mark := len(p.warns)
 		pills := p.layoutPills(d.Tags, rows, px)
+		if rows < pairTagRowsMax && reflect.DeepEqual(pills, prev) {
+			p.warns = p.warns[:mark]
+			if rows > 1 {
+				continue // identical pills: the result would not change
+			}
+			p.warn(PairWarnOverflow)
+			return pg
+		}
+		prev = pills
 		blocks, ok := p.lastResort(newCtx(pills))
 		pg = pairPage{blocks: blocks, pills: pills}
 		if ok || rows == 1 || len(pills) == 0 {
@@ -517,10 +540,9 @@ func (p *pairPlanner) contextSpecs(c ctx2, locPx int, levels []string, descLines
 // cutLines keeps the first n lines and ends the last one with an ellipsis.
 func (p *pairPlanner) cutLines(lines []string, n, px int) []string {
 	out := append([]string(nil), lines[:n]...)
-	out[n-1] = p.m.ellipsize(p.pairBold(px), px, out[n-1]+" …", p.g.bodyW)
-	if out[n-1] == "" {
-		out[n-1] = pairEllipsis
-	}
+	// Ellipsize the last kept line together with the cut text so the marker is
+	// always appended.
+	out[n-1] = ellipsize(strings.Join(lines[n-1:], " "), pairFace(p.pairBold(px), px), p.g.bodyW)
 	return out
 }
 

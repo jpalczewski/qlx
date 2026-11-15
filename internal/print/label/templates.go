@@ -1,5 +1,9 @@
 package label
 
+// LocationSeparator joins container names in LabelData.Location. The handler
+// builds Location with it and the paired template splits on it.
+const LocationSeparator = " → "
+
 // LabelTag represents a tag with its display info for label rendering.
 type LabelTag struct {
 	Name string   // tag display name
@@ -18,12 +22,15 @@ type LabelChild struct {
 
 // LabelData holds the data slots for label rendering.
 type LabelData struct {
-	Name        string       // → "title" slot
-	Description string       // → "description" slot
-	Location    string       // container path "Room → Shelf" → "location" slot
-	QRContent   string       // URL for QR code
-	BarcodeID   string       // ID for barcode
-	Icon        string       // Phosphor icon name for title
-	Tags        []LabelTag   // assigned tags
-	Children    []LabelChild // sub-containers + items (container only)
+	Name        string // → "title" slot
+	Description string // → "description" slot
+	Location    string // container path "Room → Shelf" → "location" slot
+	// LocationPath optionally gives the container path as separate levels
+	// (root first); the paired template prefers it over splitting Location.
+	LocationPath []string
+	QRContent    string       // URL for QR code
+	BarcodeID    string       // ID for barcode
+	Icon         string       // Phosphor icon name for title
+	Tags         []LabelTag   // assigned tags
+	Children     []LabelChild // sub-containers + items (container only)
 }

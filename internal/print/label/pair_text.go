@@ -14,7 +14,6 @@ import (
 const (
 	pairFontRegular = "noto-sans"
 	pairFontBold    = "noto-sans-bold"
-	pairEllipsis    = "…"
 )
 
 // pairFace returns the cached face for the weight and pixel size. Embedded
@@ -200,21 +199,15 @@ func (m *pairMeasurer) wrap(bold bool, px int, text string, maxW, maxLines int, 
 	return m.greedy(bold, px, toks, lo), true
 }
 
-// ellipsize shortens s (by whole runes) until s + "…" fits maxW; text that
-// fits is returned unchanged. It returns "" when not even "…" fits.
+// ellipsize shortens s with the shared ellipsize helper of the fit code, so
+// truncation behaves like in the schema templates. It returns "" when even the
+// ellipsis does not fit maxW.
 func (m *pairMeasurer) ellipsize(bold bool, px int, s string, maxW int) string {
-	if m.width(bold, px, s) <= maxW {
-		return s
+	t := ellipsize(s, pairFace(bold, px), maxW)
+	if m.width(bold, px, t) > maxW {
+		return ""
 	}
-	r := []rune(s)
-	for len(r) > 0 {
-		r = r[:len(r)-1]
-		t := strings.TrimRight(string(r), " ") + pairEllipsis
-		if m.width(bold, px, t) <= maxW {
-			return t
-		}
-	}
-	return ""
+	return t
 }
 
 // flowPart is a text that flows as unbreakable runs, optionally followed by a

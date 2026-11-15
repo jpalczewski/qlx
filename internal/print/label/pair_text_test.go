@@ -149,7 +149,7 @@ func TestPairEllipsize(t *testing.T) {
 		t.Errorf("fitting text changed: %q", got)
 	}
 	got := m.ellipsize(true, 24, s, full/2)
-	if !strings.HasSuffix(got, pairEllipsis) || m.width(true, 24, got) > full/2 {
+	if !strings.HasSuffix(got, ellipsis) || m.width(true, 24, got) > full/2 {
 		t.Errorf("ellipsized %q (w=%d, max %d)", got, m.width(true, 24, got), full/2)
 	}
 	if got := m.ellipsize(true, 24, s, 3); got != "" {

@@ -27,7 +27,7 @@ var nowFunc = time.Now
 type MediaInfo struct {
 	WidthPx  int // printhead width in pixels (384, 720)
 	HeightPx int // 0 = continuous (dynamic height); >0 = die-cut label height in px
-	DPI      int // 203, 300; used by encoder and manager, not consumed by renderer itself
+	DPI      int // 203, 300; used by encoder and manager; the pair template also sizes fonts and floors from it (0 = 203 up to 384 px wide, else 300)
 }
 
 // Render produces a label image from the given data using the named schema.

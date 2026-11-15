@@ -9,13 +9,13 @@ func dropLevel(levels []string) ([]string, bool) {
 	switch {
 	case len(levels) <= 1:
 		return levels, false
-	case levels[0] == pairEllipsis:
+	case levels[0] == ellipsis:
 		if len(levels) == 2 {
 			return levels, false
 		}
-		return append([]string{pairEllipsis}, levels[2:]...), true
+		return append([]string{ellipsis}, levels[2:]...), true
 	default:
-		return append([]string{pairEllipsis}, levels[1:]...), true
+		return append([]string{ellipsis}, levels[1:]...), true
 	}
 }
 
@@ -56,7 +56,10 @@ func (p *pairPlanner) fitShortenedDesc(c ctx2, px int, levels []string) ([]pairB
 // dropped. The name and the tags are never touched here.
 func (p *pairPlanner) lastResort(c ctx2) ([]pairBlock, bool) {
 	px := p.g.fpx(pairLocMin)
+	mark := len(p.warns)
+	hadDesc := c.desc != ""
 	for pass := 0; pass < 2; pass++ {
+		p.warns = p.warns[:mark] // a new pass starts from the full location
 		levels := c.levels
 		for {
 			if specs, ok := p.fitShortenedDesc(c, px, levels); ok {
@@ -74,6 +77,10 @@ func (p *pairPlanner) lastResort(c ctx2) ([]pairBlock, bool) {
 		}
 		c.desc = ""
 		p.warn(PairWarnDescriptionShortened)
+	}
+	p.warns = p.warns[:mark] // the fallback below prints the full location
+	if hadDesc {
+		p.warn(PairWarnDescriptionShortened) // and no description
 	}
 	// Nothing fits: lay the content out anyway (splitting words wider than the
 	// label); the caller drops tags or flags the overflow.

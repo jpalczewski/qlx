@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -118,14 +119,7 @@ func synData(r *rand.Rand) (LabelData, RenderOpts) {
 	return d, RenderOpts{PrintDate: r.Intn(2) == 0, PrintDescription: r.Intn(4) != 0}
 }
 
-func hasWarn(ws []PairWarning, w PairWarning) bool {
-	for _, x := range ws {
-		if x == w {
-			return true
-		}
-	}
-	return false
-}
+func hasWarn(ws []PairWarning, w PairWarning) bool { return slices.Contains(ws, w) }
 
 func linesText(b pairBlock) string {
 	var parts []string
@@ -281,7 +275,7 @@ func checkPairContent(t *testing.T, d LabelData, opts RenderOpts, pages [2]pairP
 	}
 
 	// location breadcrumb: levels in order, last one bold
-	levels := locationLevels(d.Location)
+	levels := locationLevels(d)
 	if loc, ok := findBlock(pages[1], "location"); ok {
 		var got []string
 		for _, l := range loc.lines {
@@ -480,21 +474,12 @@ func TestRenderPages(t *testing.T) {
 	if _, err := RenderPages(d, PairTemplate, MediaInfo{}, RenderOpts{}); err == nil {
 		t.Error("zero-width canvas must fail")
 	}
-	if names := TemplateNames(); !hasString(names, PairTemplate) || !hasString(names, "standard") {
+	if names := TemplateNames(); !slices.Contains(names, PairTemplate) || !slices.Contains(names, "standard") {
 		t.Errorf("TemplateNames = %v", names)
 	}
-	if hasString(SchemaNames(), PairTemplate) {
+	if slices.Contains(SchemaNames(), PairTemplate) {
 		t.Error("SchemaNames must not list the code-defined template")
 	}
-}
-
-func hasString(xs []string, s string) bool {
-	for _, x := range xs {
-		if x == s {
-			return true
-		}
-	}
-	return false
 }
 
 func TestPairDescriptionOptionAndDate(t *testing.T) {
