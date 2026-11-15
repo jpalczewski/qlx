@@ -90,6 +90,7 @@ type SearchStore interface {
 	SearchItems(query string) []Item
 	SearchTags(query string) []Tag
 	SearchNotes(query string) []Note
+	ContainerPath(id string) []Container
 }
 
 // PrinterStore defines printer-related store operations.

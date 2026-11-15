@@ -84,7 +84,9 @@ func TestHome_HTMLEmptyState(t *testing.T) {
 	if strings.Contains(body, `data-home="pins"`) || strings.Contains(body, `data-home="recents"`) {
 		t.Error("empty state must not render pin/recent sections")
 	}
-	if strings.Contains(body, "Przedmioty") || strings.Contains(body, `id="item-list"`) {
+	// The wide search names an items group, but only in search-result
+	// labels: the page itself has no item list.
+	if strings.Contains(body, `id="item-list"`) {
 		t.Error("start screen must not contain an items view")
 	}
 }
@@ -107,6 +109,8 @@ func TestHome_HTMLPinnedAndRecent(t *testing.T) {
 		`data-home="pins"`, `data-home="recents"`,
 		`href="/containers/` + e.other.ID + `"`, `href="/containers/` + e.box.ID + `"`,
 		"Drawer", "Blue Box", "Shelf", `aria-pressed="true"`, `aria-pressed="false"`,
+		`href="/containers/` + e.other.ID + `?print=1"`, `aria-label="Dodaj przedmiot do: Drawer"`,
+		`class="home-card-add"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body missing %q", want)

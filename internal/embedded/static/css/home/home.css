@@ -142,3 +142,65 @@
 .home-empty {
     max-width: 36rem;
 }
+
+/* Card actions: print shortcut and inline quick-add. */
+.home-card {
+    flex-wrap: wrap;
+}
+
+.home-card-print {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+.home-card-print:hover {
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+.home-card-print:focus-visible,
+.home-card-add-input:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.home-card-add {
+    flex-basis: 100%;
+    margin: 0 0 0 var(--space-md);
+    padding-right: var(--space-sm);
+}
+
+.home-card-add-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* Wide search groups and extras. */
+.home-results-group {
+    margin-top: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.home-result-extra {
+    margin-left: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.print-panel-attention {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
