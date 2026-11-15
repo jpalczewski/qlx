@@ -10,6 +10,7 @@ import (
 	"image/draw"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -18,7 +19,12 @@ import (
 
 var updateGolden = flag.Bool("update", false, "rewrite golden digest files in testdata/")
 
-const goldenFile = "testdata/golden_digests.txt"
+// goldenFile returns the digest file for the current architecture: the x/image
+// vector rasterizer rounds float32 differently on arm64 (fused multiply-add)
+// and amd64, so anti-aliased pixels differ between them.
+func goldenFile() string {
+	return "testdata/golden_digests_" + runtime.GOARCH + ".txt"
+}
 
 // imageDigest returns a stable digest of an image's size and RGBA pixels.
 // Digests are stored instead of PNG files so that no binary images are committed.
@@ -89,9 +95,9 @@ func renderGoldenImages() (map[string]image.Image, error) {
 
 func readGolden(t *testing.T) map[string]string {
 	t.Helper()
-	f, err := os.Open(goldenFile)
+	f, err := os.Open(goldenFile())
 	if err != nil {
-		t.Fatalf("open %s (run with -update to create): %v", goldenFile, err)
+		t.Fatalf("open %s (run with -update to create): %v", goldenFile(), err)
 	}
 	defer f.Close() //nolint:errcheck // read-only
 	m := map[string]string{}
@@ -120,14 +126,14 @@ func TestGoldenBuiltinSchemas(t *testing.T) {
 	sort.Strings(keys)
 
 	if *updateGolden {
-		if err := os.MkdirAll(filepath.Dir(goldenFile), 0o750); err != nil {
+		if err := os.MkdirAll(filepath.Dir(goldenFile()), 0o750); err != nil {
 			t.Fatal(err)
 		}
 		var sb strings.Builder
 		for _, k := range keys {
 			fmt.Fprintf(&sb, "%s %s\n", k, imageDigest(imgs[k]))
 		}
-		if err := os.WriteFile(goldenFile, []byte(sb.String()), 0o600); err != nil {
+		if err := os.WriteFile(goldenFile(), []byte(sb.String()), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		return
