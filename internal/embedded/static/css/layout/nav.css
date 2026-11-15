@@ -48,25 +48,25 @@ nav .nav-settings {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--muted, #6b7280);
+    background: var(--color-text-muted);
     margin-right: 0.5rem;
     vertical-align: middle;
 }
 
 .conn-dot--ok {
-    background: var(--success, #22c55e);
+    background: var(--color-success);
 }
 
 .conn-dot--warn {
-    background: var(--warning, #eab308);
+    background: var(--color-warning);
 }
 
 .conn-dot--error {
-    background: var(--danger, #ef4444);
+    background: var(--color-error);
 }
 
 .conn-dot--pulse {
-    background: var(--info, #3b82f6);
+    background: var(--color-info);
     animation: conn-pulse 1.5s ease-in-out infinite;
 }
 
@@ -81,7 +81,7 @@ nav .nav-settings {
 
 .conn-label {
     font-size: 0.85em;
-    color: var(--muted, #6b7280);
+    color: var(--color-text-muted);
 }
 
 .reconnect-btn {

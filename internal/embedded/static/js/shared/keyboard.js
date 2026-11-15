@@ -228,7 +228,7 @@
         searchPlaceholder: function () { return qlx.t("nav.search_placeholder"); },
         confirmLabel: function () { return qlx.t("keyboard.open"); },
         onConfirm: function (targetId) {
-          htmx.ajax("GET", "/containers/" + targetId, { target: "#content" });
+          qlx.reloadContent("/containers/" + targetId);
         }
       });
     }

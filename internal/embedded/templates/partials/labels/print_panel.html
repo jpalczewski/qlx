@@ -1,3 +1,13 @@
+{{ define "print-quantity-controls" }}
+<div data-print-options class="print-options-controls">
+    <div data-copies-wrap class="form-group form-group-inline">
+        <label>{{ .CopiesLabel }} <input type="number" data-copies min="1" max="100" value="1"></label>
+    </div>
+    <div data-cut-every-wrap class="form-group form-group-inline" style="display:none">
+        <label><span data-cut-every-text data-label-single="{{ .CutEveryLabel }}" data-label-pair="{{ .CutEveryPairLabel }}">{{ .CutEveryLabel }}</span> <input type="number" data-cut-every min="0" max="100" value="0"></label>
+    </div>
+</div>
+{{ end }}
 {{ define "print-panel" }}
 <section class="print-panel">
     <div class="print-panel-header">
@@ -19,7 +29,8 @@
          data-endpoint="{{ .ContainerEndpoint }}"
          data-entity-id="{{ .EntityID }}"
          data-print-mode="container-label">
-        <div class="form-group">
+        {{ template "print-layout-controls" . }}
+        <div class="form-group" data-single-only>
             <label>{{ .TemplateLabel }}</label>
             <div class="schema-grid" data-print-checkboxes>
                 {{ range .Schemas }}
@@ -27,6 +38,7 @@
                 {{ end }}
             </div>
         </div>
+        {{ template "print-quantity-controls" . }}
         <div class="print-options">
             <label class="checkbox-label"><input type="checkbox" data-print-date checked> {{ .DateLabel }}</label>
             <label class="checkbox-label"><input type="checkbox" data-print-children checked> {{ .ChildrenLabel }}</label>
@@ -42,7 +54,8 @@
          data-endpoint=""
          data-entity-id="{{ .EntityID }}"
          data-print-mode="bulk-items">
-        <div class="form-group">
+        {{ template "print-layout-controls" . }}
+        <div class="form-group" data-single-only>
             <label>{{ .TemplateLabel }}</label>
             <select data-print-template>
                 {{ range .Templates }}
@@ -55,6 +68,7 @@
                 </optgroup>
             </select>
         </div>
+        {{ template "print-quantity-controls" . }}
         <div class="print-actions">
             <button data-print-preview class="button secondary">{{ .PreviewLabel }}</button>
             <button data-print-btn>{{ .BulkPrintLabel }}</button>

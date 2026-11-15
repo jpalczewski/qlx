@@ -57,7 +57,7 @@
               }).then(function (resp) {
                 if (resp.ok) {
                   // Refresh the page to show the tag chip
-                  htmx.ajax("GET", window.location.pathname, { target: "#content" });
+                  qlx.reloadContent();
                 }
               });
               pendingTagId = null;
