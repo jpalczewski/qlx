@@ -184,6 +184,93 @@ func TestEllipsize(t *testing.T) {
 	}
 }
 
+func TestFitWithIconAndPolishCapitalsStaysInArea(t *testing.T) {
+	media := fitMedias["384x160@203"]
+	s := fitSchema(Element{Slot: "title", Fit: "fill", Color: "#000000"})
+	img, err := renderSchema(s, LabelData{Name: "Żółć Łódź Świętość", Icon: "wrench"}, media, RenderOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ink := inkBounds(img)
+	area := image.Rect(s.Padding, s.Padding, media.WidthPx-s.Padding, media.HeightPx-s.Padding)
+	if !ink.In(area) {
+		t.Errorf("ink %v not inside printable area %v", ink, area)
+	}
+}
+
+func TestFitSharesHeightAfterDroppingLowPriority(t *testing.T) {
+	media := fitMedias["384x160@203"]
+	title := Element{Slot: "title", Fit: "fill", Color: "#000000"}
+	tags := Element{Slot: "tags", FontSize: 11, Wrap: true, Color: "#000000"}
+	children := Element{Slot: "children", FontSize: 11, Color: "#000000"}
+	data := LabelData{
+		Name:     "Kabel",
+		Tags:     []LabelTag{{Name: "arduino"}, {Name: "narzędzia"}, {Name: "kable"}, {Name: "zasilanie"}},
+		Children: []LabelChild{{Name: "Rezystory"}, {Name: "Kondensatory"}, {Name: "LED"}},
+	}
+	only, err := renderSchema(fitSchema(title), LabelData{Name: "Kabel"}, media, RenderOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := renderSchema(fitSchema(title, tags, children), data, media, RenderOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Tags and children that do not fit next to a reasonably sized title are
+	// dropped, so the title keeps (about) the size it has without them.
+	if got, want := inkBounds(img).Dy(), inkBounds(only).Dy(); got < want*8/10 {
+		t.Errorf("title starved by low-priority elements: ink height %d vs %d", got, want)
+	}
+	if inkBounds(img).Max.Y > media.HeightPx-8 {
+		t.Errorf("ink %v exceeds bottom padding", inkBounds(img))
+	}
+}
+
+func TestFitHugeMinSizeIsClamped(t *testing.T) {
+	media := fitMedias["384x160@203"]
+	s := fitSchema(Element{Slot: "title", Fit: "fill", MinSize: 1 << 30, Color: "#000000"})
+	if _, err := renderSchema(s, LabelData{Name: "Kabel"}, media, RenderOpts{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFitDefaultFontOnlyWhenFitActive(t *testing.T) {
+	s := fitSchema(Element{Slot: "title", Fit: "fill", FontSize: 20, Color: "#000000"})
+	if got := effectiveFontFamily(s.Elements[0], s); got != "spleen" {
+		t.Errorf("effectiveFontFamily = %q, want spleen on continuous media", got)
+	}
+	rt, err := resolveSlotText(s.Elements[0], "Kabel", s, 384, 8, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rt.family != fitDefaultFont {
+		t.Errorf("fit family = %q, want %q", rt.family, fitDefaultFont)
+	}
+}
+
+func TestParseSchemaRejectsInvalidFitAndValign(t *testing.T) {
+	tests := []struct {
+		name, json, want string
+	}{
+		{"bad fit", `{"name":"x","elements":[{"slot":"title","fit":"Fill"}]}`, `invalid fit "Fill"`},
+		{"bad valign", `{"name":"x","valign":"center","elements":[]}`, `invalid valign "center"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseSchema([]byte(tt.json))
+			if err == nil || !strings.Contains(err.Error(), tt.want) || !strings.Contains(err.Error(), `schema "x"`) {
+				t.Errorf("err = %v, want it to name the schema and contain %q", err, tt.want)
+			}
+		})
+	}
+	for _, ok := range []string{`{"name":"x","valign":"middle","elements":[{"slot":"title","fit":"fill"}]}`,
+		`{"name":"x","elements":[{"slot":"title","fit":"none"}]}`} {
+		if _, err := parseSchema([]byte(ok)); err != nil {
+			t.Errorf("valid schema rejected: %v", err)
+		}
+	}
+}
+
 func TestLargestSize(t *testing.T) {
 	ok := func(n int) bool { return n <= 37 }
 	if got := largestSize(10, 100, ok); got != 37 {

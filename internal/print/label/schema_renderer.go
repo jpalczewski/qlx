@@ -24,6 +24,7 @@ type resolvedText struct {
 	// where every line occupies lineH and the baseline is at the line's bottom).
 	firstBaseline int // distance from the element top to the first baseline
 	bottom        int // extent below the last baseline
+	iconSize      int // fitted text: icon edge in px
 
 	// Fit bookkeeping, set only for elements with Fit == "fill".
 	fit    bool
@@ -55,9 +56,6 @@ func (rt resolvedText) baselineOffset(i int) int {
 func effectiveFontFamily(el Element, schema Schema) string {
 	if el.FontFamily != "" {
 		return el.FontFamily
-	}
-	if fitEnabled(el) && schema.FontFamily == "" {
-		return fitDefaultFont
 	}
 	if schema.FontFamily != "" {
 		return schema.FontFamily
@@ -282,7 +280,16 @@ func resolveSlotText(el Element, text string, schema Schema, widthPx, pad, qrRes
 		return resolvedText{}, err
 	}
 	if fitEnabled(el) {
-		rt.fit, rt.text, rt.elem, rt.family = true, text, el, ff
+		// Fit only applies on die-cut media, so the default fitted font is not
+		// part of effectiveFontFamily: continuous labels keep the normal default.
+		family := el.FontFamily
+		if family == "" {
+			family = schema.FontFamily
+		}
+		if family == "" {
+			family = fitDefaultFont
+		}
+		rt.fit, rt.text, rt.elem, rt.family = true, text, el, family
 	}
 	return rt, nil
 }
@@ -396,7 +403,7 @@ func drawTextElements(img *image.RGBA, textElems []resolvedText, widthPx, pad, q
 			if i == 0 && te.iconName != "" {
 				iconSize, iconY := te.lineH-2, y+1
 				if te.firstBaseline > 0 { // fitted text: icon spans the cap height
-					iconSize, iconY = te.firstBaseline, y
+					iconSize, iconY = te.iconSize, y
 				}
 				if iconSize > 0 {
 					iconImg, err := RasterizeIcon(te.iconName, iconSize)

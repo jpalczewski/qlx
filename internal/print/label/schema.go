@@ -44,6 +44,9 @@ func parseSchema(data []byte) (Schema, error) {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return Schema{}, fmt.Errorf("parse schema: %w", err)
 	}
+	if err := validateSchema(s); err != nil {
+		return Schema{}, err
+	}
 	if s.Padding == 0 {
 		s.Padding = 8
 	}
@@ -62,6 +65,23 @@ func parseSchema(data []byte) (Schema, error) {
 		}
 	}
 	return s, nil
+}
+
+// validateSchema rejects unknown enum values so typos fail loudly.
+func validateSchema(s Schema) error {
+	switch s.VAlign {
+	case "", "top", "middle":
+	default:
+		return fmt.Errorf("schema %q: invalid valign %q (want \"top\" or \"middle\")", s.Name, s.VAlign)
+	}
+	for i, el := range s.Elements {
+		switch el.Fit {
+		case "", "none", "fill":
+		default:
+			return fmt.Errorf("schema %q: element %d (%s): invalid fit %q (want \"none\" or \"fill\")", s.Name, i, el.Slot, el.Fit)
+		}
+	}
+	return nil
 }
 
 //go:embed schemas/*.json

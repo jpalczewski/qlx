@@ -74,12 +74,30 @@ func fitElements(elems []resolvedText, a fitArea) []resolvedText {
 	if a.barcodeH > 0 && a.barcodeID != "" {
 		fixedH += a.barcodeH + a.pad
 	}
-	remaining := a.totalH - a.dateLineH - fixedH
 
 	textW := a.widthPx - a.pad*2
 	if a.qrReserved > 0 {
 		textW -= a.qrReserved + a.pad
 	}
+
+	// Tags and children have the lowest priority (see truncateForDieCut): drop
+	// them from the end while the fit elements could not keep their minimum
+	// height next to them.
+	minNeed := 0
+	for _, e := range elems {
+		if e.fit && canFit(e) {
+			minNeed += reserveHeight(e, textW, a.totalH-a.dateLineH-a.pad*2, false)
+		}
+	}
+	for len(elems) > 1 {
+		last := elems[len(elems)-1]
+		if (last.slot != "tags" && last.slot != "children") || fixedH+minNeed <= a.totalH-a.dateLineH {
+			break
+		}
+		fixedH -= last.height()
+		elems = elems[:len(elems)-1]
+	}
+	remaining := a.totalH - a.dateLineH - fixedH
 
 	out := make([]resolvedText, len(elems))
 	copy(out, elems)
@@ -97,6 +115,23 @@ func fitElements(elems []resolvedText, a fitArea) []resolvedText {
 	return out
 }
 
+// reserveHeight returns the height one line of the element needs at its
+// minimum size (or, with useMax, at its explicit max_size).
+func reserveHeight(e resolvedText, textW, availH int, useMax bool) int {
+	size := e.elem.MinSize
+	if useMax && e.elem.MaxSize > 0 {
+		size = e.elem.MaxSize
+	}
+	if size <= 0 {
+		size = max(fitMinDefault, availH/4)
+	}
+	m, ok := measure(e, min(size, fitMaxCap), textW, false)
+	if !ok {
+		return 0
+	}
+	return m.blockH
+}
+
 // canFit reports whether a resolved element can be fitted: it needs text and
 // a scalable font.
 func canFit(e resolvedText) bool {
@@ -112,14 +147,15 @@ func canFit(e resolvedText) bool {
 
 // fitMetrics describes the measured layout of text at one size.
 type fitMetrics struct {
-	face    font.Face
-	lines   []string
-	top     int // cap/accent height above the first baseline
-	bottom  int // descender extent below the last baseline
-	step    int // distance between baselines
-	iconW   int
-	blockH  int
-	maxLine int // widest line in px
+	face     font.Face
+	lines    []string
+	top      int // cap/accent height above the first baseline
+	bottom   int // descender extent below the last baseline
+	step     int // distance between baselines
+	iconSize int // icon edge in px (cap height); the icon is drawn at exactly this size
+	iconW    int // horizontal space reserved for the icon
+	blockH   int
+	maxLine  int // widest line in px
 }
 
 // measure lays the text out at the given pixel size.
@@ -131,12 +167,14 @@ func measure(e resolvedText, size, textW int, wrap bool) (fitMetrics, bool) {
 	m := fitMetrics{face: face}
 
 	capBounds, _ := font.BoundString(face, "H")
-	m.top = max(-capBounds.Min.Y.Floor(), 1)
+	capH := max(-capBounds.Min.Y.Floor(), 1)
+	m.top = capH
 	m.step = size * 5 / 4
 
 	availW := textW
 	if e.iconName != "" {
-		m.iconW = m.top + 4
+		m.iconSize = capH
+		m.iconW = capH + 4
 		availW -= m.iconW
 	}
 	if availW < 1 {
@@ -189,6 +227,7 @@ func fitText(e resolvedText, textW, availH int) resolvedText {
 	if hi <= 0 {
 		hi = availH * 6 / 5
 	}
+	lo = min(lo, fitMaxCap)
 	hi = min(max(hi, lo), fitMaxCap)
 
 	// A minimum that cannot even hold one line by height is lowered until it does.
@@ -247,6 +286,7 @@ func applyFitMetrics(e resolvedText, m fitMetrics) resolvedText {
 	e.lines = m.lines
 	e.lineH = m.step
 	e.firstBaseline = m.top
+	e.iconSize = m.iconSize
 	e.bottom = m.bottom
 	return e
 }
