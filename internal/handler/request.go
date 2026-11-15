@@ -131,7 +131,11 @@ type PrintRequest struct {
 	PrintDate bool   `json:"print_date"`
 	// PrintDescription adds the description to a paired label (template "pair").
 	PrintDescription bool `json:"print_description"`
-	Density          int  `json:"density"`
+	// PairPages selects the pages of a paired label: "both" (default, also
+	// when empty) or "first" (only the identity label). With "first" copies and
+	// cut_every count single labels.
+	PairPages string `json:"pair_pages"`
+	Density   int    `json:"density"`
 	// Copies is the number of labels, or of label pairs for template "pair".
 	Copies int `json:"copies"`
 	// CutEvery cuts after every N labels, or N label pairs for template "pair".
@@ -147,7 +151,11 @@ type ContainerPrintRequest struct {
 	ShowChildren bool     `json:"show_children"`
 	// PrintDescription adds the description to a paired label (template "pair").
 	PrintDescription bool `json:"print_description"`
-	Density          int  `json:"density"`
+	// PairPages selects the pages of a paired label: "both" (default, also
+	// when empty) or "first" (only the identity label). With "first" copies and
+	// cut_every count single labels.
+	PairPages string `json:"pair_pages"`
+	Density   int    `json:"density"`
 	// Copies is the number of labels, or of label pairs for template "pair".
 	Copies int `json:"copies"`
 	// CutEvery cuts after every N labels, or N label pairs for template "pair".

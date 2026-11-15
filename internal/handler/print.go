@@ -273,6 +273,27 @@ func (h *PrintHandler) printBuiltin(printerID string, data label.LabelData, temp
 	return warnPairFallback, nil
 }
 
+// Values of the pair_pages request parameter.
+const (
+	pairPagesBoth  = "both"
+	pairPagesFirst = "first"
+)
+
+// renderOptsFromRequest builds label.RenderOpts from the print request fields.
+// pairPages must be "", "both" or "first"; anything else is an error.
+func renderOptsFromRequest(printDate, printDescription bool, pairPages string) (label.RenderOpts, error) {
+	switch pairPages {
+	case "", pairPagesBoth, pairPagesFirst:
+	default:
+		return label.RenderOpts{}, errors.New("pair_pages must be both or first")
+	}
+	return label.RenderOpts{
+		PrintDate:        printDate,
+		PrintDescription: printDescription,
+		FirstPageOnly:    pairPages == pairPagesFirst,
+	}, nil
+}
+
 // printOKResponse is the JSON body of a successful print.
 func printOKResponse(warning string) map[string]any {
 	resp := map[string]any{"ok": true}
@@ -316,7 +337,11 @@ func (h *PrintHandler) PrintItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
-	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
+	opts, err := renderOptsFromRequest(req.PrintDate, req.PrintDescription, req.PairPages)
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
 	h.printOrClientRender(w, data, req.PrinterID, req.Template, opts, pOpts)
 }
 
@@ -501,7 +526,11 @@ func (h *PrintHandler) PrintNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
-	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
+	opts, err := renderOptsFromRequest(req.PrintDate, req.PrintDescription, req.PairPages)
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
 	h.printOrClientRender(w, data, req.PrinterID, req.Template, opts, pOpts)
 }
 
@@ -706,7 +735,11 @@ func (h *PrintHandler) PrintContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := label.RenderOpts{PrintDate: req.PrintDate, PrintDescription: req.PrintDescription}
+	opts, err := renderOptsFromRequest(req.PrintDate, req.PrintDescription, req.PairPages)
+	if err != nil {
+		webutil.JSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
 	pOpts := printOptsFromRequest(req.Density, req.Copies, req.CutEvery, req.HighRes)
 
 	if len(req.Templates) == 0 {

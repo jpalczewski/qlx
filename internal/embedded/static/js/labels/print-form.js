@@ -23,6 +23,7 @@
   var SINGLE = "single";
   var LAYOUT_KEY = "qlx.print.layout";
   var DESC_KEY = "qlx.print.description";
+  var FIRST_ONLY_KEY = "qlx.print.pair_first_only";
 
   function storeGet(key) {
     try { return window.localStorage.getItem(key); } catch (e) { return null; }
@@ -39,9 +40,16 @@
     return sel.value === SINGLE ? SINGLE : PAIR;
   }
 
-  /** Cut-every counts pairs in pair style: swap its label and its untouched default. */
+  /** True when the pair option "print only the first label (title)" is on. Pair style only. */
+  function firstOnly(form) {
+    if (currentLayout(form) !== PAIR) return false;
+    var el = qs(form, "[data-pair-first-only]");
+    return !!(el && el.checked);
+  }
+
+  /** Cut-every counts pairs in pair style (single labels when only the first label is printed): swap its label and its untouched default. */
   function syncCutEvery(form) {
-    var pair = currentLayout(form) === PAIR;
+    var pair = currentLayout(form) === PAIR && !firstOnly(form);
     var text = qs(form, "[data-cut-every-text]");
     if (text) {
       var label = text.getAttribute(pair ? "data-label-pair" : "data-label-single");
@@ -49,7 +57,7 @@
     }
     var input = qs(form, "[data-cut-every]");
     // A pair is one cut unit: unless the user chose a value, cut after every pair.
-    if (input && !input._touched) input.value = pair ? "1" : "0";
+    if (input && !input._touched) input.value = currentLayout(form) === PAIR ? "1" : "0";
   }
 
   /** Show only the controls that apply to the selected label style. */
@@ -61,6 +69,8 @@
     }
     var descWrap = qs(form, "[data-description-wrap]");
     if (descWrap) descWrap.style.display = pair ? "" : "none";
+    var firstWrap = qs(form, "[data-pair-first-only-wrap]");
+    if (firstWrap) firstWrap.style.display = pair ? "" : "none";
     syncCutEvery(form);
   }
 
@@ -71,6 +81,8 @@
     if (saved === SINGLE || saved === PAIR) sel.value = saved;
     var desc = qs(form, "[data-print-description]");
     if (desc) desc.checked = storeGet(DESC_KEY) === "true";
+    var first = qs(form, "[data-pair-first-only]");
+    if (first) first.checked = storeGet(FIRST_ONLY_KEY) === "true";
 
     sel.addEventListener("change", function () {
       storeSet(LAYOUT_KEY, sel.value);
@@ -79,6 +91,12 @@
     if (desc) {
       desc.addEventListener("change", function () {
         storeSet(DESC_KEY, desc.checked ? "true" : "false");
+      });
+    }
+    if (first) {
+      first.addEventListener("change", function () {
+        storeSet(FIRST_ONLY_KEY, first.checked ? "true" : "false");
+        syncCutEvery(form);
       });
     }
     var cut = qs(form, "[data-cut-every]");
@@ -166,6 +184,7 @@
       template: template,
       templates: templates,
       layout: layout,
+      pairPages: firstOnly(form) ? "first" : "both",
       printDescription: printDescription,
       printDate: printDate,
       showChildren: showChildren,
@@ -186,6 +205,7 @@
         templates: vals.templates,
         print_date: vals.printDate,
         print_description: vals.printDescription,
+        pair_pages: vals.pairPages,
         show_children: vals.showChildren,
         copies: vals.copies,
         density: vals.density,
@@ -211,6 +231,7 @@
       template: vals.template,
       print_date: vals.printDate,
       print_description: vals.printDescription,
+      pair_pages: vals.pairPages,
       copies: vals.copies,
       density: vals.density,
       cut_every: vals.cutEvery,
@@ -362,8 +383,9 @@
       previewUrl += "&printer_id=" + encodeURIComponent(vals.printerId);
     }
     if (vals.layout === PAIR && vals.mode !== "adhoc") {
-      // Both labels of the pair, stacked in one image.
-      previewUrl += "&page=all&print_description=" + vals.printDescription;
+      // Both labels of the pair stacked in one image, or only the first one.
+      previewUrl += "&page=" + (vals.pairPages === "first" ? "1" : "all") +
+        "&print_description=" + vals.printDescription;
     }
 
     fetch(previewUrl, {
@@ -389,7 +411,7 @@
         img.src = url;
         img.className = "preview-image";
         img.alt = "Label preview";
-        if (vals.layout === PAIR && !result.warning) {
+        if (vals.layout === PAIR && vals.pairPages !== "first" && !result.warning) {
           img.setAttribute("data-preview-pair", "");
         }
         contentEl.appendChild(img);

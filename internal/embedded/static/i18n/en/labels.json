@@ -36,5 +36,6 @@
   "labels.layout_pair": "Pair (2 labels)",
   "labels.layout_single": "Single label",
   "labels.print_description": "Print description",
+  "labels.pair_first_only": "Print only the first label (title)",
   "labels.pair_fallback": "A paired label is not available for this printer or media; a single label was used."
 }
