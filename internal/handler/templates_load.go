@@ -19,10 +19,16 @@ type TemplateFuncs struct {
 }
 
 // LoadTemplates discovers and parses all HTML templates from the embedded FS.
+// It panics on a startup-time template error, including duplicate page names
+// and pages whose define does not match their file name.
 func LoadTemplates(fns TemplateFuncs) map[string]*template.Template {
 	layoutTmpl := loadLayout(fns)
 	mergeSharedTemplateDirs(layoutTmpl)
-	return discoverPages(layoutTmpl)
+	pages, err := discoverPages(embedded.Templates, "templates/pages", layoutTmpl)
+	if err != nil {
+		panic(err)
+	}
+	return pages
 }
 
 // mergeSharedTemplateDirs auto-discovers top-level subdirectories under templates/
@@ -95,32 +101,54 @@ func mergeHTMLDir(tmpl *template.Template, dir string) {
 	}
 }
 
-// discoverPages walks templates/pages/ and registers each .html as a named template.
-func discoverPages(layoutTmpl *template.Template) map[string]*template.Template {
+// pageTemplateName derives the template name (and map key) of a page file from
+// its basename: extension stripped, underscores turned into dashes. Each page
+// file must {{ define }} a template with exactly this name.
+func pageTemplateName(fpath string) string {
+	return strings.ReplaceAll(strings.TrimSuffix(path.Base(fpath), ".html"), "_", "-")
+}
+
+// discoverPages walks root in fsys and registers each .html file as a named page
+// template keyed by pageTemplateName. It fails fast, returning an error, when two
+// files map to the same key (naming both paths) or when a file does not define a
+// template matching its key.
+func discoverPages(fsys fs.FS, root string, layoutTmpl *template.Template) (map[string]*template.Template, error) {
 	templates := make(map[string]*template.Template)
-	err := fs.WalkDir(embedded.Templates, "templates/pages", func(fpath string, d fs.DirEntry, walkErr error) error {
+	sources := make(map[string]string) // key -> file path that registered it
+	err := fs.WalkDir(fsys, root, func(fpath string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil || d.IsDir() || path.Ext(fpath) != ".html" {
 			return walkErr
 		}
-		name := strings.ReplaceAll(strings.TrimSuffix(path.Base(fpath), ".html"), "_", "-")
-		content, err := embedded.Templates.ReadFile(fpath)
+		name := pageTemplateName(fpath)
+		if prev, dup := sources[name]; dup {
+			return fmt.Errorf("duplicate page template name %q: %s and %s", name, prev, fpath)
+		}
+		content, err := fs.ReadFile(fsys, fpath)
 		if err != nil {
 			return err
 		}
 		tmpl, err := layoutTmpl.Clone()
 		if err != nil {
-			return err
+			return fmt.Errorf("clone layout for %s: %w", fpath, err)
 		}
-		tmpl = template.Must(tmpl.Parse(string(content)))
+		if tmpl, err = tmpl.Parse(string(content)); err != nil {
+			return fmt.Errorf("parse %s: %w", fpath, err)
+		}
+		if tmpl.Lookup(name) == nil {
+			return fmt.Errorf("page %s must define template %q (derived from its file name)", fpath, name)
+		}
 		wrapper := `{{ define "content" }}{{ template "` + name + `" . }}{{ end }}`
-		tmpl = template.Must(tmpl.Parse(wrapper))
+		if tmpl, err = tmpl.Parse(wrapper); err != nil {
+			return fmt.Errorf("parse content wrapper for %s: %w", fpath, err)
+		}
 		templates[name] = tmpl
+		sources[name] = fpath
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return templates
+	return templates, nil
 }
 
 func dict(values ...any) (map[string]any, error) {
