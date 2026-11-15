@@ -35,6 +35,7 @@ type Element struct {
 	ShowIcons  *bool   `json:"show_icons"`  // render inline icons (default true for title/children/tags)
 	Fit        string  `json:"fit"`         // title/description/location only: "none" (default) or "fill" (see fit.go)
 	MinSize    int     `json:"min_size"`    // fit only: smallest font px before wrapping (default: a quarter of the area height, at least 16)
+	MarginTop  int     `json:"margin_top"`  // fit only: blank px above the element
 	MaxSize    int     `json:"max_size"`    // fit only: largest font px (default: derived from the area height)
 }
 

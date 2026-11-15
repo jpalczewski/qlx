@@ -175,6 +175,17 @@ test.describe('Label preview', () => {
     expect(response.headers()['content-type']).toContain('image/png');
   });
 
+  test('adhoc preview renders the fitted name templates and tolerates an unknown printer_id', async ({ request, app }) => {
+    for (const template of ['name', 'name-qr']) {
+      const response = await request.get(
+        `${app.baseURL}/adhoc/preview?template=${template}&text=Kabel+USB-C&printer_id=no-such-printer`,
+        { headers: { 'Accept': 'image/png' } }
+      );
+      expect(response.ok()).toBeTruthy();
+      expect(response.headers()['content-type']).toContain('image/png');
+    }
+  });
+
   test('preview endpoint returns 400 for missing template', async ({ request, app }) => {
     const response = await request.get(
       `${app.baseURL}/items/${itemId}/preview`,

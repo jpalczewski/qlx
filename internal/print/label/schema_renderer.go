@@ -25,6 +25,7 @@ type resolvedText struct {
 	firstBaseline int // distance from the element top to the first baseline
 	bottom        int // extent below the last baseline
 	iconSize      int // fitted text: icon edge in px
+	marginTop     int // blank space above a fitted element (included in firstBaseline)
 
 	// Fit bookkeeping, set only for elements with Fit == "fill".
 	fit    bool
@@ -275,6 +276,10 @@ func resolveSlotText(el Element, text string, schema Schema, widthPx, pad, qrRes
 	if IsBasicFont(ff) {
 		text = TransliteratePL(text)
 	}
+	if fitEnabled(el) {
+		// Outline fonts have no arrow glyph; use a single angle quote instead.
+		text = strings.ReplaceAll(text, "→", "›")
+	}
 	rt, err := resolveTextElement(el, text, ff, widthPx, pad, qrReserved)
 	if err != nil {
 		return resolvedText{}, err
@@ -403,7 +408,7 @@ func drawTextElements(img *image.RGBA, textElems []resolvedText, widthPx, pad, q
 			if i == 0 && te.iconName != "" {
 				iconSize, iconY := te.lineH-2, y+1
 				if te.firstBaseline > 0 { // fitted text: icon spans the cap height
-					iconSize, iconY = te.iconSize, y
+					iconSize, iconY = te.iconSize, y+te.marginTop
 				}
 				if iconSize > 0 {
 					iconImg, err := RasterizeIcon(te.iconName, iconSize)

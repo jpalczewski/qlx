@@ -9,16 +9,23 @@ import (
 	"github.com/erxyi/qlx/internal/shared/webutil"
 )
 
+// adhocPrinterDeps is what AdhocHandler needs from the printer manager:
+// printing, plus encoder and status lookup so previews use the printer's media.
+type adhocPrinterDeps interface {
+	labelPrinter
+	previewMediaResolver
+}
+
 // AdhocHandler handles HTTP requests for ad-hoc label printing.
 type AdhocHandler struct {
-	pm        labelPrinter
+	pm        adhocPrinterDeps
 	printers  *service.PrinterService
 	templates *service.TemplateService
 	resp      Responder
 }
 
 // NewAdhocHandler creates a new AdhocHandler.
-func NewAdhocHandler(pm labelPrinter, prn *service.PrinterService,
+func NewAdhocHandler(pm adhocPrinterDeps, prn *service.PrinterService,
 	tmpl *service.TemplateService, resp Responder) *AdhocHandler {
 	return &AdhocHandler{pm: pm, printers: prn, templates: tmpl, resp: resp}
 }
@@ -88,5 +95,5 @@ func (h *AdhocHandler) Preview(w http.ResponseWriter, r *http.Request) {
 
 	data := label.LabelData{Name: text}
 	opts := label.RenderOpts{PrintDate: r.URL.Query().Get("print_date") == "true"}
-	renderPreviewWithMedia(w, h.templates, data, templateName, label.MediaInfo{WidthPx: previewWidth(r), DPI: 203}, opts)
+	renderPreviewWithMedia(w, h.templates, data, templateName, previewMedia(r, h.pm, h.printers), opts)
 }

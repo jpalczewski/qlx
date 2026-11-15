@@ -85,16 +85,23 @@ func fitElements(elems []resolvedText, a fitArea) []resolvedText {
 
 	out := make([]resolvedText, len(elems))
 	copy(out, elems)
-	left := fitCount
 	for i, e := range out {
 		if !e.fit || !canFit(e) {
 			continue
 		}
-		share := remaining / left
-		fitted := fitText(e, textW, share)
+		// Keep room for the fit elements that follow: an element with a max_size
+		// reserves one line of that size, the others reserve their minimum.
+		reserved := 0
+		for _, later := range out[i+1:] {
+			if later.fit && canFit(later) {
+				reserved += reserveHeight(later, textW, remaining, true)
+			}
+		}
+		fitted := fitText(e, textW, remaining-reserved-e.elem.MarginTop)
+		fitted.marginTop = e.elem.MarginTop
+		fitted.firstBaseline += fitted.marginTop
 		out[i] = fitted
 		remaining -= fitted.height()
-		left--
 	}
 	return out
 }
@@ -121,7 +128,7 @@ func dropLowPriority(elems []resolvedText, a fitArea, textW, fixedH int) ([]reso
 }
 
 // reserveHeight returns the height one line of the element needs at its
-// minimum size (or, with useMax, at its explicit max_size).
+// minimum size (or, with useMax, at its explicit max_size), margin included.
 func reserveHeight(e resolvedText, textW, availH int, useMax bool) int {
 	size := e.elem.MinSize
 	if useMax && e.elem.MaxSize > 0 {
@@ -134,7 +141,7 @@ func reserveHeight(e resolvedText, textW, availH int, useMax bool) int {
 	if !ok {
 		return 0
 	}
-	return m.blockH
+	return m.blockH + e.elem.MarginTop
 }
 
 // canFit reports whether a resolved element can be fitted: it needs text and

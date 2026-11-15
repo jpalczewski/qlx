@@ -281,11 +281,25 @@ func renderPreviewWithMedia(w http.ResponseWriter, templates *service.TemplateSe
 // If printer_id is present and the printer is found, uses that printer's media info.
 // Otherwise falls back to width from query params (continuous, no die-cut).
 func (h *PrintHandler) previewMediaInfo(r *http.Request) label.MediaInfo {
+	return previewMedia(r, h.pm, h.printers)
+}
+
+// previewMediaResolver is the part of the printer manager needed to resolve
+// the media of a printer for previews.
+type previewMediaResolver interface {
+	printerStatusProvider
+	Encoder(name string) encoder.Encoder
+}
+
+// previewMedia resolves the media for a preview request: the media of the
+// printer named by the printer_id query parameter if it is known, otherwise
+// a continuous 203 dpi fallback of the requested width.
+func previewMedia(r *http.Request, pm previewMediaResolver, printers *service.PrinterService) label.MediaInfo {
 	if printerID := r.URL.Query().Get("printer_id"); printerID != "" {
-		status := h.pm.GetStatus(printerID)
-		cfg := h.printers.GetPrinter(printerID)
+		status := pm.GetStatus(printerID)
+		cfg := printers.GetPrinter(printerID)
 		if cfg != nil {
-			enc := h.pm.Encoder(cfg.Encoder)
+			enc := pm.Encoder(cfg.Encoder)
 			if enc != nil {
 				if mi := print.FindModel(enc, cfg.Model); mi != nil {
 					return print.MediaForStatus(enc, mi, status)
