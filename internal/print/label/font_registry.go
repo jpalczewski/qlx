@@ -41,6 +41,11 @@ var fontCatalog = map[string]fontEntry{
 	"noto-sans": {
 		file: "fonts/noto-sans-regular.ttf",
 	},
+	// noto-sans-bold has thick strokes that survive the 1-bit threshold on
+	// thermal printers; it is the default font for fitted text.
+	"noto-sans-bold": {
+		file: "fonts/noto-sans-bold.ttf",
+	},
 	"go-mono": {
 		file: "fonts/go-mono-regular.ttf",
 	},

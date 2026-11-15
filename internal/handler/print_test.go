@@ -288,7 +288,7 @@ func TestPreviewMediaInfo_WithWidth(t *testing.T) {
 func TestPreviewMediaInfo_WithPrinterID(t *testing.T) {
 	h, prn := newTestPrintHandlerWithEncoder(t)
 
-	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "mock", "")
+	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "remote", "")
 	if err != nil {
 		t.Fatalf("AddPrinter: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestCapabilities_NotFound(t *testing.T) {
 func TestCapabilities_OK(t *testing.T) {
 	h, prn := newTestPrintHandlerWithEncoder(t)
 
-	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "mock", "")
+	cfg, err := prn.AddPrinter("Test B1", "niimbot", "B1", "remote", "")
 	if err != nil {
 		t.Fatalf("AddPrinter: %v", err)
 	}
