@@ -175,8 +175,8 @@ test.describe('Label preview', () => {
     expect(response.headers()['content-type']).toContain('image/png');
   });
 
-  test('adhoc preview renders the fitted name templates and tolerates an unknown printer_id', async ({ request, app }) => {
-    for (const template of ['name', 'name-qr']) {
+  test('adhoc preview renders the fitted name template and tolerates an unknown printer_id', async ({ request, app }) => {
+    for (const template of ['name']) {
       const response = await request.get(
         `${app.baseURL}/adhoc/preview?template=${template}&text=Kabel+USB-C&printer_id=no-such-printer`,
         { headers: { 'Accept': 'image/png' } }

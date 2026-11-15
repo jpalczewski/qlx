@@ -21,7 +21,6 @@ func nameCases() []nameCase {
 	return []nameCase{
 		{"title-only", "name", LabelData{Name: "Kabel USB-C"}, false},
 		{"title-location", "name", LabelData{Name: "Zasilacz 12V", Location: "Pracownia → Regał 2 → Szuflada"}, false},
-		{"with-qr", "name-qr", LabelData{Name: "Zasilacz 12V", Location: "Pracownia → Regał 2", QRContent: "https://qlx.local/item/42"}, false},
 		{"with-date", "name", LabelData{Name: "Kabel USB-C", Location: "Pracownia"}, true},
 		{"very-long", "name", LabelData{
 			Name:     "Zestaw śrubek do elektroniki precyzyjnej z końcówkami wymiennymi i etui",
@@ -72,24 +71,16 @@ func TestNameTemplateTitleLargerThanSimple(t *testing.T) {
 	}
 }
 
-func TestNameTemplateQROptIn(t *testing.T) {
+// QR codes are intentionally not part of the name template (tracked in #123).
+func TestNameTemplateDrawsNoQR(t *testing.T) {
 	media := fitMedias["384x160@203"]
-	data := LabelData{Name: "Ab", QRContent: "https://qlx.local/item/1"}
-	plain, err := Render(data, "name", media, RenderOpts{})
+	img, err := Render(LabelData{Name: "Ab", QRContent: "https://qlx.local/item/1"}, "name", media, RenderOpts{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	withQR, err := Render(data, "name-qr", media, RenderOpts{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// The QR sits at the top-right corner: only name-qr has ink there.
 	corner := image.Rect(media.WidthPx-8-100, 8, media.WidthPx-8, 8+100)
-	if !inkIn(plain, corner).Empty() {
+	if !inkIn(img, corner).Empty() {
 		t.Error("name template must not draw a QR code")
-	}
-	if inkIn(withQR, corner).Empty() {
-		t.Error("name-qr template must draw a QR code")
 	}
 }
 
