@@ -31,7 +31,46 @@
   // Card quick-add
   // ------------------------------------------------------------------
 
+  /** Item count in words, mirroring PageData.Plural on the server. */
+  function countText(n) {
+    var form = "many";
+    if (n === 1) form = "one";
+    else if ((document.documentElement.lang || "") === "pl" &&
+             n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) form = "few";
+    return t("home.count_" + form).replace("{n}", String(n));
+  }
+
+  function setExpanded(card, open, focus) {
+    var toggle = card.querySelector(".home-card-add-toggle");
+    var form = card.querySelector("form.home-card-add");
+    if (!toggle || !form) return;
+    form.hidden = !open;
+    toggle.hidden = open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      form.querySelector("input").focus();
+    } else if (focus) {
+      toggle.focus();
+    }
+  }
+
   function initCardAdd(root) {
+    root.addEventListener("click", function (e) {
+      var toggle = e.target.closest ? e.target.closest(".home-card-add-toggle") : null;
+      if (toggle) setExpanded(toggle.closest(".home-card"), true, false);
+    });
+    root.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var form = e.target.closest ? e.target.closest("form.home-card-add") : null;
+      if (!form) return;
+      e.preventDefault();
+      setExpanded(form.closest(".home-card"), false, true);
+    });
+    root.addEventListener("focusout", function (e) {
+      var form = e.target.closest ? e.target.closest("form.home-card-add") : null;
+      if (!form || form.contains(e.relatedTarget) || form.getAttribute("data-busy") === "true") return;
+      if (form.querySelector("input").value === "") setExpanded(form.closest(".home-card"), false, false);
+    });
     root.addEventListener("submit", function (e) {
       var form = e.target.closest ? e.target.closest("form.home-card-add") : null;
       if (!form) return;
@@ -53,7 +92,11 @@
         return resp.json();
       }).then(function () {
         var count = card.querySelector(".home-card-count");
-        if (count) count.textContent = String((parseInt(count.textContent, 10) || 0) + 1);
+        if (count) {
+          var n = (parseInt(count.getAttribute("data-count"), 10) || 0) + 1;
+          count.setAttribute("data-count", String(n));
+          count.textContent = countText(n);
+        }
         input.value = "";
         toast(t("home.card_add_done").replace("{name}", parsed.name), false);
         if (qlx.invalidateContainerCache) qlx.invalidateContainerCache();
